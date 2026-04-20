@@ -191,6 +191,8 @@ const AppGCS = () => {
   const [editingMissionId, setEditingMissionId] = useState(null);
   const [isMapActive, setIsMapActive] = useState(false);
   const [isMissionSaved, setIsMissionSaved] = useState(false);
+  // Auto-save trigger saat drone landing
+  const [autoSavePending, setAutoSavePending] = useState(null);
 
   // --- TELEMETRY ---
   const [telemetryHistory, setTelemetryHistory] = useState([]);
@@ -263,6 +265,50 @@ const AppGCS = () => {
 
   useEffect(() => { if (videoRef.current && webcamStream) videoRef.current.srcObject = webcamStream; }, [webcamStream, isSettingsOpen]);
   useEffect(() => { if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' }); }, [aiHistory]);
+
+  // --- AUTO-SAVE MISI KE DB SAAT DRONE LANDING ---
+  useEffect(() => {
+    if (!autoSavePending) return;
+    const payload = autoSavePending;
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    fetch('/missions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+      body: JSON.stringify(payload),
+    })
+    .then(res => {
+      if (res.ok) {
+        return res.json().then(result => {
+          const dbId = result?.data?.id;
+          const newId = dbId ? `MSN-${String(dbId).padStart(4,'0')}` : `MSN-${Date.now()}`;
+          const newMission = {
+            id: newId, _dbId: dbId,
+            name: payload.mission_name,
+            wpCount: payload.scan_mode === 'qlv' ? '1 Koridor' : '2 Lajur',
+            algorithm: payload.nav_algorithm,
+            scan: payload.scan_mode,
+            date: new Date().toLocaleTimeString(),
+            status: 'Completed',
+          };
+          setSavedMissions(prev => [newMission, ...prev]);
+          setCockpitWarning(`✅ Misi "${payload.mission_name}" tercatat otomatis! ID: ${newId}`);
+          setTimeout(() => setCockpitWarning(''), 4000);
+          console.log('[GCS] Auto-save landing berhasil! DB ID:', dbId);
+        });
+      } else {
+        console.error('[GCS] Auto-save gagal:', res.status);
+        setCockpitWarning('⚠️ Misi selesai tapi gagal tersimpan ke server!');
+        setTimeout(() => setCockpitWarning(''), 4000);
+      }
+    })
+    .catch(e => {
+      console.error('[GCS] Auto-save network error:', e);
+      setCockpitWarning('⚠️ Tidak dapat terhubung ke server untuk simpan misi!');
+      setTimeout(() => setCockpitWarning(''), 4000);
+    })
+    .finally(() => setAutoSavePending(null));
+  }, [autoSavePending]);
+
 
   // --- GEMINI AI ASSISTANT ---
   const handleAskGemini = async () => {
@@ -454,7 +500,20 @@ const AppGCS = () => {
               const finalMatang = Math.floor(finalCount * 0.65); const finalBelum = finalCount - finalMatang;
               const acc = fInfo.scan === 'qlv' ? Math.floor(Math.random() * 6) + 89 : Math.floor(Math.random() * 4) + 96;
               const newLog = { id: 'LOG-' + Date.now(), date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(), name: fInfo.name, nav: fInfo.nav, scan: fInfo.scan, samples: finalCount, matang: finalMatang, belumMatang: finalBelum, flightTime: flightTimeRef.current, batteryUsed: parseFloat((flightTimeRef.current * 0.01).toFixed(2)), accuracy: acc };
-              setFlightLogs(prev => [newLog, ...prev]); currentFlightInfoRef.current = null;
+              setFlightLogs(prev => [newLog, ...prev]);
+              // ✅ AUTO-SAVE KE DB saat drone mendarat
+              setAutoSavePending({
+                mission_name: fInfo.name,
+                nav_algorithm: fInfo.nav,
+                scan_mode: fInfo.scan,
+                waypoints: fInfo.waypointSlim || [],
+                path_data: fInfo.pathSlim || [],
+                config_data: fInfo.configData || {},
+                status: 'Completed',
+                samples_count: finalCount,
+                flight_time: flightTimeRef.current,
+              });
+              currentFlightInfoRef.current = null;
             }
           }
         }
@@ -479,7 +538,15 @@ const AppGCS = () => {
     if (scanMode === 'qlv' && waypoints.length === 0) { setCockpitWarning('Pilih 1 Pohon Awal untuk QLV!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
     const path = scanMode === 'qlv' ? qlvPath : scanMode === 'traditional' ? tradPath : waypoints;
     activePathRef.current = path;
-    currentFlightInfoRef.current = { name: missionName || 'Misi Tanpa Nama', nav: navAlgorithm, scan: scanMode };
+    // Simpan data misi untuk auto-save saat landing
+    currentFlightInfoRef.current = {
+      name: missionName || 'Misi Tanpa Nama',
+      nav: navAlgorithm,
+      scan: scanMode,
+      waypointSlim: waypoints.map(wp => ({ id: wp.id, row: wp.row, x: wp.x, y: wp.y })),
+      pathSlim: path.map(p => ({ x: p.x, y: p.y })),
+      configData: { namaBlok: config.namaBlok, luasKebun: config.luasKebun, totalPohon: config.totalPohon },
+    };
     currentWpIndexRef.current = 0; flightTimeRef.current = 0; scannedTreesRef.current = 0;
     setScannedTrees(0); setFlightTime(0); autoSubStateRef.current = 'NAV';
     flightStatusRef.current = 'TAKEOFF'; setFlightStatusUI('TAKEOFF');

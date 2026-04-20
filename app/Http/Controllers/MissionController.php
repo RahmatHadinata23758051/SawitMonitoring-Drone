@@ -33,13 +33,16 @@ class MissionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'mission_name'  => 'required|string|max:255',
-            'drone_id'      => 'nullable|string',
-            'nav_algorithm' => 'nullable|string',
-            'scan_mode'     => 'nullable|string',
-            'waypoints'     => 'required|array|min:1',
-            'path_data'     => 'nullable|array',
-            'config_data'   => 'nullable|array',
+            'mission_name'   => 'required|string|max:255',
+            'drone_id'       => 'nullable|string',
+            'nav_algorithm'  => 'nullable|string',
+            'scan_mode'      => 'nullable|string',
+            'waypoints'      => 'required|array|min:1',
+            'path_data'      => 'nullable|array',
+            'config_data'    => 'nullable|array',
+            'status'         => 'nullable|string|in:Saved,Completed,Failed',
+            'samples_count'  => 'nullable|integer',
+            'flight_time'    => 'nullable|integer',
         ]);
 
         $post = Mission::create([
@@ -49,7 +52,7 @@ class MissionController extends Controller
             'scan_mode'     => $validated['scan_mode'] ?? 'traditional',
             'waypoints'     => $validated['waypoints'],
             'path_data'     => $validated['path_data'] ?? [],
-            'status'        => 'Saved'
+            'status'        => $validated['status'] ?? 'Saved',
         ]);
 
         try {
