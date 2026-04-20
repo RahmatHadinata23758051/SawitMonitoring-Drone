@@ -22,10 +22,10 @@
     @vite(['resources/css/app.css'])
 </head>
 
-<body class="font-sans antialiased overflow-hidden">
+<body class="font-sans antialiased bg-slate-950">
 
     <!-- React GCS Root — Full Screen SPA -->
-    <div id="react-gcs-root" class="w-screen h-screen"></div>
+    <div id="react-gcs-root" class="w-screen min-h-screen"></div>
 
     @viteReactRefresh
     @vite('resources/js/gcs-react.jsx')

@@ -535,7 +535,7 @@ const AppGCS = () => {
   // RENDER
   // =========================================
   return (
-    <div className={`font-sans flex flex-col overflow-hidden selection:bg-emerald-500/30 transition-all ${isFullscreen ? 'fixed inset-0 z-[40] h-screen w-screen' : 'min-h-screen relative'} ${t('bg-slate-950 text-slate-200', 'bg-slate-50 text-slate-800')}`}>
+    <div className={`font-sans flex flex-col selection:bg-emerald-500/30 transition-all ${isFullscreen ? 'fixed inset-0 z-[40] h-screen w-screen overflow-hidden' : 'min-h-screen w-full overflow-auto'} ${t('bg-slate-950 text-slate-200', 'bg-slate-50 text-slate-800')}`}>
 
       {/* ======== HEADER BAR ======== */}
       <header className={`h-12 border-b flex items-center justify-between px-3 shadow-md z-10 shrink-0 ${t('bg-slate-900 border-slate-800', 'bg-white border-slate-200')}`}>
