@@ -94,7 +94,7 @@
                                 <th class="text-center px-3 py-3 font-semibold whitespace-nowrap">Waktu Terbang</th>
                                 <th class="text-center px-3 py-3 font-semibold whitespace-nowrap">Baterai</th>
                                 <th class="text-center px-3 py-3 font-semibold">Sampel</th>
-                                <th class="text-center px-3 py-3 font-semibold text-orange-600">Matang</th>
+                                <th class="text-center px-3 py-3 font-semibold">Hasil Result</th>
                                 <th class="text-center px-3 py-3 font-semibold text-emerald-600">Akurasi</th>
                                 <th class="text-center px-3 py-3 font-semibold whitespace-nowrap">Tanggal</th>
                                 <th class="text-center px-3 py-3 font-semibold">Aksi</th>
@@ -164,10 +164,18 @@
                                         <span class="text-xs text-slate-400">pohon</span>
                                     </td>
 
-                                    {{-- Matang --}}
+                                    {{-- Hasil Result (Matang / Mentah) --}}
                                     <td class="px-3 py-3 text-center">
-                                        <span class="font-bold text-orange-600">{{ $log->matang }}</span>
-                                        <span class="text-xs text-slate-400">/ {{ $log->belum_matang }} mentah</span>
+                                        <div class="flex flex-col items-center gap-0.5">
+                                            <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                                                <i class="fa-solid fa-circle-check text-[9px]"></i>
+                                                Matang: <strong>{{ $log->matang }}</strong>
+                                            </span>
+                                            <span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                                <i class="fa-solid fa-circle-xmark text-[9px]"></i>
+                                                Mentah: <strong>{{ $log->belum_matang }}</strong>
+                                            </span>
+                                        </div>
                                     </td>
 
                                     {{-- Akurasi --}}
