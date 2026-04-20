@@ -10,46 +10,41 @@ import {
 import { homeWP, BASE_LAT, BASE_LON, METER_TO_DEG } from './utils/gcsConstants';
 import { generateTreeGrid, generateQLVPath, getQLVTargetTrees, generateTradPath, buildPathString } from './utils/pathGenerator';
 import { exportBlokKebun, exportTelemetry, exportFlightReport, formatFlightTime } from './utils/missionFormatter';
+import { useAppSettings } from './hooks/useAppSettings';
+import { useSerialPort } from './hooks/useSerialPort';
+import { useMissionManager } from './hooks/useMissionManager';
+import { useFlightControl } from './hooks/useFlightControl';
 
 
 const AppGCS = () => {
-  // --- APP SETTINGS (dari Laravel — Fase E Branding Sync) ---
-  const [appSettings, setAppSettings] = useState({
-    name: 'Drone CPS',
-    image: null,
-    version: '1.0.0',
-    tab_name: 'GCS — Drone CPS',
-    copyright: 'MakeSens',
-    copyright_year: new Date().getFullYear(),
-  });
-  useEffect(() => {
-    fetch('/api/pengaturan-aplikasi')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) {
-          setAppSettings(prev => ({ ...prev, ...data }));
-          // Sinkron judul tab browser
-          if (data.tab_name) document.title = `GCS · ${data.tab_name}`;
-          else if (data.name) document.title = `GCS · ${data.name}`;
-        }
-      })
-      .catch(() => {});
-  }, []);
+  // ============================================
+  // ORCHESTRATION STATE (tidak masuk ke hook)
+  // ============================================
 
-
-  // --- STATE TEMA & FULLSCREEN ---
+  // Tema & Fullscreen
   const [theme, setTheme] = useState('dark');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const t = (darkClass, lightClass) => theme === 'dark' ? darkClass : lightClass;
+  const toggleFullScreen = () => setIsFullscreen(!isFullscreen);
 
-  // --- POPUP NOTIFIKASI ERROR ---
+  // Popup notifikasi error
   const [alertPopup, setAlertPopup] = useState(null);
 
-  // --- STATE DRONE MANAGEMENT ---
+  // Mode drone (simulasi / real)
+  const [droneMode, setDroneMode] = useState('');
+
+  // Settings Modal & Laporan
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeSettingNode, setActiveSettingNode] = useState('mode');
+  const [isReportsOpen, setIsReportsOpen] = useState(false);
+
+  // Drone Management (D1: load dari API)
   const [drones, setDrones] = useState([]);
   const [dronesLoading, setDronesLoading] = useState(true);
+  const [selectedUploadDrone, setSelectedUploadDrone] = useState('');
+  const [droneForm, setDroneForm] = useState({ id: '', merk: '', status: 'Standby' });
+  const [isEditingDrone, setIsEditingDrone] = useState(false);
 
-  // D1: Load drone dari Laravel /api/perangkat
   useEffect(() => {
     fetch('/api/perangkat')
       .then(r => r.ok ? r.json() : [])
@@ -57,69 +52,44 @@ const AppGCS = () => {
         if (Array.isArray(data) && data.length > 0) setDrones(data);
         else setDrones([
           { id: 'DRN-001', merk: 'DJI Matrice 300 RTK', status: 'Standby' },
-          { id: 'DRN-002', merk: 'SawitV1 Custom Quad', status: 'Maintenance' }
+          { id: 'DRN-002', merk: 'SawitV1 Custom Quad', status: 'Maintenance' },
         ]);
       })
-      .catch(() => setDrones([
-        { id: 'DRN-001', merk: 'DJI Matrice 300 RTK (Demo)', status: 'Standby' }
-      ]))
+      .catch(() => setDrones([{ id: 'DRN-001', merk: 'DJI Matrice 300 RTK (Demo)', status: 'Standby' }]))
       .finally(() => setDronesLoading(false));
   }, []);
 
-  const [selectedUploadDrone, setSelectedUploadDrone] = useState('');
-  const [droneForm, setDroneForm] = useState({ id: '', merk: '', status: 'Standby' });
-  const [isEditingDrone, setIsEditingDrone] = useState(false);
-
-  // --- STATE PENGATURAN (SETTINGS MODAL) & LAPORAN ---
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [activeSettingNode, setActiveSettingNode] = useState('mode');
-  const [isReportsOpen, setIsReportsOpen] = useState(false);
-
-  // System Mode Settings
-  const [droneMode, setDroneMode] = useState('');
-  const [webcamStream, setWebcamStream] = useState(null);
-  const videoRef = useRef(null);
-
-  // Telemetry Settings
-  const [telemBaud, setTelemBaud] = useState('57600');
-  const [isTelemConnected, setIsTelemConnected] = useState(false);
-  const serialPortRef = useRef(null);
-  const serialReaderRef = useRef(null);
-
-  // Video Settings
-  const [videoIp, setVideoIp] = useState('192.168.1.100');
-  const [isVideoConnected, setIsVideoConnected] = useState(false);
-  const [liveStreamUrl, setLiveStreamUrl] = useState('');
-
-  // Emulator State
-  const flightStatusRef = useRef('STANDBY');
-  const activePathRef = useRef([]);
-  const currentWpIndexRef = useRef(0);
-  const autoSubStateRef = useRef('NAV');
-  const scanTimerRef = useRef(0);
-  const baseYawRef = useRef(0);
-  const tickCountRef = useRef(0);
-
-  const [flightStatusUI, setFlightStatusUI] = useState('STANDBY');
-  const [cockpitWarning, setCockpitWarning] = useState('');
-
-  const flightTimeRef = useRef(0);
-  const currentFlightInfoRef = useRef(null);
-  const [scannedTrees, setScannedTrees] = useState(0);
-  const scannedTreesRef = useRef(0);
-  const [flightTime, setFlightTime] = useState(0);
-
-  // --- STATE AI VISION ---
-  const [liveAiVision, setLiveAiVision] = useState({
-    active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false,
-    condition: null, confidence: 0, boxPos: { top: 30, left: 40 }
+  // Parameter Kebun
+  const [config, setConfig] = useState({
+    id: 'BLK-' + Date.now(), namaBlok: 'Blok A-01',
+    luasKebun: 1.0, totalPohon: 140, jumlahSampel: 14, tinggiPohon: 8.5,
   });
+  const [managedBlocks, setManagedBlocks] = useState([]);
 
-  const [flightLogs, setFlightLogs] = useState([
-    { id: 'LOG-101', date: '10/04/2026 09:12:00', name: 'MISI-BlokA', nav: 'live_reckoning', scan: 'qlv', flightTime: 85, samples: 14, matang: 9, belumMatang: 5, batteryUsed: 0.85, accuracy: 92 },
-    { id: 'LOG-102', date: '10/04/2026 10:30:00', name: 'MISI-BlokB', nav: 'dead_reckoning', scan: 'traditional', flightTime: 210, samples: 14, matang: 9, belumMatang: 5, batteryUsed: 2.10, accuracy: 98 },
-    { id: 'LOG-103', date: '13/04/2026 00:53:18', name: 'WPTR', nav: 'hybrid', scan: 'traditional', flightTime: 96, samples: 25, matang: 16, belumMatang: 9, batteryUsed: 0.96, accuracy: 97 }
-  ]);
+  useEffect(() => {
+    fetch('/api/kebun')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) setManagedBlocks(data);
+        else setManagedBlocks([{ id: 'BLK-1001', namaBlok: 'Blok A-01 (Demo)', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }]);
+      })
+      .catch(() => setManagedBlocks([{ id: 'BLK-1001', namaBlok: 'Blok A-01 (Demo)', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }]));
+  }, []);
+
+  // Tabs & Map
+  const [activeTab, setActiveTab] = useState('current');
+  const [activeMapTab, setActiveMapTab] = useState('map');
+  const [isMapActive, setIsMapActive] = useState(false);
+  const [isMissionSaved, setIsMissionSaved] = useState(false);
+
+  // Algoritma & Mode Scan
+  const [navAlgorithm, setNavAlgorithm] = useState('');
+  const [scanMode, setScanMode] = useState('');
+
+  // Waypoints & Mission
+  const [waypoints, setWaypoints] = useState([]);
+  const [warning, setWarning] = useState('');
+  const [missionName, setMissionName] = useState('');
 
   // Gemini AI Assistant
   const [aiInput, setAiInput] = useState('');
@@ -129,39 +99,75 @@ const AppGCS = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const chatEndRef = useRef(null);
 
-  // --- STATE PARAMETER KEBUN ---
-  const [config, setConfig] = useState({
-    id: 'BLK-' + Date.now(), namaBlok: 'Blok A-01',
-    luasKebun: 1.0, totalPohon: 140, jumlahSampel: 14, tinggiPohon: 8.5
+  // ============================================
+  // CUSTOM HOOKS — BL-08b (wired here, full integration di BL-08d)
+  // ============================================
+
+  // App Settings (branding + tab title sync) — AKTIF
+  const { appSettings } = useAppSettings();
+
+  // useSerialPort, useFlightControl, useMissionManager
+  // ⚠️ Akan disambungkan penuh di BL-08c + BL-08d saat component extraction.
+  // Saat ini semua state & handler masih inline di bawah (agar tidak ada circular dep).
+
+  // ============================================
+  // INLINE STATE (masih inline sampai BL-08d)
+  // ============================================
+
+  // Telemetry / Video / Serial
+  const [webcamStream, setWebcamStream] = useState(null);
+  const videoRef = useRef(null);
+  const [telemBaud, setTelemBaud] = useState('57600');
+  const [isTelemConnected, setIsTelemConnected] = useState(false);
+  const serialPortRef = useRef(null);
+  const serialReaderRef = useRef(null);
+  const [videoIp, setVideoIp] = useState('192.168.1.100');
+  const [isVideoConnected, setIsVideoConnected] = useState(false);
+  const [liveStreamUrl, setLiveStreamUrl] = useState('');
+
+  // Flight Status Refs
+  const flightStatusRef = useRef('STANDBY');
+  const activePathRef = useRef([]);
+  const currentWpIndexRef = useRef(0);
+  const autoSubStateRef = useRef('NAV');
+  const scanTimerRef = useRef(0);
+  const baseYawRef = useRef(0);
+  const tickCountRef = useRef(0);
+  const flightTimeRef = useRef(0);
+  const currentFlightInfoRef = useRef(null);
+  const scannedTreesRef = useRef(0);
+
+  // Flight UI State
+  const [flightStatusUI, setFlightStatusUI] = useState('STANDBY');
+  const [cockpitWarning, setCockpitWarning] = useState('');
+  const [scannedTrees, setScannedTrees] = useState(0);
+  const [flightTime, setFlightTime] = useState(0);
+
+  // AI Vision
+  const [liveAiVision, setLiveAiVision] = useState({
+    active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false,
+    condition: null, confidence: 0, boxPos: { top: 30, left: 40 },
   });
-  const [managedBlocks, setManagedBlocks] = useState([]);
 
-  // D3: Load blok kebun dari Laravel /api/kebun
-  useEffect(() => {
-    fetch('/api/kebun')
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) setManagedBlocks(data);
-        else setManagedBlocks([
-          { id: 'BLK-1001', namaBlok: 'Blok A-01 (Demo)', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }
-        ]);
-      })
-      .catch(() => setManagedBlocks([
-        { id: 'BLK-1001', namaBlok: 'Blok A-01 (Demo)', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }
-      ]));
-  }, []);
+  // Flight Logs
+  const [flightLogs, setFlightLogs] = useState([
+    { id: 'LOG-101', date: '10/04/2026 09:12:00', name: 'MISI-BlokA', nav: 'live_reckoning', scan: 'qlv', flightTime: 85, samples: 14, matang: 9, belumMatang: 5, batteryUsed: 0.85, accuracy: 92 },
+    { id: 'LOG-102', date: '10/04/2026 10:30:00', name: 'MISI-BlokB', nav: 'dead_reckoning', scan: 'traditional', flightTime: 210, samples: 14, matang: 9, belumMatang: 5, batteryUsed: 2.10, accuracy: 98 },
+    { id: 'LOG-103', date: '13/04/2026 00:53:18', name: 'WPTR', nav: 'hybrid', scan: 'traditional', flightTime: 96, samples: 25, matang: 16, belumMatang: 9, batteryUsed: 0.96, accuracy: 97 },
+  ]);
 
-  const [activeMapTab, setActiveMapTab] = useState('map');
+  // Telemetry
+  const [telemetryHistory, setTelemetryHistory] = useState([]);
+  const [telemetry, setTelemetry] = useState({
+    x: homeWP.x, y: homeWP.y, alt: 0, speed: 0, pitch: 0, roll: 0, yaw: 145, bat: 84,
+    lat: homeWP.lat, lon: homeWP.lon, mode: 'STANDBY', subState: 'NAV', timestamp: new Date().toLocaleTimeString(),
+  });
 
-  // --- STATE ALGORITMA & MODE SCAN ---
-  const [navAlgorithm, setNavAlgorithm] = useState('');
-  const [scanMode, setScanMode] = useState('');
-
-  // --- STATE WAYPOINT & MISI ---
-  const [waypoints, setWaypoints] = useState([]);
-  const [warning, setWarning] = useState('');
-  const [missionName, setMissionName] = useState('');
+  // Mission State
   const [savedMissions, setSavedMissions] = useState([]);
+  const [selectedMissionId, setSelectedMissionId] = useState(null);
+  const [editingMissionId, setEditingMissionId] = useState(null);
+  const [autoSavePending, setAutoSavePending] = useState(null);
 
   // D2: Load rekap misi dari Laravel /missions
   useEffect(() => {
@@ -170,15 +176,11 @@ const AppGCS = () => {
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           const mapped = data.map(m => ({
-            id: `MSN-${m.id}`,
-            name: m.mission_name,
-            algorithm: m.nav_algorithm,
-            scan: m.scan_mode,
+            id: `MSN-${m.id}`, name: m.mission_name, algorithm: m.nav_algorithm, scan: m.scan_mode,
             wpCount: m.scan_mode === 'qlv' ? '1 Koridor' : '2 Lajur',
             date: new Date(m.created_at).toLocaleString(),
             waypointsData: Array.isArray(m.waypoints) ? m.waypoints : [],
-            configData: m.config_data || {},
-            _dbId: m.id,
+            configData: m.config_data || {}, _dbId: m.id,
           }));
           setSavedMissions(mapped);
         }
@@ -186,129 +188,66 @@ const AppGCS = () => {
       .catch(() => {});
   }, []);
 
-  const [activeTab, setActiveTab] = useState('current');
-  const [selectedMissionId, setSelectedMissionId] = useState(null);
-  const [editingMissionId, setEditingMissionId] = useState(null);
-  const [isMapActive, setIsMapActive] = useState(false);
-  const [isMissionSaved, setIsMissionSaved] = useState(false);
-  // Auto-save trigger saat drone landing
-  const [autoSavePending, setAutoSavePending] = useState(null);
+  // useEffects: webcam, chat scroll, auto-save, serial, video handlers
+  useEffect(() => { if (videoRef.current && webcamStream) videoRef.current.srcObject = webcamStream; }, [webcamStream, isSettingsOpen]);
+  useEffect(() => { if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' }); }, [aiHistory]);
+  useEffect(() => {
+    if (droneMode === 'simulasi' && isVideoConnected) {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(s => setWebcamStream(s))
+        .catch(() => { setAlertPopup({ title: 'Webcam Tidak Terdeteksi', message: 'Gagal mengakses webcam.' }); setIsVideoConnected(false); });
+    }
+    if (!isVideoConnected && webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); }
+  }, [droneMode, isVideoConnected]);
 
-  // --- TELEMETRY ---
-  const [telemetryHistory, setTelemetryHistory] = useState([]);
-  const [telemetry, setTelemetry] = useState({
-    x: homeWP.x, y: homeWP.y, alt: 0, speed: 0, pitch: 0, roll: 0, yaw: 145, bat: 84,
-    lat: homeWP.lat, lon: homeWP.lon, mode: 'STANDBY', subState: 'NAV', timestamp: new Date().toLocaleTimeString()
-  });
+  useEffect(() => {
+    if (!autoSavePending) return;
+    const payload = autoSavePending;
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    fetch('/missions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf }, body: JSON.stringify(payload) })
+    .then(res => {
+      if (res.ok) return res.json().then(result => {
+        const dbId = result?.data?.id;
+        const newId = dbId ? `MSN-${String(dbId).padStart(4,'0')}` : `MSN-${Date.now()}`;
+        setSavedMissions(prev => [{ id: newId, _dbId: dbId, name: payload.mission_name, wpCount: payload.scan_mode === 'qlv' ? '1 Koridor' : '2 Lajur', algorithm: payload.nav_algorithm, scan: payload.scan_mode, date: new Date().toLocaleTimeString(), status: 'Completed' }, ...prev]);
+        setCockpitWarning(`✅ Misi "${payload.mission_name}" tercatat otomatis! ID: ${newId}`);
+        setTimeout(() => setCockpitWarning(''), 4000);
+      });
+      else { setCockpitWarning('⚠️ Gagal tersimpan ke server!'); setTimeout(() => setCockpitWarning(''), 4000); }
+    })
+    .catch(() => { setCockpitWarning('⚠️ Tidak dapat terhubung ke server!'); setTimeout(() => setCockpitWarning(''), 4000); })
+    .finally(() => setAutoSavePending(null));
+  }, [autoSavePending]);
 
-  const toggleFullScreen = () => setIsFullscreen(!isFullscreen);
-
-  // --- WEB SERIAL API ---
   const handleConnectTelemetry = async () => {
     if (isTelemConnected) {
-      try {
-        if (serialReaderRef.current) await serialReaderRef.current.cancel();
-        if (serialPortRef.current) await serialPortRef.current.close();
-      } catch (e) { console.error(e); } finally {
-        serialPortRef.current = null; serialReaderRef.current = null;
-        setIsTelemConnected(false); setCockpitWarning('Telemetri Terputus');
-        setTimeout(() => setCockpitWarning(''), 3000);
-      }
+      try { if (serialReaderRef.current) await serialReaderRef.current.cancel(); if (serialPortRef.current) await serialPortRef.current.close(); }
+      catch (e) { console.error(e); } finally { serialPortRef.current = null; serialReaderRef.current = null; setIsTelemConnected(false); setCockpitWarning('Telemetri Terputus'); setTimeout(() => setCockpitWarning(''), 3000); }
     } else {
-      if (droneMode === 'simulasi') {
-        setIsTelemConnected(true); setCockpitWarning('Simulasi Telemetri Aktif!');
-        setTimeout(() => setCockpitWarning(''), 3000);
-      } else if (droneMode === 'real') {
+      if (droneMode === 'simulasi') { setIsTelemConnected(true); setCockpitWarning('Simulasi Telemetri Aktif!'); setTimeout(() => setCockpitWarning(''), 3000); }
+      else if (droneMode === 'real') {
         try {
-          if (!('serial' in navigator)) {
-            setAlertPopup({ title: 'Tidak Didukung', message: 'Browser ini tidak mendukung Web Serial API.' }); return;
-          }
-          const port = await navigator.serial.requestPort();
-          await port.open({ baudRate: parseInt(telemBaud) });
-          serialPortRef.current = port; setIsTelemConnected(true);
-          setCockpitWarning('Hardware Serial Terhubung!'); setTimeout(() => setCockpitWarning(''), 3000);
+          if (!('serial' in navigator)) { setAlertPopup({ title: 'Tidak Didukung', message: 'Browser ini tidak mendukung Web Serial API.' }); return; }
+          const port = await navigator.serial.requestPort(); await port.open({ baudRate: parseInt(telemBaud) });
+          serialPortRef.current = port; setIsTelemConnected(true); setCockpitWarning('Hardware Serial Terhubung!'); setTimeout(() => setCockpitWarning(''), 3000);
         } catch (error) {
           let msg = error.message || 'Gagal mengakses perangkat serial.';
           if (error.name === 'SecurityError') { msg = 'Akses diblokir. Beralih ke mode simulasi.'; setIsTelemConnected(true); }
           else if (error.name === 'NotFoundError') msg = 'Tidak ada perangkat USB/Serial yang dipilih.';
           setAlertPopup({ title: 'Info Koneksi', message: msg });
         }
-      } else {
-        setCockpitWarning('Pilih Mode Sistem Dahulu!'); setTimeout(() => setCockpitWarning(''), 3000);
-      }
+      } else { setCockpitWarning('Pilih Mode Sistem Dahulu!'); setTimeout(() => setCockpitWarning(''), 3000); }
     }
   };
-
-  // --- VIDEO STREAM ---
   const handleConnectVideo = () => {
-    if (isVideoConnected) {
-      setIsVideoConnected(false); setLiveStreamUrl('');
-      if (webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); }
-    } else {
+    if (isVideoConnected) { setIsVideoConnected(false); setLiveStreamUrl(''); if (webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); } }
+    else {
       if (droneMode === 'simulasi') setIsVideoConnected(true);
       else if (droneMode === 'real') { setLiveStreamUrl(`http://${videoIp}:81/stream`); setIsVideoConnected(true); }
       else { setCockpitWarning('Pilih Mode Sistem Dahulu!'); setTimeout(() => setCockpitWarning(''), 3000); }
     }
   };
-
-  // Webcam laptop sebagai dummy kamera simulasi
-  useEffect(() => {
-    if (droneMode === 'simulasi' && isVideoConnected) {
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(s => setWebcamStream(s))
-        .catch(() => { setAlertPopup({ title: 'Webcam Tidak Terdeteksi', message: 'Gagal mengakses webcam. Pastikan tidak digunakan aplikasi lain.' }); setIsVideoConnected(false); });
-    }
-    if (!isVideoConnected && webcamStream) {
-      webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null);
-    }
-  }, [droneMode, isVideoConnected]);
-
-  useEffect(() => { if (videoRef.current && webcamStream) videoRef.current.srcObject = webcamStream; }, [webcamStream, isSettingsOpen]);
-  useEffect(() => { if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' }); }, [aiHistory]);
-
-  // --- AUTO-SAVE MISI KE DB SAAT DRONE LANDING ---
-  useEffect(() => {
-    if (!autoSavePending) return;
-    const payload = autoSavePending;
-    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    fetch('/missions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
-      body: JSON.stringify(payload),
-    })
-    .then(res => {
-      if (res.ok) {
-        return res.json().then(result => {
-          const dbId = result?.data?.id;
-          const newId = dbId ? `MSN-${String(dbId).padStart(4,'0')}` : `MSN-${Date.now()}`;
-          const newMission = {
-            id: newId, _dbId: dbId,
-            name: payload.mission_name,
-            wpCount: payload.scan_mode === 'qlv' ? '1 Koridor' : '2 Lajur',
-            algorithm: payload.nav_algorithm,
-            scan: payload.scan_mode,
-            date: new Date().toLocaleTimeString(),
-            status: 'Completed',
-          };
-          setSavedMissions(prev => [newMission, ...prev]);
-          setCockpitWarning(`✅ Misi "${payload.mission_name}" tercatat otomatis! ID: ${newId}`);
-          setTimeout(() => setCockpitWarning(''), 4000);
-          console.log('[GCS] Auto-save landing berhasil! DB ID:', dbId);
-        });
-      } else {
-        console.error('[GCS] Auto-save gagal:', res.status);
-        setCockpitWarning('⚠️ Misi selesai tapi gagal tersimpan ke server!');
-        setTimeout(() => setCockpitWarning(''), 4000);
-      }
-    })
-    .catch(e => {
-      console.error('[GCS] Auto-save network error:', e);
-      setCockpitWarning('⚠️ Tidak dapat terhubung ke server untuk simpan misi!');
-      setTimeout(() => setCockpitWarning(''), 4000);
-    })
-    .finally(() => setAutoSavePending(null));
-  }, [autoSavePending]);
-
+  const formatTime = formatFlightTime;
 
   // --- GEMINI AI ASSISTANT ---
   const handleAskGemini = async () => {
@@ -505,10 +444,7 @@ const AppGCS = () => {
     flightStatusRef.current = 'RTL'; setFlightStatusUI('RTL');
   };
 
-  const formatTime = formatFlightTime;
 
-
-  // --- CONFIG HANDLERS ---
   const handleConfigChange = (e, field) => {
     if (isMapActive || isMissionSaved) return;
     let val = e.target.value;
