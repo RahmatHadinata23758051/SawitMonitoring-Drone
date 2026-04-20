@@ -11,14 +11,14 @@
     class="w-full bg-white border-b border-slate-200 shadow-sm z-50 relative"
     id="main-navbar">
 
-    <div class="flex items-center justify-between h-[68px] px-4 lg:px-6">
+    <div class="flex items-center justify-between h-[84px] px-4 lg:px-6">
 
         {{-- ===== BRAND (Logo + Nama) ===== --}}
         <a href="{{ route('dashboard') }}" id="app-logo"
            class="flex items-center gap-3 shrink-0 group">
             <img src="{{ asset('images/logo-ipb-color.png') }}"
                  alt="Logo IPB"
-                 class="h-14 w-auto object-contain"
+                 class="h-20 w-auto object-contain py-1"
                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div style="display:none; background:#1e3a8a; color:white;"
                  class="w-10 h-10 rounded-full items-center justify-center font-black text-base">GCS</div>
