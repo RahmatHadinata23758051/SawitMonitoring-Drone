@@ -1,124 +1,229 @@
-<nav x-data="{ open: false }" class="bg-primary border-b border-gray-100">
-    <!-- Primary Navigation Menu -->
-    <div class="md:max-w-7x xl:max-w-full mx-auto px-4 md:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-            <div class="flex gap-2 py-2 items-center">
-                <button @click="sideopen = ! sideopen"
-                    class="max-md:hidden inline-flex items-center justify-center p-2 rounded-md text-white">
-                    <svg class="h-7 w-7" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                    <p class="text-white font-semibold text-2xl ms-3" id="web-name">Monitoring Sawit</p>
+{{-- ================================================================
+     NAVBAR UTAMA — Drone CPS Ground Control Station
+     Menggantikan sidebar vertikal dengan top navbar horizontal
+     ================================================================ --}}
+<nav x-data="{
+        mobileOpen: false,
+        activeDropdown: null,
+        toggle(name) { this.activeDropdown = this.activeDropdown === name ? null : name; },
+        close() { this.activeDropdown = null; mobileOpen = false; }
+    }"
+    @click.away="activeDropdown = null"
+    class="w-full bg-green-800 shadow-lg z-50 relative"
+    id="main-navbar">
+
+    <div class="flex items-center justify-between h-16 px-4 lg:px-6">
+
+        {{-- ===== BRAND (Logo + Nama) ===== --}}
+        <a href="{{ route('dashboard') }}" id="app-logo"
+           class="flex items-center gap-3 shrink-0">
+            <img src="{{ asset('images/logo-ipb.png') }}"
+                 alt="Logo IPB"
+                 class="h-10 w-auto object-contain"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div style="display:none"
+                 class="w-10 h-10 rounded-full bg-green-600 items-center justify-center text-white font-black text-lg">GCS</div>
+            <div class="hidden sm:flex flex-col leading-none">
+                <span id="web-name"  class="text-white font-bold text-base leading-tight">Drone CPS</span>
+                <span id="web-subtitle" class="text-green-200 text-[10px] font-medium tracking-wide">Ground Control Station</span>
+            </div>
+        </a>
+
+        {{-- ===== MENU DESKTOP ===== --}}
+        <div class="hidden lg:flex items-center gap-1 flex-1 justify-center">
+
+            {{-- Dashboard --}}
+            <a href="{{ route('dashboard') }}"
+               class="navbar-item {{ request()->routeIs('dashboard') ? 'navbar-active' : '' }}">
+                <i class="fa-solid fa-house text-xs"></i>
+                <span>Dashboard</span>
+            </a>
+
+            {{-- Data Master Dropdown --}}
+            <div class="relative" x-data>
+                <button @click="toggle('data-master')"
+                    class="navbar-item {{ request()->routeIs('lahan.*','kebun.*','perangkat.*','user.*') ? 'navbar-active' : '' }}">
+                    <i class="fa-solid fa-database text-xs"></i>
+                    <span>Data Master</span>
+                    <i class="fa-solid fa-chevron-down text-[9px] ml-1 transition-transform duration-200"
+                       :class="{ 'rotate-180': activeDropdown === 'data-master' }"></i>
                 </button>
+                <div x-show="activeDropdown === 'data-master'" x-cloak
+                     class="navbar-dropdown"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-end="opacity-0 -translate-y-1">
+                    <a href="{{ route('lahan.index') }}"   class="dropdown-item {{ request()->routeIs('lahan.*') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-map w-4"></i> Data Lahan</a>
+                    <a href="{{ route('kebun.index') }}"   class="dropdown-item {{ request()->routeIs('kebun.*') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-leaf w-4"></i> Data Kebun</a>
+                    <a href="{{ route('perangkat.index') }}" class="dropdown-item {{ request()->routeIs('perangkat.*') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-helicopter w-4"></i> Data Perangkat (Drone)</a>
+                    <a href="{{ route('user.index') }}"    class="dropdown-item {{ request()->routeIs('user.*') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-users w-4"></i> Data User</a>
+                </div>
             </div>
 
-            <!-- Settings Dropdown -->
-            <div class="hidden md:flex md:items-center md:ms-6">
-                <x-dropdown align="right" width="48">
-                    <x-slot name="trigger">
-                        <button
-                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+            {{-- GCS --}}
+            <a href="{{ route('gcs.index') }}"
+               class="navbar-item-highlight {{ request()->routeIs('gcs.*') ? 'navbar-highlight-active' : '' }}">
+                <i class="fa-solid fa-gamepad text-xs"></i>
+                <span>GCS</span>
+            </a>
 
-                            <div class="ms-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd"
-                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                            </div>
+            {{-- Dataset Dropdown --}}
+            <div class="relative" x-data>
+                <button @click="toggle('dataset')"
+                    class="navbar-item {{ request()->routeIs('drone-dataset.*','kebun-dataset.*','sawit-dataset.*') ? 'navbar-active' : '' }}">
+                    <i class="fa-solid fa-layer-group text-xs"></i>
+                    <span>Dataset</span>
+                    <i class="fa-solid fa-chevron-down text-[9px] ml-1 transition-transform duration-200"
+                       :class="{ 'rotate-180': activeDropdown === 'dataset' }"></i>
+                </button>
+                <div x-show="activeDropdown === 'dataset'" x-cloak class="navbar-dropdown"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0">
+                    <a href="{{ route('drone-dataset.index') }}"  class="dropdown-item {{ request()->routeIs('drone-dataset.*') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-helicopter w-4"></i> Drone</a>
+                    <a href="{{ route('kebun-dataset.index') }}"  class="dropdown-item {{ request()->routeIs('kebun-dataset.*') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-leaf w-4"></i> Kebun</a>
+                    <a href="{{ route('sawit-dataset.index') }}"  class="dropdown-item {{ request()->routeIs('sawit-dataset.*') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-seedling w-4"></i> Sawit</a>
+                </div>
+            </div>
+
+            {{-- Rule Engine Dropdown --}}
+            <div class="relative" x-data>
+                <button @click="toggle('rule-engine')"
+                    class="navbar-item {{ request()->routeIs('dead-reckoning.*') ? 'navbar-active' : '' }}">
+                    <i class="fa-solid fa-diagram-project text-xs"></i>
+                    <span>Rule Engine</span>
+                    <i class="fa-solid fa-chevron-down text-[9px] ml-1 transition-transform duration-200"
+                       :class="{ 'rotate-180': activeDropdown === 'rule-engine' }"></i>
+                </button>
+                <div x-show="activeDropdown === 'rule-engine'" x-cloak class="navbar-dropdown"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0">
+                    <a href="{{ route('dead-reckoning.index') }}" class="dropdown-item {{ request()->routeIs('dead-reckoning.*') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-route w-4"></i> Dead-Reckoning</a>
+                    <span class="dropdown-item opacity-50 cursor-not-allowed"><i class="fa-solid fa-wifi w-4"></i> Live-Reckoning <span class="text-[9px] bg-amber-200 text-amber-700 px-1 rounded">Soon</span></span>
+                    <span class="dropdown-item opacity-50 cursor-not-allowed"><i class="fa-solid fa-eye w-4"></i> Quick Look Vision <span class="text-[9px] bg-amber-200 text-amber-700 px-1 rounded">Soon</span></span>
+                </div>
+            </div>
+
+            {{-- Laporan Dropdown --}}
+            <div class="relative" x-data>
+                <button @click="toggle('laporan')"
+                    class="navbar-item {{ request()->routeIs('laporan.*') ? 'navbar-active' : '' }}">
+                    <i class="fa-solid fa-clipboard text-xs"></i>
+                    <span>Laporan</span>
+                    <i class="fa-solid fa-chevron-down text-[9px] ml-1 transition-transform duration-200"
+                       :class="{ 'rotate-180': activeDropdown === 'laporan' }"></i>
+                </button>
+                <div x-show="activeDropdown === 'laporan'" x-cloak class="navbar-dropdown"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0">
+                    <a href="{{ route('laporan.index') }}"            class="dropdown-item {{ request()->routeIs('laporan.index') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-brain w-4"></i> Prediksi Kematangan</a>
+                    <a href="{{ route('laporan.log-penerbangan') }}"  class="dropdown-item {{ request()->routeIs('laporan.log-penerbangan') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-paper-plane w-4"></i> Log Penerbangan</a>
+                </div>
+            </div>
+
+            {{-- Cuaca --}}
+            <a href="{{ route('cuaca.index') }}"
+               class="navbar-item {{ request()->routeIs('cuaca.*') ? 'navbar-active' : '' }}">
+                <i class="fa-solid fa-cloud text-xs"></i>
+                <span>Cuaca</span>
+            </a>
+
+        </div>
+
+        {{-- ===== RIGHT SIDE: User & Settings ===== --}}
+        <div class="hidden lg:flex items-center gap-2">
+            {{-- Settings --}}
+            <div class="relative" x-data>
+                <button @click="toggle('settings')" class="navbar-item">
+                    <i class="fa-solid fa-gear text-xs"></i>
+                    <i class="fa-solid fa-chevron-down text-[9px] ml-0.5"
+                       :class="{ 'rotate-180': activeDropdown === 'settings' }"></i>
+                </button>
+                <div x-show="activeDropdown === 'settings'" x-cloak class="navbar-dropdown right-0"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0">
+                    <a href="{{ route('pengaturan-aplikasi.index') }}" class="dropdown-item {{ request()->routeIs('pengaturan-aplikasi.*') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-sliders w-4"></i> Pengaturan Aplikasi</a>
+                    <a href="{{ route('cuaca.index') }}"               class="dropdown-item {{ request()->routeIs('cuaca.*') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-cloud w-4"></i> Pengaturan Cuaca</a>
+                    <a href="{{ route('log-aktivitas') }}"             class="dropdown-item {{ request()->routeIs('log-aktivitas') ? 'dropdown-active' : '' }}"><i class="fa-solid fa-clock-rotate-left w-4"></i> Log Aktivitas</a>
+                </div>
+            </div>
+
+            {{-- User Dropdown --}}
+            <div class="relative" x-data>
+                <button @click="toggle('user')"
+                    class="flex items-center gap-2 bg-green-700 hover:bg-green-600 text-white text-sm px-3 py-1.5 rounded-lg transition">
+                    <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold">
+                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                    </div>
+                    <span class="hidden xl:block">{{ Auth::user()->name }}</span>
+                    <i class="fa-solid fa-chevron-down text-[9px]"
+                       :class="{ 'rotate-180': activeDropdown === 'user' }"></i>
+                </button>
+                <div x-show="activeDropdown === 'user'" x-cloak class="navbar-dropdown right-0"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0">
+                    <div class="px-3 py-2 border-b border-slate-100">
+                        <div class="text-xs text-slate-500">Login sebagai</div>
+                        <div class="font-semibold text-slate-800 text-sm">{{ Auth::user()->name }}</div>
+                        <div class="text-xs text-slate-400">{{ Auth::user()->email }}</div>
+                    </div>
+                    <a href="{{ route('profile.edit') }}" class="dropdown-item"><i class="fa-solid fa-user w-4"></i> Profile</a>
+                    <div class="border-t border-slate-100 mt-1 pt-1">
+                        <button x-on:click.prevent="$dispatch('open-modal', 'sign-out')"
+                            class="dropdown-item text-red-600 hover:bg-red-50 w-full text-left">
+                            <i class="fa-solid fa-right-from-bracket w-4"></i> Keluar
                         </button>
-                    </x-slot>
-
-                    <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
-                        </x-dropdown-link>
-
-                        <!-- Authentication -->
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-
-                            <x-dropdown-link :href="'#'" x-data=""
-                                x-on:click.prevent="$dispatch('open-modal', 'sign-out')">
-                                {{ __('Log Out') }}
-                            </x-dropdown-link>
-                        </form>
-                    </x-slot>
-                </x-dropdown>
-            </div>
-
-            <!-- Hamburger -->
-            <div class="-me-2 flex items-center md:hidden">
-                <button @click="open = ! open"
-                    class="inline-flex items-center justify-center p-2 rounded-md text-white">
-                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{ 'hidden': open, 'inline-flex': !open }" class="inline-flex"
-                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{ 'hidden': !open, 'inline-flex': open }" class="hidden" stroke-linecap="round"
-                            stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                    </div>
+                </div>
             </div>
         </div>
+
+        {{-- ===== HAMBURGER MOBILE ===== --}}
+        <button @click="mobileOpen = !mobileOpen"
+            class="lg:hidden p-2 text-white hover:bg-green-700 rounded-lg transition">
+            <i class="fa-solid" :class="mobileOpen ? 'fa-times' : 'fa-bars'"></i>
+        </button>
     </div>
 
-    <!-- Responsive Navigation Menu -->
-    <div :class="{ 'block': open, 'hidden': !open }" class="block md:hidden">
-        <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
-            
-            <x-responsive-nav-link :href="route('lahan.index')" :active="request()->routeIs('lahan.*')">
-                {{ __('Data Lahan') }}
-            </x-responsive-nav-link>
-            
-            <x-responsive-nav-link :href="route('kebun.index')" :active="request()->routeIs('kebun.*')">
-                {{ __('Data Kebun') }}
-            </x-responsive-nav-link>
-            
-            <x-responsive-nav-link :href="route('perangkat.index')" :active="request()->routeIs('perangkat.*')">
-                {{ __('Data Perangkat (Drone)') }}
-            </x-responsive-nav-link>
-            
-            <x-responsive-nav-link :href="route('user.index')" :active="request()->routeIs('user.*')">
-                {{ __('Data User') }}
-            </x-responsive-nav-link>
-            
-            <x-responsive-nav-link :href="route('panen.index')" :active="request()->routeIs('panen.*')">
-                {{ __('Manajemen Panen') }}
-            </x-responsive-nav-link>
-            
-            <x-responsive-nav-link :href="route('cuaca.index')" :active="request()->routeIs('cuaca.*')">
-                {{ __('Pengaturan Data Cuaca') }}
-            </x-responsive-nav-link>
-            
-            <x-responsive-nav-link :href="route('gcs.index')" :active="request()->routeIs('gcs.*')">
-                {{ __('Ground Control Station (GCS)') }}
-            </x-responsive-nav-link>
-            
-            <x-responsive-nav-link :href="route('pengaturan-aplikasi.index')" :active="request()->routeIs('pengaturan-aplikasi.*')">
-                {{ __('Pengaturan Aplikasi') }}
-            </x-responsive-nav-link>
-            
-            <x-responsive-nav-link :href="route('log-aktivitas')" :active="request()->routeIs('log-aktivitas')">
-                {{ __('Log Aktivitas') }}
-            </x-responsive-nav-link>
-            
-            <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
-                </x-responsive-nav-link>
+    {{-- ===== MOBILE MENU ===== --}}
+    <div x-show="mobileOpen" x-cloak
+         class="lg:hidden bg-green-900 border-t border-green-700 pb-4"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 -translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0">
+        <div class="px-4 pt-3 space-y-1">
+            <a href="{{ route('dashboard') }}" class="mobile-item {{ request()->routeIs('dashboard') ? 'mobile-active' : '' }}"><i class="fa-solid fa-house w-5"></i> Dashboard</a>
 
-                <!-- Authentication -->
-                <x-responsive-nav-link :href="'#'" x-data=""
-                    x-on:click.prevent="$dispatch('open-modal', 'sign-out')">
-                    {{ __('Sign Out') }}
-                </x-responsive-nav-link>
+            <div class="text-green-400 text-[10px] font-bold uppercase tracking-wider pt-2 pb-1">Data Master</div>
+            <a href="{{ route('lahan.index') }}"     class="mobile-item {{ request()->routeIs('lahan.*') ? 'mobile-active' : '' }}"><i class="fa-solid fa-map w-5"></i> Data Lahan</a>
+            <a href="{{ route('kebun.index') }}"     class="mobile-item {{ request()->routeIs('kebun.*') ? 'mobile-active' : '' }}"><i class="fa-solid fa-leaf w-5"></i> Data Kebun</a>
+            <a href="{{ route('perangkat.index') }}" class="mobile-item {{ request()->routeIs('perangkat.*') ? 'mobile-active' : '' }}"><i class="fa-solid fa-helicopter w-5"></i> Data Perangkat</a>
+            <a href="{{ route('user.index') }}"      class="mobile-item {{ request()->routeIs('user.*') ? 'mobile-active' : '' }}"><i class="fa-solid fa-users w-5"></i> Data User</a>
+
+            <div class="text-green-400 text-[10px] font-bold uppercase tracking-wider pt-2 pb-1">Misi</div>
+            <a href="{{ route('gcs.index') }}"       class="mobile-item {{ request()->routeIs('gcs.*') ? 'mobile-active' : '' }}"><i class="fa-solid fa-gamepad w-5"></i> GCS</a>
+            <a href="{{ route('laporan.index') }}"   class="mobile-item {{ request()->routeIs('laporan.index') ? 'mobile-active' : '' }}"><i class="fa-solid fa-brain w-5"></i> Prediksi Kematangan</a>
+            <a href="{{ route('laporan.log-penerbangan') }}" class="mobile-item {{ request()->routeIs('laporan.log-penerbangan') ? 'mobile-active' : '' }}"><i class="fa-solid fa-paper-plane w-5"></i> Log Penerbangan</a>
+
+            <div class="text-green-400 text-[10px] font-bold uppercase tracking-wider pt-2 pb-1">Lainnya</div>
+            <a href="{{ route('drone-dataset.index') }}"  class="mobile-item"><i class="fa-solid fa-layer-group w-5"></i> Dataset Drone</a>
+            <a href="{{ route('dead-reckoning.index') }}" class="mobile-item"><i class="fa-solid fa-route w-5"></i> Dead-Reckoning</a>
+            <a href="{{ route('cuaca.index') }}"          class="mobile-item"><i class="fa-solid fa-cloud w-5"></i> Cuaca</a>
+            <a href="{{ route('pengaturan-aplikasi.index') }}" class="mobile-item"><i class="fa-solid fa-gear w-5"></i> Pengaturan</a>
+            <a href="{{ route('log-aktivitas') }}"        class="mobile-item"><i class="fa-solid fa-clock-rotate-left w-5"></i> Log Aktivitas</a>
+
+            <div class="border-t border-green-700 mt-3 pt-3">
+                <a href="{{ route('profile.edit') }}" class="mobile-item"><i class="fa-solid fa-user w-5"></i> Profile</a>
+                <button x-on:click.prevent="$dispatch('open-modal', 'sign-out')"
+                    class="mobile-item text-red-400 w-full text-left">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i> Keluar
+                </button>
             </div>
         </div>
     </div>

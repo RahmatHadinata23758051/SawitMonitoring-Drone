@@ -28,29 +28,27 @@
 </head>
 
 <body class="font-sans antialiased">
-    <div x-data="{ sideopen: true }" class="min-h-screen w-full flex flex-auto bg-gray-100 items-stretch">
-        @include('layouts.sidebar')
-        <div :class="{ 'lg:pl-64': sideopen }" class="pt-0 pb-3 flex-1 flex flex-col min-w-0">
-            @include('layouts.navigation')
+    <div x-data="{}" class="min-h-screen w-full flex flex-col bg-gray-100">
+        @include('layouts.navigation')
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header>
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
+        <!-- Page Heading -->
+        @isset($header)
+            <header class="bg-white shadow-sm border-b border-gray-200">
+                <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+                    {{ $header }}
+                </div>
+            </header>
+        @endisset
 
-            <!-- Page Content -->
-            <main class="min-h-[75vh]">
-                {{ $slot }}
-            </main>
+        <!-- Page Content -->
+        <main class="flex-1">
+            {{ $slot }}
+        </main>
 
-            <!-- Footer -->
-            <footer class="px-6 font-normal text-base text-slate-400" id="footer"></footer>
-        </div>
+        <!-- Footer -->
+        <footer class="px-6 py-3 text-center font-normal text-sm text-slate-400 border-t border-slate-200 bg-white" id="footer"></footer>
     </div>
+
 
     <x-modal name="sign-out" style="z-index: 999999999;" focusable>
         <form method="post" action="{{ route('logout') }}" class="p-6">
