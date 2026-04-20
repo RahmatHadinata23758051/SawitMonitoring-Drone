@@ -1,0 +1,211 @@
+@import "datatables.net-dt/css/dataTables.dataTables.css";
+@import "datatables.net-buttons-dt/css/buttons.dataTables.css";
+@import "./datatables.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    .sidebar-open {
+        @apply translate-x-0 w-64;
+    }
+
+    .sidebar-close {
+        @apply -translate-x-full w-0;
+    }
+}
+
+@layer base {
+    @import url("https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap");
+
+    .lato-thin {
+        font-family: "Lato", sans-serif;
+        font-weight: 100;
+        font-style: normal;
+    }
+
+    .lato-light {
+        font-family: "Lato", sans-serif;
+        font-weight: 300;
+        font-style: normal;
+    }
+
+    .lato-regular {
+        font-family: "Lato", sans-serif;
+        font-weight: 400;
+        font-style: normal;
+    }
+
+    .lato-bold {
+        font-family: "Lato", sans-serif;
+        font-weight: 700;
+        font-style: normal;
+    }
+
+    .lato-black {
+        font-family: "Lato", sans-serif;
+        font-weight: 900;
+        font-style: normal;
+    }
+
+    .lato-thin-italic {
+        font-family: "Lato", sans-serif;
+        font-weight: 100;
+        font-style: italic;
+    }
+
+    .lato-light-italic {
+        font-family: "Lato", sans-serif;
+        font-weight: 300;
+        font-style: italic;
+    }
+
+    .lato-regular-italic {
+        font-family: "Lato", sans-serif;
+        font-weight: 400;
+        font-style: italic;
+    }
+
+    .lato-bold-italic {
+        font-family: "Lato", sans-serif;
+        font-weight: 700;
+        font-style: italic;
+    }
+
+    .lato-black-italic {
+        font-family: "Lato", sans-serif;
+        font-weight: 900;
+        font-style: italic;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar {
+        width: 5px;
+        height: 0px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+        border-radius: 15px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #2f6b3c;
+        border-radius: 15px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #2f6b3c;
+    }
+
+    table {
+        caption-side: bottom;
+        border-collapse: collapse;
+    }
+
+    thead,
+    tbody,
+    tfoot,
+    tr,
+    td,
+    th {
+        border-color: inherit;
+        border-style: solid;
+        border-width: 0;
+    }
+
+    .text-primary {
+        color: #2f6b3c !important;
+    }
+
+    .text-warning {
+        color: #1449ef !important;
+    }
+
+    .text-info {
+        color: #39cf87 !important;
+    }
+
+    .text-danger {
+        color: #fd5c5c !important;
+    }
+
+    .bg-primary {
+        background-color: #2f6b3c !important;
+    }
+
+    .bg-primary-subtle {
+        background-color: rgba(47, 107, 60, 0.2) !important;
+        border: 2px solid #2f6b3c !important;
+    }
+
+    .bg-warning {
+        background-color: #1449ef !important;
+    }
+
+    .bg-danger {
+        background-color: #fd5c5c !important;
+    }
+
+    .toast-success {
+        border-left: 6px solid #00f74a !important;
+        background: #ffffff !important;
+        color: #1f2937;
+    }
+
+    .menu-item {
+        @apply my-0.5 w-64 basis-auto flex-col m-0 p-0 list-none items-start justify-start;
+    }
+
+    .menu-link {
+        @apply rounded-md font-semibold mx-4 text-sm px-4 py-2.5 relative flex items-center flex-shrink basis-auto m-0 hover:bg-green-900 hover:bg-opacity-25;
+    }
+
+    .menu-icon {
+        @apply w-6 flex-grow-0 flex-shrink-0 p-2 mr-4 text-base text-primary rounded-xl;
+    }
+
+    .active-icon {
+        @apply text-primary bg-primary-subtle;
+    }
+
+    .table > :not(caption) > * > * {
+        @apply border-b py-2.5 px-5;
+    }
+
+    .table-border-bottom-0 tr:last-child td,
+    .table-border-bottom-0 tr:last-child th {
+        border-bottom-width: 0;
+    }
+
+    .breadcrumb {
+        @apply flex flex-wrap p-0 mb-4 list-none bg-transparent mt-0;
+    }
+
+    .breadcrumb-item,
+    .breadcrumb-item a {
+        @apply text-slate-400;
+    }
+
+    .breadcrumb-active {
+        @apply font-semibold text-slate-600;
+    }
+
+    .breadcrumb-item + .breadcrumb-item {
+        @apply pl-2;
+    }
+
+    .breadcrumb-item + .breadcrumb-item::before {
+        font-family: "Font Awesome 6 Free"; /* fontawesome */
+        font-weight: 900; /* untuk solid icons */
+        content: "\f105"; /* Unicode untuk fa-angle-right */
+        @apply float-left pr-2 text-slate-400;
+    }
+
+    .tab-btn {
+        @apply pb-2 text-gray-600 border-b-2 border-transparent hover:text-blue-500 hover:border-blue-300 transition-all duration-200;
+    }
+    .active-tab {
+        @apply text-blue-500 border-blue-500 font-medium;
+    }
+}

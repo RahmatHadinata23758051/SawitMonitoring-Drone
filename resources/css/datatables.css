@@ -1,0 +1,68 @@
+/* Pagination */
+.dt-container .dt-paging-button {
+    padding: 0.25rem 0.75rem !important;
+    margin: 0.25rem !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0.5rem !important;
+    font-size: 0.875rem !important;
+    color: #374151 !important;
+    background-color: #ffffff !important;
+    cursor: pointer !important;
+    display: inline-block !important;
+}
+
+.dt-container .dt-paging-button:hover:not(.disabled) {
+    background-color: #f3f4f6 !important;
+}
+
+.dt-container .dt-paging-button.current {
+    background-color: #2185c7 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border-color: #2185c7 !important;
+}
+
+.dt-container .dt-paging-button.disabled {
+    color: #d1d5db !important;
+    cursor: default !important;
+}
+
+/* Search */
+.dt-container div.dt-search {
+    position: relative;
+}
+
+.dt-container input.dt-input {
+    background-color: rgba(47, 107, 60, 0.15) !important;
+    border: none !important;
+    border-radius: 9999px !important;
+    padding: 0.5rem 1rem 0.5rem 2rem !important;
+    font-size: 0.875rem !important;
+    outline: none !important;
+    width: 250px !important;
+}
+
+.dt-container div.dt-search::before {
+    content: "\f002";
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #2a783b;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.dt-container div.dt-buttons button.dt-button.bg-green-500 {
+    background-color: #22c55e !important;
+    color: #ffffff !important;
+    border-radius: 0.375rem !important;
+    border: none !important;
+    padding: 0.375rem 0.75rem !important;
+}
+
+.dt-container div.dt-buttons button.dt-button.bg-green-500:hover {
+    background-color: #16a34a !important;
+}
