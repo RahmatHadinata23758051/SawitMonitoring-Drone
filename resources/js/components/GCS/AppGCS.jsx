@@ -31,10 +31,26 @@ const AppGCS = () => {
   const [alertPopup, setAlertPopup] = useState(null);
 
   // --- STATE DRONE MANAGEMENT ---
-  const [drones, setDrones] = useState([
-    { id: 'DRN-001', merk: 'DJI Matrice 300 RTK', status: 'Standby' },
-    { id: 'DRN-002', merk: 'SawitV1 Custom Quad', status: 'Maintenance' }
-  ]);
+  const [drones, setDrones] = useState([]);
+  const [dronesLoading, setDronesLoading] = useState(true);
+
+  // D1: Load drone dari Laravel /api/perangkat
+  useEffect(() => {
+    fetch('/api/perangkat')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) setDrones(data);
+        else setDrones([
+          { id: 'DRN-001', merk: 'DJI Matrice 300 RTK', status: 'Standby' },
+          { id: 'DRN-002', merk: 'SawitV1 Custom Quad', status: 'Maintenance' }
+        ]);
+      })
+      .catch(() => setDrones([
+        { id: 'DRN-001', merk: 'DJI Matrice 300 RTK (Demo)', status: 'Standby' }
+      ]))
+      .finally(() => setDronesLoading(false));
+  }, []);
+
   const [selectedUploadDrone, setSelectedUploadDrone] = useState('');
   const [droneForm, setDroneForm] = useState({ id: '', merk: '', status: 'Standby' });
   const [isEditingDrone, setIsEditingDrone] = useState(false);
@@ -103,9 +119,23 @@ const AppGCS = () => {
     id: 'BLK-' + Date.now(), namaBlok: 'Blok A-01',
     luasKebun: 1.0, totalPohon: 140, jumlahSampel: 14, tinggiPohon: 8.5
   });
-  const [managedBlocks, setManagedBlocks] = useState([
-    { id: 'BLK-1001', namaBlok: 'Blok A-01', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }
-  ]);
+  const [managedBlocks, setManagedBlocks] = useState([]);
+
+  // D3: Load blok kebun dari Laravel /api/kebun
+  useEffect(() => {
+    fetch('/api/kebun')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) setManagedBlocks(data);
+        else setManagedBlocks([
+          { id: 'BLK-1001', namaBlok: 'Blok A-01 (Demo)', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }
+        ]);
+      })
+      .catch(() => setManagedBlocks([
+        { id: 'BLK-1001', namaBlok: 'Blok A-01 (Demo)', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }
+      ]));
+  }, []);
+
   const [activeMapTab, setActiveMapTab] = useState('map');
 
   // --- STATE ALGORITMA & MODE SCAN ---
@@ -117,6 +147,30 @@ const AppGCS = () => {
   const [warning, setWarning] = useState('');
   const [missionName, setMissionName] = useState('');
   const [savedMissions, setSavedMissions] = useState([]);
+
+  // D2: Load rekap misi dari Laravel /missions
+  useEffect(() => {
+    fetch('/missions')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map(m => ({
+            id: `MSN-${m.id}`,
+            name: m.mission_name,
+            algorithm: m.nav_algorithm,
+            scan: m.scan_mode,
+            wpCount: m.scan_mode === 'qlv' ? '1 Koridor' : '2 Lajur',
+            date: new Date(m.created_at).toLocaleString(),
+            waypointsData: Array.isArray(m.waypoints) ? m.waypoints : [],
+            configData: m.config_data || {},
+            _dbId: m.id,
+          }));
+          setSavedMissions(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const [activeTab, setActiveTab] = useState('current');
   const [selectedMissionId, setSelectedMissionId] = useState(null);
   const [editingMissionId, setEditingMissionId] = useState(null);
@@ -459,13 +513,55 @@ const AppGCS = () => {
     } else { setWarning('Pilih Mode Scan terlebih dahulu!'); setTimeout(() => setWarning(''), 3000); }
   };
 
-  const handleSaveMission = () => {
+  const handleSaveMission = async () => {
     if (scanMode === 'traditional' && waypoints.length !== 3) { setWarning('Pilih tepat 3 pohon!'); setTimeout(() => setWarning(''), 3000); return; }
     if (scanMode === 'qlv' && waypoints.length === 0) { setWarning('Pilih 1 Pohon Awal!'); setTimeout(() => setWarning(''), 3000); return; }
     if (!navAlgorithm || !scanMode) return;
-    const missionData = { name: missionName, wpCount: scanMode === 'qlv' ? '1 Koridor' : '2 Lajur', algorithm: navAlgorithm, scan: scanMode, date: new Date().toLocaleTimeString(), waypointsData: [...waypoints], configData: { ...config } };
-    if (editingMissionId) { setSavedMissions(prev => prev.map(m => m.id === editingMissionId ? { ...m, ...missionData } : m)); setSelectedMissionId(editingMissionId); }
-    else { const nm = { id: `MSN-${Date.now()}`, ...missionData }; setSavedMissions(prev => [nm, ...prev]); setSelectedMissionId(nm.id); }
+
+    const pathData = scanMode === 'qlv' ? qlvPath : tradPath;
+    const missionPayload = {
+      mission_name: missionName,
+      nav_algorithm: navAlgorithm,
+      scan_mode: scanMode,
+      waypoints: waypoints,
+      path_data: pathData,
+      config_data: config,
+    };
+
+    const localData = {
+      name: missionName,
+      wpCount: scanMode === 'qlv' ? '1 Koridor' : '2 Lajur',
+      algorithm: navAlgorithm,
+      scan: scanMode,
+      date: new Date().toLocaleTimeString(),
+      waypointsData: [...waypoints],
+      configData: { ...config }
+    };
+
+    if (editingMissionId) {
+      setSavedMissions(prev => prev.map(m => m.id === editingMissionId ? { ...m, ...localData } : m));
+      setSelectedMissionId(editingMissionId);
+    } else {
+      // POST ke Laravel backend
+      try {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const res = await fetch('/missions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+          body: JSON.stringify(missionPayload),
+        });
+        const result = await res.json();
+        const newId = result?.data?.id ? `MSN-${result.data.id}` : `MSN-${Date.now()}`;
+        const nm = { id: newId, _dbId: result?.data?.id, ...localData };
+        setSavedMissions(prev => [nm, ...prev]);
+        setSelectedMissionId(nm.id);
+      } catch (e) {
+        // Fallback: simpan lokal saja jika backend tidak tersedia
+        const nm = { id: `MSN-${Date.now()}`, ...localData };
+        setSavedMissions(prev => [nm, ...prev]);
+        setSelectedMissionId(nm.id);
+      }
+    }
     setIsMissionSaved(true); setIsMapActive(false); setEditingMissionId(null); setActiveTab('history');
   };
 

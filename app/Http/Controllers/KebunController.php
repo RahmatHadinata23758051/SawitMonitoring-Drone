@@ -19,6 +19,23 @@ class KebunController extends Controller
     }
 
     /**
+     * API endpoint JSON untuk konsumsi React GCS.
+     */
+    public function apiIndex()
+    {
+        $kebun = Kebun::latest()->get()->map(fn($k) => [
+            'id'            => 'BLK-' . $k->id,
+            'namaBlok'      => $k->nama,
+            'luasKebun'     => (float) $k->luas,
+            'totalPohon'    => (int) ($k->jumlah_pohon ?? 140),
+            'tinggiPohon'   => 8.5,
+            'jumlahSampel'  => (int) ceil(($k->jumlah_pohon ?? 140) * 0.10),
+            'status'        => 'Tersimpan',
+        ]);
+        return response()->json($kebun);
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()

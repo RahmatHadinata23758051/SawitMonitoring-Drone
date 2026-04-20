@@ -21,33 +21,29 @@ class MissionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'mission_name' => 'required|string|max:255',
-            'drone_id' => 'nullable|exists:drones,id',
-            'waypoints' => 'required|array|min:1',
-            'path_data' => 'required|array|min:2',
-        ], [
-            'mission_name.required' => 'Misi wajib diisi.',
-            'drone_id.exists' => 'Drone yang dipilih tidak valid.',
-            'waypoints.required' => 'Waypoints wajib diisi.',
-            'waypoints.array' => 'Waypoints tidak valid.',
-            'path_data.required' => 'Path data wajib diisi.',
-            'path_data.array' => 'Path data tidak valid.',
+            'mission_name'  => 'required|string|max:255',
+            'drone_id'      => 'nullable|string',
+            'nav_algorithm' => 'nullable|string',
+            'scan_mode'     => 'nullable|string',
+            'waypoints'     => 'required|array|min:1',
+            'path_data'     => 'nullable|array',
+            'config_data'   => 'nullable|array',
         ]);
 
         $post = Mission::create([
-            'mission_name' => $validated['mission_name'],
-            'drone_id' => $validated['drone_id'] ?? null,
-            'nav_algorithm' => 'dead_reckoning',
-            'scan_mode' => 'traditional',
-            'waypoints' => $validated['waypoints'],
-            'path_data' => $validated['path_data'],
-            'status' => 'Saved'
+            'mission_name'  => $validated['mission_name'],
+            'drone_id'      => $validated['drone_id'] ?? null,
+            'nav_algorithm' => $validated['nav_algorithm'] ?? 'dead_reckoning',
+            'scan_mode'     => $validated['scan_mode'] ?? 'traditional',
+            'waypoints'     => $validated['waypoints'],
+            'path_data'     => $validated['path_data'] ?? [],
+            'status'        => 'Saved'
         ]);
 
         return response()->json([
-            'status' => true,
+            'status'  => true,
             'message' => 'Mission berhasil disimpan',
-            'data' => $post
+            'data'    => $post
         ]);
     }
 }

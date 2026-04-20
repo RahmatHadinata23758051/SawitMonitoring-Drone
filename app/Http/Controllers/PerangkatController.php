@@ -18,6 +18,19 @@ class PerangkatController extends Controller
     }
 
     /**
+     * API endpoint JSON untuk konsumsi React GCS.
+     */
+    public function apiIndex()
+    {
+        $perangkat = Perangkat::latest()->get()->map(fn($p) => [
+            'id'     => $p->id_drone,
+            'merk'   => $p->ip_drone,
+            'status' => $p->status ? 'Standby' : 'Maintenance',
+        ]);
+        return response()->json($perangkat);
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()

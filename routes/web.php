@@ -76,6 +76,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/missions', [MissionController::class, 'index']);
     Route::post('/missions', [MissionController::class, 'store']);
     Route::get('/missions/{id}', [MissionController::class, 'show']);
+
+    // === API JSON untuk GCS React ===
+    Route::get('/api/pengaturan-aplikasi', [PengaturanAplikasiController::class, 'fetchPengaturanAplikasi']);
+    Route::get('/api/perangkat', [PerangkatController::class, 'apiIndex']);
+    Route::get('/api/kebun', [KebunController::class, 'apiIndex']);
 });
 
 require __DIR__ . '/auth.php';
