@@ -94,13 +94,10 @@
                 if (webName)     webName.textContent     = data.name || 'Drone CPS';
                 if (webSubtitle) webSubtitle.textContent = 'Ground Control Station';
 
-                // --- Update src logo bila ada ---
-                if (logoImg && data.image) {
-                    logoImg.src = `/${data.image}`;
-                    logoImg.onerror = () => {
-                        logoImg.style.display = 'none';
-                        if (logFallback) logFallback.style.display = 'flex';
-                    };
+                // --- Update src logo dari API jika ada ---
+                if (data.image) {
+                    const logoImg = document.querySelector('#app-logo img');
+                    if (logoImg) logoImg.src = `/${data.image}`;
                 }
 
                 // --- Versi di sidebar footer ---
