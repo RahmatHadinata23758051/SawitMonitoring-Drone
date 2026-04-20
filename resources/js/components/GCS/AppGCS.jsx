@@ -7,10 +7,10 @@ import {
   MousePointerClick, TableProperties, Minus, Maximize2, Minimize2, X, Clock, Compass, GaugeCircle, Archive, Database, Edit, ChevronDown, Radio, Video, Bot, SendHorizontal, Loader2, ListTree, CheckSquare, Download, Plane, Cpu, MonitorPlay, Moon, Sun, Palette, FileText, ClipboardList, TrendingUp, PieChart, LayoutDashboard
 } from 'lucide-react';
 
-const homeWP = { x: -20, y: 15, id: 'HOME', lat: -0.589200, lon: 101.458500 };
-const BASE_LAT = -0.589234;
-const BASE_LON = 101.458721;
-const METER_TO_DEG = 0.000008983;
+import { homeWP, BASE_LAT, BASE_LON, METER_TO_DEG } from './utils/gcsConstants';
+import { generateTreeGrid, generateQLVPath, getQLVTargetTrees, generateTradPath, buildPathString } from './utils/pathGenerator';
+import { exportBlokKebun, exportTelemetry, exportFlightReport, formatFlightTime } from './utils/missionFormatter';
+
 
 const AppGCS = () => {
   // --- APP SETTINGS (dari Laravel — Fase E Branding Sync) ---
@@ -335,75 +335,23 @@ const AppGCS = () => {
   };
 
   // --- KALKULASI GRID POHON HEKSAGONAL ---
-  const { trees, max_x, max_y } = useMemo(() => {
-    const areaM2 = config.luasKebun * 10000;
-    const areaPerTree = areaM2 / config.totalPohon;
-    const spacingX = Math.sqrt(areaPerTree * 1.1547);
-    const spacingY = spacingX * Math.sin(Math.PI / 3);
-    const ratio = spacingY / spacingX;
-    const cols = Math.max(3, Math.ceil(Math.sqrt(config.totalPohon / ratio)));
-    const rows = Math.ceil(config.totalPohon / cols);
-    let count = 0; const generatedTrees = [];
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        if (count >= config.totalPohon) break;
-        const offsetX = (row % 2 !== 0) ? (spacingX / 2) : 0;
-        const x = (col * spacingX) + offsetX; const y = row * spacingY;
-        const lat = BASE_LAT - (y * METER_TO_DEG); const lon = BASE_LON + (x * METER_TO_DEG);
-        const crownRadius = spacingX * 0.22;
-        generatedTrees.push({ id: `L${row + 1}P${col + 1}`, x, y, lat, lon, row, col, height: config.tinggiPohon + (Math.random() * 2 - 1), crownRadius });
-        count++;
-      }
-    }
-    return { trees: generatedTrees, max_x: cols * spacingX + spacingX / 2, max_y: rows * spacingY };
-  }, [config.luasKebun, config.totalPohon, config.tinggiPohon]);
+  const { trees, max_x, max_y } = useMemo(() => generateTreeGrid(config),
+    [config.luasKebun, config.totalPohon, config.tinggiPohon]);
 
   // --- AUTO PATH QLV ---
-  const qlvPath = useMemo(() => {
-    if (scanMode !== 'qlv' || waypoints.length === 0) return [];
-    const startTree = waypoints[0];
-    const targetPoints = Math.ceil(config.jumlahSampel / 2);
-    const rowTrees = trees.filter(t => t.row === startTree.row).sort((a, b) => a.x - b.x);
-    const startIndex = rowTrees.findIndex(t => t.id === startTree.id);
-    if (startIndex === -1) return [];
-    let selectedTrees = rowTrees.length - startIndex >= targetPoints
-      ? rowTrees.slice(startIndex, startIndex + targetPoints)
-      : rowTrees.slice(Math.max(0, startIndex - targetPoints + 1), startIndex + 1).reverse();
-    const nextRowTrees = trees.filter(t => t.row === startTree.row + 1);
-    let yCorridor = startTree.y;
-    if (nextRowTrees.length > 0) yCorridor = (startTree.y + nextRowTrees[0].y) / 2;
-    else { const prevRow = trees.filter(t => t.row === startTree.row - 1); yCorridor = prevRow.length > 0 ? startTree.y + (startTree.y - prevRow[0].y) / 2 : startTree.y + 5; }
-    return selectedTrees.map((t, i) => ({ x: t.x, y: yCorridor, id: `QLV-${i}`, lat: BASE_LAT - (yCorridor * METER_TO_DEG), lon: BASE_LON + (t.x * METER_TO_DEG) }));
-  }, [waypoints, scanMode, trees, config.jumlahSampel]);
+  const qlvPath = useMemo(() =>
+    scanMode === 'qlv' ? generateQLVPath({ waypoints, trees, jumlahSampel: config.jumlahSampel }) : [],
+    [waypoints, scanMode, trees, config.jumlahSampel]);
 
   // --- TARGET POHON QLV ---
-  const qlvTargetTrees = useMemo(() => {
-    if (scanMode !== 'qlv' || waypoints.length === 0 || qlvPath.length === 0) return [];
-    const startTree = waypoints[0]; const targetRow1 = startTree.row;
-    const targetRow2 = trees.filter(t => t.row === targetRow1 + 1).length > 0 ? targetRow1 + 1 : targetRow1 - 1;
-    const row2Trees = trees.filter(t => t.row === targetRow2);
-    let candidates = [];
-    qlvPath.forEach(wp => {
-      const t1 = trees.find(t => t.row === targetRow1 && Math.abs(t.x - wp.x) < 0.1);
-      let t2 = null; let minDist = Infinity;
-      row2Trees.forEach(t => { const d = Math.abs(t.x - wp.x); if (d < minDist) { minDist = d; t2 = t; } });
-      if (t1 && !candidates.some(c => c.id === t1.id)) candidates.push(t1);
-      if (t2 && !candidates.some(c => c.id === t2.id)) candidates.push(t2);
-    });
-    return candidates.slice(0, config.jumlahSampel);
-  }, [waypoints, qlvPath, scanMode, trees, config.jumlahSampel]);
+  const qlvTargetTrees = useMemo(() =>
+    scanMode === 'qlv' ? getQLVTargetTrees({ waypoints, qlvPath, trees, jumlahSampel: config.jumlahSampel }) : [],
+    [waypoints, qlvPath, scanMode, trees, config.jumlahSampel]);
 
   // --- AUTO PATH TRADISIONAL ---
-  const tradPath = useMemo(() => {
-    if (scanMode !== 'traditional' || waypoints.length !== 3) return [];
-    const wp1 = waypoints[0]; const wp2 = waypoints[1]; const wp3 = waypoints[2];
-    const minX = Math.min(wp1.x, wp2.x); const maxX = Math.max(wp1.x, wp2.x);
-    let row1Trees = trees.filter(t => t.row === wp1.row && t.x >= minX - 1 && t.x <= maxX + 1);
-    let row2Trees = trees.filter(t => t.row === wp3.row && t.x >= minX - 1 && t.x <= maxX + 1);
-    if (wp1.x > wp2.x) { row1Trees.sort((a, b) => b.x - a.x); row2Trees.sort((a, b) => a.x - b.x); }
-    else { row1Trees.sort((a, b) => a.x - b.x); row2Trees.sort((a, b) => b.x - a.x); }
-    return [...row1Trees, ...row2Trees];
-  }, [waypoints, scanMode, trees]);
+  const tradPath = useMemo(() =>
+    scanMode === 'traditional' ? generateTradPath({ waypoints, trees }) : [],
+    [waypoints, scanMode, trees]);
 
   const targetAltitude = config.tinggiPohon + 15;
   const mapWidth = max_x + 85; const mapHeight = max_y + 60;
@@ -557,7 +505,8 @@ const AppGCS = () => {
     flightStatusRef.current = 'RTL'; setFlightStatusUI('RTL');
   };
 
-  const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+  const formatTime = formatFlightTime;
+
 
   // --- CONFIG HANDLERS ---
   const handleConfigChange = (e, field) => {
@@ -673,10 +622,7 @@ const AppGCS = () => {
     setLiveAiVision({ active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 } });
   };
 
-  const pathString = useMemo(() => {
-    const src = scanMode === 'qlv' && waypoints.length > 0 ? qlvPath : scanMode === 'traditional' && waypoints.length === 3 ? tradPath : waypoints;
-    return src.length > 0 ? `${homeWP.x},${homeWP.y} ${src.map(wp => `${wp.x},${wp.y}`).join(' ')}` : '';
-  }, [waypoints, qlvPath, tradPath, isMissionSaved, flightStatusUI, scanMode]);
+
 
   // --- STATISTIK ---
   const baseTotalSample = scanMode === 'qlv' ? config.jumlahSampel : (scanMode === 'traditional' && tradPath.length > 0 ? tradPath.length : config.jumlahSampel);
@@ -697,30 +643,16 @@ const AppGCS = () => {
     return 'PILIH MODE SCAN TERLEBIH DAHULU';
   };
 
-  // --- EXPORT ---
-  const exportCSV = (filename, headers, rows) => {
-    const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `${filename}_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-  };
+  // --- EXPORT (delegasi ke utils/missionFormatter) ---
+  const handleExportExcel = () => exportBlokKebun(managedBlocks);
+  const handleExportTelemetry = () => exportTelemetry(telemetryHistory);
+  const handleExportReports = () => exportFlightReport(flightLogs);
 
-  const handleExportExcel = () => {
-    if (!managedBlocks.length) return;
-    exportCSV('Manajemen_Blok_Sawit', ['ID Blok', 'Nama Blok', 'Luas (Ha)', 'Total Pohon', 'Tinggi (m)', 'Sampel', 'Status'],
-      managedBlocks.map(b => `${b.id},"${b.namaBlok}",${b.luasKebun},${b.totalPohon},${b.tinggiPohon},${b.jumlahSampel},${b.status}`));
-  };
+  // --- PATH STRING FOR SVG ---
+  const pathString = useMemo(() =>
+    buildPathString({ scanMode, waypoints, qlvPath, tradPath }, homeWP.x, homeWP.y),
+    [waypoints, qlvPath, tradPath, isMissionSaved, flightStatusUI, scanMode]);
 
-  const handleExportTelemetry = () => {
-    if (!telemetryHistory.length) return;
-    exportCSV('Raw_Telemetry', ['Waktu', 'Latitude', 'Longitude', 'Alt(m)', 'Speed(m/s)', 'Pitch', 'Roll', 'Yaw', 'Mode', 'Battery(%)'],
-      telemetryHistory.map(d => `"${d.timestamp}",${d.lat.toFixed(6)},${d.lon.toFixed(6)},${d.alt.toFixed(2)},${d.speed.toFixed(2)},${d.pitch.toFixed(2)},${d.roll.toFixed(2)},${d.yaw.toFixed(0)},"${d.mode}",${d.bat.toFixed(2)}`));
-  };
-
-  const handleExportReports = () => {
-    if (!flightLogs.length) return;
-    exportCSV('Laporan_Kinerja_Drone', ['ID Log', 'Tanggal', 'Nama Misi', 'Algoritma', 'Mode Scan', 'Waktu(s)', 'Baterai(%)', 'Sampel', 'Matang', 'Mentah', 'Akurasi(%)'],
-      flightLogs.map(l => `${l.id},"${l.date}","${l.name}",${l.nav},${l.scan},${l.flightTime},${l.batteryUsed},${l.samples},${l.matang},${l.belumMatang},${l.accuracy}`));
-  };
 
   // =========================================
   // RENDER
