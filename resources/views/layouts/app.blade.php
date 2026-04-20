@@ -77,30 +77,54 @@
 
     <script>
         const getApplicationSettings = async () => {
-            const response = await fetch('/api/pengaturan-aplikasi');
-            const data = await response.json();
+            try {
+                const response = await fetch('/api/pengaturan-aplikasi');
+                const data = await response.json();
 
-            const footer = document.getElementById('footer');
-            const appLogo = document.getElementById('app-logo');
-            const menuFooter = document.getElementById('menu-footer');
-            const tabBrowser = document.getElementById('tab-browser');
-            const webName = document.getElementById('web-name');
-            const imgUrl = `/${data.image}`;
-            const fallbackImg = '/images/logoMakesens.png';
+                const footer      = document.getElementById('footer');
+                const appLogo     = document.getElementById('app-logo');
+                const menuFooter  = document.getElementById('menu-footer');
+                const menuVersion = document.getElementById('menu-version');
+                const tabBrowser  = document.getElementById('tab-browser');
+                const webName     = document.getElementById('web-name');
+                const webSubtitle = document.getElementById('web-subtitle');
 
-            const img = new Image();
-            img.src = imgUrl;
-            img.onload = () => {
-                appLogo.innerHTML = `<img src="${imgUrl}" alt="Logo" class="object-cover">`;
-            };
-            img.onerror = () => {
-                appLogo.innerHTML = `<img src="${fallbackImg}" alt="Logo" class="object-cover">`;
-            };
+                // --- Tab Browser ---
+                if (tabBrowser) tabBrowser.textContent = data.tab_name || data.name || 'Drone CPS';
 
-            menuFooter.textContent = `Versi ${data.version}`;
-            footer.textContent = `Copyright © ${data.copyright_year} ${data.copyright}. All Right Reserved.`;
-            tabBrowser.textContent = data.tab_name;
-            webName.textContent = data.name;
+                // --- Logo Sidebar ---
+                if (appLogo && data.image) {
+                    const imgUrl = `/${data.image}`;
+                    const img = new Image();
+                    img.src = imgUrl;
+                    img.onload = () => {
+                        appLogo.innerHTML = `
+                            <img src="${imgUrl}" alt="Logo" class="h-16 w-auto object-contain"
+                                 onerror="this.style.display='none'">
+                            <div class="text-center mt-1">
+                                <div class="text-white font-bold text-sm leading-tight">${data.name || 'Drone CPS'}</div>
+                                <div class="text-green-200 text-[10px]">Ground Control Station</div>
+                            </div>`;
+                    };
+                    img.onerror = () => {
+                        if (webName) webName.textContent = data.name || 'Drone CPS';
+                        if (webSubtitle) webSubtitle.textContent = 'Ground Control Station';
+                    };
+                } else {
+                    if (webName) webName.textContent = data.name || 'Drone CPS';
+                    if (webSubtitle) webSubtitle.textContent = 'Ground Control Station';
+                }
+
+                // --- Versi di sidebar footer ---
+                if (menuVersion) menuVersion.textContent = `v${data.version || '1.0.1'}`;
+
+                // --- Footer Halaman ---
+                if (footer) {
+                    footer.innerHTML = `Copyright &copy; ${data.copyright_year || '2026'} <strong>${data.copyright || 'IPB University'}</strong>. All Rights Reserved.`;
+                }
+            } catch (e) {
+                console.warn('Gagal fetch pengaturan aplikasi:', e);
+            }
         }
 
         document.addEventListener("DOMContentLoaded", function() {

@@ -660,22 +660,23 @@ const AppGCS = () => {
           {/* Logo Aplikasi (sync dengan Laravel) */}
           <div className={`h-7 w-px ${t('bg-slate-700', 'bg-slate-300')}`}></div>
           <div className="flex items-center gap-2">
-            {/* Logo: gambar dari DB → fallback nama aplikasi */}
+            {/* Logo IPB dari DB */}
             {appSettings.image ? (
               <img
                 src={`/${appSettings.image}`}
                 alt={appSettings.name || 'Logo'}
-                className="w-7 h-7 object-contain"
+                className="h-8 w-auto object-contain"
+                style={{ filter: 'brightness(0) invert(1)' }}
                 onError={e => {
                   e.target.style.display = 'none';
                   e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
                 }}
               />
             ) : null}
-            {/* Fallback: inisial nama aplikasi saat logo tidak ada/gagal load */}
+            {/* Fallback inisial */}
             <div
               style={{ display: appSettings.image ? 'none' : 'flex' }}
-              className={`w-7 h-7 rounded flex items-center justify-center text-[10px] font-black leading-none shrink-0 ${t('bg-emerald-600 text-white', 'bg-emerald-500 text-white')}`}
+              className={`w-8 h-8 rounded flex items-center justify-center text-[10px] font-black leading-none shrink-0 ${t('bg-emerald-600 text-white', 'bg-emerald-500 text-white')}`}
             >
               {appSettings.name ? appSettings.name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase() : 'GCS'}
             </div>
@@ -683,8 +684,8 @@ const AppGCS = () => {
               <span className={`font-bold text-sm leading-none ${t('text-emerald-400', 'text-emerald-600')}`}>
                 {appSettings.name || 'Drone CPS'}
               </span>
-              <span className={`text-[8px] font-mono leading-none mt-0.5 ${t('text-slate-500', 'text-slate-400')}`}>
-                v{appSettings.version || '1.0.0'} · GCS
+              <span className={`text-[8px] font-mono leading-none mt-0.5 ${t('text-slate-400', 'text-slate-400')}`}>
+                Ground Control Station · v{appSettings.version || '1.0.1'}
               </span>
             </div>
           </div>

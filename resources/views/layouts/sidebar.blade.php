@@ -2,11 +2,19 @@
     <div :class="{ 'block': sideopen, 'hidden': !sideopen }"
         class="flex flex-col bg-white w-64 lg:fixed lg:top-0 lg:bottom-0 lg:left-0 lg:ml-0 lg:mr-0 max-md:hidden overflow-y-scroll styled-scrollbars h-full"
         id="sidebar">
-        <div id="app-brand" class="w-full h-16 mt-3 px-8">
-            <a href="#" class="flex items-center" id="app-logo">
-                <img src="{{ asset('images/logoMakesens.png') }}" alt="" srcset="" class="object-cover">
+        <!-- App Brand Area -->
+        <div id="app-brand" class="w-full py-4 px-4 bg-green-800 flex flex-col items-center gap-1">
+            <a href="{{ route('dashboard') }}" class="flex flex-col items-center gap-2" id="app-logo">
+                <img src="{{ asset('images/logo-ipb.png') }}" alt="Logo" class="h-16 w-auto object-contain"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div style="display:none" class="w-14 h-14 rounded-full bg-green-600 items-center justify-center text-white font-black text-xl">GCS</div>
             </a>
+            <div class="text-center mt-1">
+                <div id="web-name" class="text-white font-bold text-sm leading-tight">Drone CPS</div>
+                <div id="web-subtitle" class="text-green-200 text-[10px]">Ground Control Station</div>
+            </div>
         </div>
+
         <div class="flex-grow">
             <ul id="menu-inner"
                 class="flex flex-col flex-auto items-start justify-start m-0 p-0 pt-6 relative overflow-hidden touch-auto pb-6">
@@ -237,6 +245,9 @@
                 </li>
             </ul>
         </div>
-        <div id="menu-footer" class="mb-3 text-center font-normal text-sm text-slate-500"></div>
+        <div id="menu-footer" class="mb-3 text-center font-normal text-xs text-slate-400 px-2 leading-relaxed">
+            <div id="menu-version" class="text-slate-500 mb-0.5"></div>
+        </div>
+
     </div>
 </div>
