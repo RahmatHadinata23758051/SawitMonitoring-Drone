@@ -13,14 +13,29 @@ const BASE_LON = 101.458721;
 const METER_TO_DEG = 0.000008983;
 
 const AppGCS = () => {
-  // --- APP SETTINGS (dari Laravel) ---
-  const [appSettings, setAppSettings] = useState({ name: 'Drone CPS', image: null });
+  // --- APP SETTINGS (dari Laravel — Fase E Branding Sync) ---
+  const [appSettings, setAppSettings] = useState({
+    name: 'Drone CPS',
+    image: null,
+    version: '1.0.0',
+    tab_name: 'GCS — Drone CPS',
+    copyright: 'MakeSens',
+    copyright_year: new Date().getFullYear(),
+  });
   useEffect(() => {
     fetch('/api/pengaturan-aplikasi')
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setAppSettings(data); })
+      .then(data => {
+        if (data) {
+          setAppSettings(prev => ({ ...prev, ...data }));
+          // Sinkron judul tab browser
+          if (data.tab_name) document.title = `GCS · ${data.tab_name}`;
+          else if (data.name) document.title = `GCS · ${data.name}`;
+        }
+      })
       .catch(() => {});
   }, []);
+
 
   // --- STATE TEMA & FULLSCREEN ---
   const [theme, setTheme] = useState('dark');
@@ -645,15 +660,32 @@ const AppGCS = () => {
           {/* Logo Aplikasi (sync dengan Laravel) */}
           <div className={`h-7 w-px ${t('bg-slate-700', 'bg-slate-300')}`}></div>
           <div className="flex items-center gap-2">
+            {/* Logo: gambar dari DB → fallback nama aplikasi */}
             {appSettings.image ? (
-              <img src={`/${appSettings.image}`} alt="Logo" className="w-7 h-7 object-contain"
-                onError={e => { e.target.style.display = 'none'; }} />
-            ) : (
-              <div className={`w-7 h-7 rounded flex items-center justify-center text-xs font-black ${t('bg-emerald-600 text-white', 'bg-emerald-500 text-white')}`}>GCS</div>
-            )}
+              <img
+                src={`/${appSettings.image}`}
+                alt={appSettings.name || 'Logo'}
+                className="w-7 h-7 object-contain"
+                onError={e => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
+                }}
+              />
+            ) : null}
+            {/* Fallback: inisial nama aplikasi saat logo tidak ada/gagal load */}
+            <div
+              style={{ display: appSettings.image ? 'none' : 'flex' }}
+              className={`w-7 h-7 rounded flex items-center justify-center text-[10px] font-black leading-none shrink-0 ${t('bg-emerald-600 text-white', 'bg-emerald-500 text-white')}`}
+            >
+              {appSettings.name ? appSettings.name.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase() : 'GCS'}
+            </div>
             <div className="flex flex-col">
-              <span className={`font-bold text-sm leading-none ${t('text-emerald-400', 'text-emerald-600')}`}>{appSettings.name || 'Drone CPS'}</span>
-              <span className={`text-[8px] font-mono leading-none mt-0.5 ${t('text-slate-500', 'text-slate-400')}`}>v1.0.0 · GCS</span>
+              <span className={`font-bold text-sm leading-none ${t('text-emerald-400', 'text-emerald-600')}`}>
+                {appSettings.name || 'Drone CPS'}
+              </span>
+              <span className={`text-[8px] font-mono leading-none mt-0.5 ${t('text-slate-500', 'text-slate-400')}`}>
+                v{appSettings.version || '1.0.0'} · GCS
+              </span>
             </div>
           </div>
 
