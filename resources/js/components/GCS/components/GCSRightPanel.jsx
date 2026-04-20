@@ -28,7 +28,7 @@ const GCSRightPanel = ({
   editingMissionId,
   savedMissions, selectedMissionId, setSelectedMissionId,
   handleStartWaypoint, handleSaveMission, loadMissionForEdit, handleResetDraft,
-  getWaypointInstruction,
+  getWaypointInstruction, toggleWaypoint,
 
   // AI Vision & Stats
   liveAiVision, flightStatusUI, scannedTrees, baseTotalSample,
@@ -113,8 +113,9 @@ const GCSRightPanel = ({
                   if (isScanned) { fillColor = "#eab308"; strokeColor = "#fef08a"; }
 
                   return (
-                    <g key={tree.id} transform={`translate(${tree.x}, ${tree.y})`} onClick={() => handleSaveMission && null} className={`group ${isMapActive ? 'cursor-pointer' : ''}`}
-                      // NOTE: toggleWaypoint is called from parent via onClick on outer div
+                    <g key={tree.id} transform={`translate(${tree.x}, ${tree.y})`}
+                      onClick={() => toggleWaypoint(tree)}
+                      className={`group ${isMapActive ? 'cursor-pointer' : ''}`}
                     >
                       {isMapActive && <circle r={tree.crownRadius * 1.5} fill="transparent" className="group-hover:fill-sky-500/20 transition-colors" />}
                       <circle r={isSelected && !isScanned ? tree.crownRadius + 0.8 : tree.crownRadius} fill={fillColor} stroke={strokeColor} strokeWidth="0.5" className={`transition-all duration-200 ${isMapActive ? 'group-hover:scale-110' : ''}`} />

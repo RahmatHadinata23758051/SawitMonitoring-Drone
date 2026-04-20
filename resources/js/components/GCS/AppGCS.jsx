@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Battery, Signal, Wifi, Navigation, Activity,
   Crosshair, Map as MapIcon, Power, Play, Square,
@@ -155,12 +155,16 @@ const AppGCS = () => {
     condition: null, confidence: 0, boxPos: { top: 30, left: 40 },
   });
 
-  // Flight Logs
-  const [flightLogs, setFlightLogs] = useState([
-    { id: 'LOG-101', date: '10/04/2026 09:12:00', name: 'MISI-BlokA', nav: 'live_reckoning', scan: 'qlv', flightTime: 85, samples: 14, matang: 9, belumMatang: 5, batteryUsed: 0.85, accuracy: 92 },
-    { id: 'LOG-102', date: '10/04/2026 10:30:00', name: 'MISI-BlokB', nav: 'dead_reckoning', scan: 'traditional', flightTime: 210, samples: 14, matang: 9, belumMatang: 5, batteryUsed: 2.10, accuracy: 98 },
-    { id: 'LOG-103', date: '13/04/2026 00:53:18', name: 'WPTR', nav: 'hybrid', scan: 'traditional', flightTime: 96, samples: 25, matang: 16, belumMatang: 9, batteryUsed: 0.96, accuracy: 97 },
-  ]);
+  // Flight Logs — BL-09: load dari DB, kosong di awal
+  const [flightLogs, setFlightLogs] = useState([]);
+
+  // BL-09: Load flight logs dari DB saat mount
+  useEffect(() => {
+    fetch('/api/flight-logs')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data) && data.length > 0) setFlightLogs(data); })
+      .catch(() => {});
+  }, []);
 
   // Telemetry
   const [telemetryHistory, setTelemetryHistory] = useState([]);
@@ -390,22 +394,72 @@ const AppGCS = () => {
             const finalCount = scannedTreesRef.current;
             if (currentFlightInfoRef.current) {
               const fInfo = currentFlightInfoRef.current;
-              const finalMatang = Math.floor(finalCount * 0.65); const finalBelum = finalCount - finalMatang;
-              const acc = fInfo.scan === 'qlv' ? Math.floor(Math.random() * 6) + 89 : Math.floor(Math.random() * 4) + 96;
-              const newLog = { id: 'LOG-' + Date.now(), date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(), name: fInfo.name, nav: fInfo.nav, scan: fInfo.scan, samples: finalCount, matang: finalMatang, belumMatang: finalBelum, flightTime: flightTimeRef.current, batteryUsed: parseFloat((flightTimeRef.current * 0.01).toFixed(2)), accuracy: acc };
-              setFlightLogs(prev => [newLog, ...prev]);
-              // âœ… AUTO-SAVE KE DB saat drone mendarat
-              setAutoSavePending({
-                mission_name: fInfo.name,
-                nav_algorithm: fInfo.nav,
-                scan_mode: fInfo.scan,
-                waypoints: fInfo.waypointSlim || [],
-                path_data: fInfo.pathSlim || [],
-                config_data: fInfo.configData || {},
-                status: 'Completed',
-                samples_count: finalCount,
-                flight_time: flightTimeRef.current,
+              const finalMatang = Math.floor(finalCount * 0.65);
+              const finalBelum  = finalCount - finalMatang;
+              const acc = fInfo.scan === 'qlv'
+                ? Math.floor(Math.random() * 6) + 89
+                : Math.floor(Math.random() * 4) + 96;
+              const flightSecs  = flightTimeRef.current;
+              const battUsed    = parseFloat((flightSecs * 0.01).toFixed(2));
+
+              // 1. Update UI state langsung (optimistic)
+              const tempLog = {
+                id: 'LOG-' + Date.now(),
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+                name: fInfo.name, nav: fInfo.nav, scan: fInfo.scan,
+                samples: finalCount, matang: finalMatang, belumMatang: finalBelum,
+                flightTime: flightSecs, batteryUsed: battUsed, accuracy: acc,
+              };
+              setFlightLogs(prev => [tempLog, ...prev]);
+              setCockpitWarning('✅ Mendarat! Menyimpan log ke database...');
+
+              // 2. BL-09: POST ke /api/flight-logs (BUKAN /missions)
+              const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+              fetch('/api/flight-logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: JSON.stringify({
+                  mission_name:        fInfo.name,
+                  mission_id:          fInfo.dbMissionId || null,
+                  nav_algorithm:       fInfo.nav,
+                  scan_mode:           fInfo.scan,
+                  flight_time_seconds: flightSecs,
+                  battery_used:        battUsed,
+                  samples_count:       finalCount,
+                  matang:              finalMatang,
+                  belum_matang:        finalBelum,
+                  accuracy:            acc,
+                  config_data:         fInfo.configData || {},
+                }),
+              })
+              .then(res => res.ok ? res.json() : Promise.reject(res.status))
+              .then(result => {
+                // Update ID log dari DB (ganti ID sementara)
+                setFlightLogs(prev => prev.map(l =>
+                  l.id === tempLog.id ? { ...l, id: result?.data?.id ?? tempLog.id } : l
+                ));
+                setCockpitWarning(`✅ Log "${fInfo.name}" tersimpan ke DB!`);
+                setTimeout(() => setCockpitWarning(''), 4000);
+              })
+              .catch(() => {
+                setCockpitWarning('⚠️ Log disimpan lokal, gagal ke server!');
+                setTimeout(() => setCockpitWarning(''), 4000);
               });
+
+              // 3. Tetap auto-save misi ke /missions jika belum tersimpan
+              if (!fInfo.dbMissionId) {
+                setAutoSavePending({
+                  mission_name: fInfo.name,
+                  nav_algorithm: fInfo.nav,
+                  scan_mode: fInfo.scan,
+                  waypoints: fInfo.waypointSlim || [],
+                  path_data: fInfo.pathSlim || [],
+                  config_data: fInfo.configData || {},
+                  status: 'Completed',
+                  samples_count: finalCount,
+                  flight_time: flightSecs,
+                });
+              }
               currentFlightInfoRef.current = null;
             }
           }
@@ -675,6 +729,7 @@ const AppGCS = () => {
           loadMissionForEdit={loadMissionForEdit}
           handleResetDraft={handleResetDraft}
           getWaypointInstruction={getWaypointInstruction}
+          toggleWaypoint={toggleWaypoint}
 
           liveAiVision={liveAiVision}
           flightStatusUI={flightStatusUI}
