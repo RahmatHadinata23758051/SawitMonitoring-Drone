@@ -90,12 +90,12 @@
     }
 
     ::-webkit-scrollbar-thumb {
-        background: #2f6b3c;
+        background: #1e40af;
         border-radius: 15px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background: #2f6b3c;
+        background: #1d4ed8;
     }
 
     table {
@@ -115,40 +115,40 @@
     }
 
     .text-primary {
-        color: #2f6b3c !important;
+        color: #1e40af !important;
     }
 
     .text-warning {
-        color: #1449ef !important;
+        color: #f59e0b !important;
     }
 
     .text-info {
-        color: #39cf87 !important;
+        color: #0ea5e9 !important;
     }
 
     .text-danger {
-        color: #fd5c5c !important;
+        color: #ef4444 !important;
     }
 
     .bg-primary {
-        background-color: #2f6b3c !important;
+        background-color: #1e3a8a !important;
     }
 
     .bg-primary-subtle {
-        background-color: rgba(47, 107, 60, 0.2) !important;
-        border: 2px solid #2f6b3c !important;
+        background-color: rgba(30, 64, 175, 0.12) !important;
+        border: 2px solid #1e40af !important;
     }
 
     .bg-warning {
-        background-color: #1449ef !important;
+        background-color: #f59e0b !important;
     }
 
     .bg-danger {
-        background-color: #fd5c5c !important;
+        background-color: #ef4444 !important;
     }
 
     .toast-success {
-        border-left: 6px solid #00f74a !important;
+        border-left: 6px solid #1e40af !important;
         background: #ffffff !important;
         color: #1f2937;
     }
@@ -209,42 +209,50 @@
         @apply text-blue-500 border-blue-500 font-medium;
     }
 
-    /* ===== TOP NAVBAR ===== */
-    .navbar-item {
-        @apply flex items-center gap-1.5 text-sm text-green-100 font-medium px-3 py-2 rounded-lg
-               hover:bg-green-700 hover:text-white transition-all duration-150 whitespace-nowrap;
+    /* ===== TOP NAVBAR — Blue White Theme ===== */
+
+    /* Link biasa di navbar */
+    .nav-link {
+        @apply relative flex items-center gap-1.5 text-sm text-slate-600 font-medium px-3 py-2
+               rounded-md hover:bg-blue-50 hover:text-blue-700 transition-all duration-150
+               whitespace-nowrap cursor-pointer border-b-2 border-transparent;
     }
-    .navbar-active {
-        @apply bg-green-700 text-white;
+    .nav-link-active {
+        @apply text-blue-700 border-b-2 border-blue-600 bg-blue-50/60;
     }
 
-    .navbar-item-highlight {
-        @apply flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-lg transition-all duration-150
-               bg-emerald-500 text-white hover:bg-emerald-400 whitespace-nowrap;
+    /* GCS highlight button */
+    .nav-link-gcs {
+        @apply flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition-all
+               duration-150 bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap ml-1 mr-1;
     }
-    .navbar-highlight-active {
-        @apply bg-emerald-400 ring-2 ring-white/30;
-    }
-
-    .navbar-dropdown {
-        @apply absolute top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-100
-               min-w-[200px] z-50 py-1.5 left-0;
+    .nav-link-gcs-active {
+        @apply bg-blue-700 ring-2 ring-blue-300/40;
     }
 
-    .dropdown-item {
-        @apply flex items-center gap-2 px-4 py-2 text-sm text-slate-700 font-medium
-               hover:bg-green-50 hover:text-green-800 transition-all duration-100;
-    }
-    .dropdown-active {
-        @apply bg-green-50 text-green-800 font-semibold;
+    /* Dropdown panel */
+    .nav-dropdown {
+        @apply absolute top-full mt-1.5 bg-white rounded-xl shadow-xl border border-slate-100
+               min-w-[210px] z-50 py-1.5 left-0 overflow-hidden;
     }
 
-    .mobile-item {
-        @apply flex items-center gap-3 text-sm text-green-100 font-medium px-3 py-2.5 rounded-lg
-               hover:bg-green-700 hover:text-white transition-all duration-150 w-full;
+    /* Item dalam dropdown */
+    .nav-dropdown-item {
+        @apply flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700 font-medium
+               hover:bg-blue-50 hover:text-blue-800 transition-colors duration-100;
     }
-    .mobile-active {
-        @apply bg-green-700 text-white;
+    .nav-dropdown-active {
+        @apply bg-blue-50 text-blue-700 font-semibold;
+    }
+
+    /* Mobile menu item */
+    .mobile-nav {
+        @apply flex items-center gap-3 text-sm text-slate-700 font-medium px-3 py-2.5 rounded-lg
+               hover:bg-blue-50 hover:text-blue-700 transition-all duration-150 w-full;
+    }
+    .mobile-nav-active {
+        @apply bg-blue-50 text-blue-700 font-semibold;
     }
 }
+
 
