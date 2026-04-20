@@ -10,6 +10,7 @@ use App\Http\Controllers\KebunDatasetController;
 use App\Http\Controllers\LahanController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\LogAktivitasController;
+use App\Http\Controllers\FlightLogController;
 use App\Http\Controllers\MissionController;
 use App\Http\Controllers\PanenController;
 use App\Http\Controllers\PengaturanAplikasiController;
@@ -69,7 +70,7 @@ Route::middleware('auth')->group(function () {
     ])->parameters(['kebun' => 'kebunDataset']);
     Route::resource('rule-engine/dead-reckoning', DeadReckoningController::class)->except('show');
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
-    Route::get('/laporan/log-penerbangan', [MissionController::class, 'logPenerbangan'])->name('laporan.log-penerbangan');
+    Route::get('/laporan/log-penerbangan', [FlightLogController::class, 'logPenerbangan'])->name('laporan.log-penerbangan');
 
     Route::get('/pengaturan-aplikasi', [PengaturanAplikasiController::class, 'index'])->name('pengaturan-aplikasi.index');
     Route::post('/pengaturan-aplikasi', [PengaturanAplikasiController::class, 'store'])->name('pengaturan-aplikasi.store');
@@ -83,6 +84,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/pengaturan-aplikasi', [PengaturanAplikasiController::class, 'fetchPengaturanAplikasi']);
     Route::get('/api/perangkat', [PerangkatController::class, 'apiIndex']);
     Route::get('/api/kebun', [KebunController::class, 'apiIndex']);
+
+    // BL-09: Flight Logs API
+    Route::get('/api/flight-logs', [FlightLogController::class, 'index']);
+    Route::post('/api/flight-logs', [FlightLogController::class, 'store']);
 });
 
 require __DIR__ . '/auth.php';
