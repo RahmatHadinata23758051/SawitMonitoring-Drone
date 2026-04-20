@@ -16,18 +16,18 @@
         {{-- ===== BRAND (Logo + Nama) ===== --}}
         <a href="{{ route('dashboard') }}" id="app-logo"
            class="flex items-center gap-3 shrink-0">
-            {{-- Badge IPB (lingkaran lambang) --}}
-            <img src="{{ asset('images/logo-ipb-color.png') }}"
-                 alt="Logo IPB"
-                 class="h-12 w-12 object-contain rounded-full"
+            <img src="{{ asset('images/logo-ipb-full.png') }}"
+                 alt="Logo IPB University"
+                 class="h-12 w-auto object-contain"
                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div style="display:none; background:#1e3a8a; color:white;"
-                 class="w-12 h-12 rounded-full flex items-center justify-center font-black text-base shrink-0">GCS</div>
+                 class="w-10 h-10 rounded-full flex items-center justify-center font-black text-base shrink-0">GCS</div>
+            {{-- Divider --}}
+            <div class="w-px h-8 bg-slate-200 hidden sm:block"></div>
             {{-- Text block --}}
             <div class="hidden sm:flex flex-col leading-none gap-0.5">
                 <span id="web-name" class="font-bold text-[15px] leading-tight" style="color:#1e3a8a">Drone CPS</span>
                 <span id="web-subtitle" class="text-slate-400 text-[10px] font-medium tracking-wide">Ground Control Station</span>
-                <span class="text-slate-400 text-[9px] tracking-wide">IPB University</span>
             </div>
         </a>
 
