@@ -11,7 +11,8 @@ class LaporanController extends Controller
     public function index()
     {
         $laporan = LaporanPrediksi::latest()->get();
-        return view('pages.laporan.index', compact('laporan'));
+        $flightLogs = \App\Models\FlightLog::with('mission')->latest()->limit(5)->get(); // ambil 5 misi terakhir sbg rekap
+        return view('pages.laporan.index', compact('laporan', 'flightLogs'));
     }
 
     public function sendSample(Request $request)
