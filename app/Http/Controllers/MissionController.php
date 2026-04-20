@@ -44,7 +44,7 @@ class MissionController extends Controller
 
         $post = Mission::create([
             'mission_name'  => $validated['mission_name'],
-            'perangkat_id'  => null, // drone dipilih dari modal GCS, bukan FK langsung
+            'perangkat_id'  => null,
             'nav_algorithm' => $validated['nav_algorithm'] ?? 'dead_reckoning',
             'scan_mode'     => $validated['scan_mode'] ?? 'traditional',
             'waypoints'     => $validated['waypoints'],
@@ -52,11 +52,15 @@ class MissionController extends Controller
             'status'        => 'Saved'
         ]);
 
-        activity()
-            ->performedOn($post)
-            ->event('create')
-            ->causedBy(Auth::user())
-            ->log('Misi GCS disimpan: ' . $post->mission_name . ' [' . strtoupper($post->scan_mode) . ']');
+        try {
+            activity()
+                ->performedOn($post)
+                ->event('create')
+                ->causedBy(Auth::user())
+                ->log('Misi GCS disimpan: ' . $post->mission_name . ' [' . strtoupper($post->scan_mode) . ']');
+        } catch (\Exception $e) {
+            \Log::warning('Activity log gagal untuk misi #' . $post->id . ': ' . $e->getMessage());
+        }
 
         return response()->json([
             'status'  => true,

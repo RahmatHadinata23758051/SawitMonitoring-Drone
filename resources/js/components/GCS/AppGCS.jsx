@@ -534,13 +534,16 @@ const AppGCS = () => {
     if (!navAlgorithm || !scanMode) return;
 
     const pathData = scanMode === 'qlv' ? qlvPath : tradPath;
+    // Kirim hanya data minimal (bukan full tree object agar payload tidak terlalu besar)
+    const waypointSlim = waypoints.map(wp => ({ id: wp.id, row: wp.row, x: wp.x, y: wp.y }));
+    const pathSlim = pathData ? pathData.map(p => ({ x: p.x, y: p.y })) : [];
     const missionPayload = {
       mission_name: missionName,
       nav_algorithm: navAlgorithm,
       scan_mode: scanMode,
-      waypoints: waypoints,
-      path_data: pathData,
-      config_data: config,
+      waypoints: waypointSlim,
+      path_data: pathSlim,
+      config_data: { namaBlok: config.namaBlok, luasKebun: config.luasKebun, totalPohon: config.totalPohon },
     };
 
     const localData = {
@@ -565,12 +568,22 @@ const AppGCS = () => {
           headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
           body: JSON.stringify(missionPayload),
         });
-        const result = await res.json();
-        const newId = result?.data?.id ? `MSN-${result.data.id}` : `MSN-${Date.now()}`;
-        const nm = { id: newId, _dbId: result?.data?.id, ...localData };
-        setSavedMissions(prev => [nm, ...prev]);
-        setSelectedMissionId(nm.id);
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          console.error('[GCS] Gagal simpan misi ke DB:', res.status, errBody);
+          // Fallback lokal
+          const nm = { id: `MSN-${Date.now()}`, ...localData };
+          setSavedMissions(prev => [nm, ...prev]);
+          setSelectedMissionId(nm.id);
+        } else {
+          const result = await res.json();
+          const newId = result?.data?.id ? `MSN-${String(result.data.id).padStart(4,'0')}` : `MSN-${Date.now()}`;
+          const nm = { id: newId, _dbId: result?.data?.id, ...localData };
+          setSavedMissions(prev => [nm, ...prev]);
+          setSelectedMissionId(nm.id);
+        }
       } catch (e) {
+        console.error('[GCS] Network error saat simpan misi:', e);
         // Fallback: simpan lokal saja jika backend tidak tersedia
         const nm = { id: `MSN-${Date.now()}`, ...localData };
         setSavedMissions(prev => [nm, ...prev]);
