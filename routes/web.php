@@ -24,9 +24,8 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-// Dashboard disembunyikan — redirect ke GCS sebagai menu utama
 Route::get('/dashboard', function () {
-    return redirect()->route('gcs.index');
+    return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {

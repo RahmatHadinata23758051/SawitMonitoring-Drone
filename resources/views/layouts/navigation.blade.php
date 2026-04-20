@@ -14,7 +14,7 @@
     <div class="flex items-center justify-between h-20 px-4 lg:px-6">
 
         {{-- ===== BRAND (Logo + Nama) ===== --}}
-        <a href="{{ route('gcs.index') }}" id="app-logo"
+        <a href="{{ route('dashboard') }}" id="app-logo"
            class="flex items-center gap-3 shrink-0">
             <img src="{{ asset('images/logo-ipb-full.png') }}"
                  alt="Logo IPB University"
@@ -34,11 +34,11 @@
         {{-- ===== MENU DESKTOP ===== --}}
         <div class="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
 
-            {{-- Dashboard — disembunyikan per permintaan bos, GCS jadi menu utama --}}
-            {{-- <a href="{{ route('dashboard') }}"
+            {{-- Dashboard --}}
+            <a href="{{ route('dashboard') }}"
                class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}">
                 Dashboard
-            </a> --}}
+            </a>
 
             {{-- Data Master Dropdown --}}
             <div class="relative">
@@ -194,8 +194,8 @@
          x-transition:enter-start="opacity-0 -translate-y-2"
          x-transition:enter-end="opacity-100 translate-y-0">
         <div class="px-4 pt-3 space-y-1">
-            {{-- Dashboard disembunyikan, GCS jadi menu utama --}}
-            {{-- <a href="{{ route('dashboard') }}" class="mobile-nav {{ request()->routeIs('dashboard') ? 'mobile-nav-active' : '' }}"><i class="fa-solid fa-house w-5 text-blue-500"></i> Dashboard</a> --}}
+            {{-- Dashboard --}}
+            <a href="{{ route('dashboard') }}" class="mobile-nav {{ request()->routeIs('dashboard') ? 'mobile-nav-active' : '' }}"><i class="fa-solid fa-house w-5 text-blue-500"></i> Dashboard</a>
 
             <div class="text-blue-400 text-[10px] font-bold uppercase tracking-wider pt-2 pb-1">Data Master</div>
             <a href="{{ route('lahan.index') }}"     class="mobile-nav {{ request()->routeIs('lahan.*') ? 'mobile-nav-active' : '' }}"><i class="fa-solid fa-map w-5 text-blue-400"></i> Data Lahan</a>
