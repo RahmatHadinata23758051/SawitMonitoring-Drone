@@ -82,8 +82,8 @@
                 const data = await response.json();
 
                 const footer      = document.getElementById('footer');
-                const appLogo     = document.getElementById('app-logo');
-                const menuFooter  = document.getElementById('menu-footer');
+                const logoImg     = document.querySelector('#app-logo img');
+                const logFallback = document.querySelector('#app-logo div');
                 const menuVersion = document.getElementById('menu-version');
                 const tabBrowser  = document.getElementById('tab-browser');
                 const webName     = document.getElementById('web-name');
@@ -92,27 +92,17 @@
                 // --- Tab Browser ---
                 if (tabBrowser) tabBrowser.textContent = data.tab_name || data.name || 'Drone CPS';
 
-                // --- Logo Sidebar ---
-                if (appLogo && data.image) {
-                    const imgUrl = `/${data.image}`;
-                    const img = new Image();
-                    img.src = imgUrl;
-                    img.onload = () => {
-                        appLogo.innerHTML = `
-                            <img src="${imgUrl}" alt="Logo" class="h-16 w-auto object-contain"
-                                 onerror="this.style.display='none'">
-                            <div class="text-center mt-1">
-                                <div class="text-white font-bold text-sm leading-tight">${data.name || 'Drone CPS'}</div>
-                                <div class="text-green-200 text-[10px]">Ground Control Station</div>
-                            </div>`;
+                // --- Update teks nama & subtitle ---
+                if (webName)     webName.textContent     = data.name || 'Drone CPS';
+                if (webSubtitle) webSubtitle.textContent = 'Ground Control Station';
+
+                // --- Update src logo bila ada ---
+                if (logoImg && data.image) {
+                    logoImg.src = `/${data.image}`;
+                    logoImg.onerror = () => {
+                        logoImg.style.display = 'none';
+                        if (logFallback) logFallback.style.display = 'flex';
                     };
-                    img.onerror = () => {
-                        if (webName) webName.textContent = data.name || 'Drone CPS';
-                        if (webSubtitle) webSubtitle.textContent = 'Ground Control Station';
-                    };
-                } else {
-                    if (webName) webName.textContent = data.name || 'Drone CPS';
-                    if (webSubtitle) webSubtitle.textContent = 'Ground Control Station';
                 }
 
                 // --- Versi di sidebar footer ---

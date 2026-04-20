@@ -666,7 +666,6 @@ const AppGCS = () => {
                 src={`/${appSettings.image}`}
                 alt={appSettings.name || 'Logo'}
                 className="h-8 w-auto object-contain"
-                style={{ filter: 'brightness(0) invert(1)' }}
                 onError={e => {
                   e.target.style.display = 'none';
                   e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
