@@ -11,20 +11,23 @@
     class="w-full bg-white border-b border-slate-200 shadow-sm z-50 relative"
     id="main-navbar">
 
-    <div class="flex items-center justify-between h-[84px] px-4 lg:px-6">
+    <div class="flex items-center justify-between h-16 px-4 lg:px-6">
 
         {{-- ===== BRAND (Logo + Nama) ===== --}}
         <a href="{{ route('dashboard') }}" id="app-logo"
-           class="flex items-center gap-3 shrink-0 group">
+           class="flex items-center gap-3 shrink-0">
+            {{-- Badge IPB (lingkaran lambang) --}}
             <img src="{{ asset('images/logo-ipb-color.png') }}"
                  alt="Logo IPB"
-                 class="h-20 w-auto object-contain py-1"
+                 class="h-12 w-12 object-contain rounded-full"
                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <div style="display:none; background:#1e3a8a; color:white;"
-                 class="w-10 h-10 rounded-full items-center justify-center font-black text-base">GCS</div>
-            <div class="hidden sm:flex flex-col leading-none">
-                <span id="web-name"  class="font-bold text-base leading-tight" style="color:#1e3a8a">Drone CPS</span>
+                 class="w-12 h-12 rounded-full flex items-center justify-center font-black text-base shrink-0">GCS</div>
+            {{-- Text block --}}
+            <div class="hidden sm:flex flex-col leading-none gap-0.5">
+                <span id="web-name" class="font-bold text-[15px] leading-tight" style="color:#1e3a8a">Drone CPS</span>
                 <span id="web-subtitle" class="text-slate-400 text-[10px] font-medium tracking-wide">Ground Control Station</span>
+                <span class="text-slate-400 text-[9px] tracking-wide">IPB University</span>
             </div>
         </a>
 
