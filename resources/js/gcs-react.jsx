@@ -1,12 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import DashboardApp from './components/GCS/DashboardApp';
+import AppGCS from './components/GCS/AppGCS';
 
-// Wait for DOM to load
-document.addEventListener('DOMContentLoaded', () => {
-    const container = document.getElementById('react-gcs-root');
-    if (container) {
-        const root = createRoot(container);
-        root.render(<DashboardApp />);
-    }
-});
+const container = document.getElementById('react-gcs-root');
+if (container) createRoot(container).render(<AppGCS />);
