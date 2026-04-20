@@ -25,7 +25,7 @@
         <div class="hidden lg:flex w-full lg:w-[55%] bg-slate-900 relative items-center justify-center overflow-hidden">
             <!-- Background Image (Sawit) -->
             <div class="absolute inset-0 z-0">
-                <img src="https://images.unsplash.com/photo-1590055531615-f16d36ffe8ec?q=80&w=2670&auto=format&fit=crop" class="w-full h-full object-cover opacity-60 mix-blend-overlay" alt="Palm Oil Plantation">
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCx5wuGXtnP9piFc99hTY8V_-NYijS_aFz6W5dxR1oc8DCInJN695GTSYWWSbM7cHZ4JVDeweooE12gu7bQ-A961oXddYQqZqLURIEKW9ChW2QMn4o-XCTLBdNt2ph_Vw4MDkYKiWger5ETVPN_Rtf3KslWkLNuqkIC9bAOyv0eRpddV37OOHNxqELrjdaMY_CL8rMd9kQXsB5Y9AxzCLpp8u5cfrxZq8QrlThnJx7QCc38VkTEIMQ8xU6mtskq_TE_l-CVhses5jI" class="w-full h-full object-cover opacity-60 mix-blend-overlay" alt="Palm Oil Plantation">
             </div>
             
             <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/80 to-transparent z-10"></div>
