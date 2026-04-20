@@ -1,4 +1,107 @@
 <x-app-layout>
+    <div class="relative w-full bg-white overflow-hidden text-slate-800">
+        
+        <!-- Hero Section -->
+        <section class="relative min-h-[60vh] flex items-center justify-center">
+            <!-- Background Image -->
+            <div class="absolute inset-0 z-0">
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCx5wuGXtnP9piFc99hTY8V_-NYijS_aFz6W5dxR1oc8DCInJN695GTSYWWSbM7cHZ4JVDeweooE12gu7bQ-A961oXddYQqZqLURIEKW9ChW2QMn4o-XCTLBdNt2ph_Vw4MDkYKiWger5ETVPN_Rtf3KslWkLNuqkIC9bAOyv0eRpddV37OOHNxqELrjdaMY_CL8rMd9kQXsB5Y9AxzCLpp8u5cfrxZq8QrlThnJx7QCc38VkTEIMQ8xU6mtskq_TE_l-CVhses5jI" alt="Hero Background" class="w-full h-full object-cover filter brightness-[0.85]">
+            </div>
+            <!-- Gradient Overlay -->
+            <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/60 to-transparent z-10"></div>
+            
+            <div class="relative z-20 max-w-7xl mx-auto px-6 lg:px-8 w-full">
+                <div class="max-w-2xl">
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold tracking-wider uppercase backdrop-blur-md border border-blue-500/30 mb-6">
+                        <i class="fa-solid fa-satellite-dish"></i> IPB University
+                    </span>
+                    <h1 class="text-4xl md:text-5xl lg:text-7xl font-extrabold text-white leading-tight mb-6 tracking-tight">
+                        Pusat Kendali <span class="text-blue-400">Digital</span>
+                    </h1>
+                    <p class="text-lg md:text-xl text-slate-300 font-light leading-relaxed mb-10 max-w-xl">
+                        Sistem cerdas pemantauan perkebunan kelapa sawit terintegrasi. Dilengkapi dengan telemetri drone langsung dan analisis kematangan AI.
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="{{ route('gcs.index') }}" class="px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-600/30 hover:shadow-blue-500/40 transition-all flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
+                            <i class="fa-solid fa-plane-up"></i> Buka GCS
+                        </a>
+                        <a href="{{ route('laporan.index') }}" class="px-8 py-3.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md text-sm font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
+                            <i class="fa-solid fa-brain"></i> Laporan AI
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-20 bg-slate-50 relative">
+            <div class="max-w-7xl mx-auto px-6 lg:px-8">
+                
+                <div class="text-center max-w-2xl mx-auto mb-16">
+                    <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">Modul Pintar</h2>
+                    <div class="w-16 h-1.5 bg-blue-500 mx-auto rounded-full mt-4 mb-4"></div>
+                    <p class="text-slate-500 text-sm md:text-base leading-relaxed">
+                        Manfaatkan arsitektur sistem cerdas untuk memetakan, menganalisis, dan memonitor kondisi kebun secara komprehensif.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Card 1 -->
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-xl hover:border-blue-100 transition-all group">
+                        <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3">Ground Control Station</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                            Kendali penuh operasi drone secara real-time. Pantau rute, telemetri, GPS, dan status perangkat langsung di atas peta interaktif.
+                        </p>
+                        <a href="{{ route('gcs.index') }}" class="text-blue-600 text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all">
+                            Luncurkan Aplikasi <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-xl hover:border-green-100 transition-all group">
+                        <div class="w-14 h-14 bg-green-50 text-green-600 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:scale-110 group-hover:bg-green-600 group-hover:text-white transition-all">
+                            <i class="fa-solid fa-microchip"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3">Analisis Kematangan AI</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                            Laporan prediksi algoritma AI untuk membedakan TBS matang dan mentah berdasarkan pemindaian citra udara kecepatan tinggi.
+                        </p>
+                        <a href="{{ route('laporan.index') }}" class="text-green-600 text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all">
+                            Lihat Prediksi <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-xl hover:border-orange-100 transition-all group">
+                        <div class="w-14 h-14 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:scale-110 group-hover:bg-orange-600 group-hover:text-white transition-all">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-3">Manajemen Lahan</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-6">
+                            Kelola titik poligon perkebunan, hitung luas aktual, dan integrasikan dengan profil pohon sawit dari waktu ke waktu.
+                        </p>
+                        <a href="{{ route('lahan.index') }}" class="text-orange-600 text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all">
+                            Atur Data Master <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+</x-app-layout>
+
+{{-- =========================================================================
+
+    OLD DASHBOARD CODE (HIDDEN/COMMENTED OUT AS PER REQUEST)
+
+========================================================================= --}}
+{{-- 
+<x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-lg text-gray-800 leading-tight">
             {{ __('Dashboard') }}
@@ -343,3 +446,4 @@
         </script>
     @endpush
 </x-app-layout>
+--}}
