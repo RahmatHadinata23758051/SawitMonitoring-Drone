@@ -217,7 +217,10 @@
                             </a>
                         </li>
                         <li>
-                            <a href="#" @class(['menu-link'])>
+                            <a href="{{ route('laporan.log-penerbangan') }}" @class([
+                                'menu-link',
+                                'active-icon' => request()->routeIs('laporan.log-penerbangan'),
+                            ])>
                                 <div class="text-sm"><span class="me-2">--</span>Log Penerbangan</div>
                             </a>
                         </li>

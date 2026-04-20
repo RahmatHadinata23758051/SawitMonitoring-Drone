@@ -12,4 +12,9 @@ class Mission extends Model
         'waypoints' => 'array',
         'path_data' => 'array',
     ];
+
+    public function perangkat()
+    {
+        return $this->belongsTo(Perangkat::class, 'perangkat_id');
+    }
 }

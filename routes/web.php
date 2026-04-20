@@ -69,6 +69,8 @@ Route::middleware('auth')->group(function () {
     ])->parameters(['kebun' => 'kebunDataset']);
     Route::resource('rule-engine/dead-reckoning', DeadReckoningController::class)->except('show');
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
+    Route::get('/laporan/log-penerbangan', [MissionController::class, 'logPenerbangan'])->name('laporan.log-penerbangan');
+
     Route::get('/pengaturan-aplikasi', [PengaturanAplikasiController::class, 'index'])->name('pengaturan-aplikasi.index');
     Route::post('/pengaturan-aplikasi', [PengaturanAplikasiController::class, 'store'])->name('pengaturan-aplikasi.store');
     Route::get('/log-aktivitas', [LogAktivitasController::class, 'index'])->name('log-aktivitas');

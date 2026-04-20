@@ -4,20 +4,32 @@ namespace App\Http\Controllers;
 
 use App\Models\Mission;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class MissionController extends Controller
 {
+    // GET /missions → JSON untuk React GCS
     public function index()
     {
-        $data = Mission::latest()->get();
+        $data = Mission::with('perangkat')->latest()->get();
         return response()->json($data);
     }
 
     public function show($id)
     {
-        return response()->json(Mission::findOrFail($id));
+        return response()->json(Mission::with('perangkat')->findOrFail($id));
     }
 
+    // GET /laporan/log-penerbangan → Blade view
+    public function logPenerbangan()
+    {
+        $missions = Mission::with('perangkat')
+            ->latest()
+            ->paginate(20);
+        return view('pages.laporan.log-penerbangan', compact('missions'));
+    }
+
+    // POST /missions → dari React GCS
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -32,13 +44,19 @@ class MissionController extends Controller
 
         $post = Mission::create([
             'mission_name'  => $validated['mission_name'],
-            'drone_id'      => $validated['drone_id'] ?? null,
+            'perangkat_id'  => null, // drone dipilih dari modal GCS, bukan FK langsung
             'nav_algorithm' => $validated['nav_algorithm'] ?? 'dead_reckoning',
             'scan_mode'     => $validated['scan_mode'] ?? 'traditional',
             'waypoints'     => $validated['waypoints'],
             'path_data'     => $validated['path_data'] ?? [],
             'status'        => 'Saved'
         ]);
+
+        activity()
+            ->performedOn($post)
+            ->event('create')
+            ->causedBy(Auth::user())
+            ->log('Misi GCS disimpan: ' . $post->mission_name . ' [' . strtoupper($post->scan_mode) . ']');
 
         return response()->json([
             'status'  => true,
