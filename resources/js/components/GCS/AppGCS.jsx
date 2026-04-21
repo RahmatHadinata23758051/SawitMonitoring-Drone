@@ -407,18 +407,25 @@ const AppGCS = () => {
       // AI Vision loading states (hasil nyata dari fireAiScan callbacks)
       if (status === 'AUTO') {
         if (subState === 'SCAN_TRAD') {
-          if (scanTimerRef.current <= 3) {
-            setLiveAiVision({ active: true, objectDetected: 'Rotasi & Inspeksi 360°...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
+          if (scanTimerRef.current <= 1) {
+            // Tick pertama: tunjukkan loading tapi TETAP preservasi gambar pohon sebelumnya
+            setLiveAiVision(prev => ({ ...prev, active: true, objectDetected: 'Rotasi & Inspeksi 360°...', isPalmFruit: prev.isPalmFruit, condition: prev.condition, confidence: prev.confidence }));
           }
+          // Tick 2+: AI callback akan set gambar baru, tidak perlu set apapun di sini
         } else if (subState === 'SCAN_QLV_CAPTURE') {
           if (scanTimerRef.current === 1) {
-            setLiveAiVision({ active: true, objectDetected: 'Transmisi ke AI Server...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
+            setLiveAiVision(prev => ({ ...prev, active: true, objectDetected: 'Drone berhenti — Transmisi ke AI Server...' }));
           }
         } else {
-          setLiveAiVision({ active: true, objectDetected: Math.random() > 0.8 ? 'Pelepah / Area Daun' : 'Menyusuri Koridor...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
+          // NAV state: PRESERVASI gambar terakhir, hanya update status teks
+          setLiveAiVision(prev => ({
+            ...prev,
+            active: true,
+            objectDetected: Math.random() > 0.8 ? 'Pelepah / Area Daun' : 'Menyusuri Koridor...'
+          }));
         }
       } else if (status !== 'STANDBY') {
-        setLiveAiVision({ active: true, objectDetected: status === 'TAKEOFF' ? 'Sistem Vision Siap...' : 'Manuver RTH...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
+        setLiveAiVision(prev => ({ ...prev, active: true, objectDetected: status === 'TAKEOFF' ? 'Sistem Vision Siap...' : 'Manuver RTH...' }));
       } else {
         setLiveAiVision({ active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
       }
@@ -457,15 +464,19 @@ const AppGCS = () => {
               }
               else if (curSub === 'SCAN_TRAD') {
                 newSpeed = 0; newYaw = (prev.yaw + 30) % 360; scanTimerRef.current += 1;
-                if (scanTimerRef.current === 12) {
-                  pendingScanEventRef.current = 'trad'; // ✅ trigger async AI call
+                if (scanTimerRef.current === 1) {
+                  pendingScanEventRef.current = 'trad'; // ✅ fire AI immediately saat drone tiba
+                }
+                if (scanTimerRef.current >= 12) {
                   scannedTreesRef.current += 1; setScannedTrees(scannedTreesRef.current); currentWpIndexRef.current += 1; autoSubStateRef.current = 'NAV'; newYaw = baseYawRef.current;
                 }
               }
               else if (curSub === 'SCAN_QLV_CAPTURE') {
                 newSpeed = 0; newYaw = baseYawRef.current; scanTimerRef.current += 1;
-                if (scanTimerRef.current > 4) {
-                  pendingScanEventRef.current = 'qlv'; // ✅ trigger async AI call (2 pohon)
+                if (scanTimerRef.current === 1) {
+                  pendingScanEventRef.current = 'qlv'; // ✅ fire AI saat drone berhenti di lorong
+                }
+                if (scanTimerRef.current >= 15) { // 15 ticks × 200ms = 3 detik jeda (realistis)
                   const remaining = config.jumlahSampel - scannedTreesRef.current;
                   const toAdd = Math.min(2, Math.max(0, remaining));
                   scannedTreesRef.current += toAdd; setScannedTrees(scannedTreesRef.current);
