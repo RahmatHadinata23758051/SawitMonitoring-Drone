@@ -1,0 +1,9 @@
+# Sawit AI Server — Requirements
+# Semua sudah terinstall di Python 3.13.7 environment
+
+fastapi==0.127.0
+uvicorn==0.40.0
+tensorflow==2.21.0
+pillow==12.1.1
+numpy  # bundled with tensorflow
+python-multipart  # untuk File upload di FastAPI
