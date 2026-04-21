@@ -139,43 +139,35 @@
         <script>
             // Toast notifikasi
             @if (session('success'))
-                Swal.fire({
-                    toast: true, position: 'top-end', icon: 'success',
-                    title: '{{ session('success') }}',
-                    showConfirmButton: false, timer: 3000, timerProgressBar: true,
-                });
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: '{{ session('success') }}', showConfirmButton: false, timer: 3000, timerProgressBar: true });
             @endif
             @if (session('error'))
-                Swal.fire({
-                    toast: true, position: 'top-end', icon: 'error',
-                    title: '{{ session('error') }}',
-                    showConfirmButton: false, timer: 4000, timerProgressBar: true,
-                });
+                Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: '{{ session('error') }}', showConfirmButton: false, timer: 4000, timerProgressBar: true });
             @endif
 
             // Spinner saat refresh
             document.getElementById('form-refresh')?.addEventListener('submit', function() {
                 const icon = document.getElementById('icon-refresh');
                 const btn  = document.getElementById('btn-refresh');
-                icon.classList.add('fa-spin');
-                btn.disabled = true;
-                btn.innerText = ' Mengambil data...';
+                if (icon) icon.classList.add('fa-spin');
+                if (btn)  { btn.disabled = true; }
             });
 
-            // Cascade dropdown
             window.addEventListener('load', function() {
+
+                // ===== CASCADE EVENT HANDLERS =====
                 $('#province').on('change', function() {
-                    let province_code = $(this).val();
+                    const province_code = $(this).val();
                     $.post('/cuaca/kota', { province_code, _token: '{{ csrf_token() }}' }, function(data) {
                         $('#city').html('<option value="">-- Pilih Kota/Kabupaten --</option>');
-                        data.forEach(city => $('#city').append(`<option value="${city.code}">${city.name}</option>`));
+                        data.forEach(c => $('#city').append(`<option value="${c.code}">${c.name}</option>`));
                         $('#district').html('<option value="">-- Pilih Kecamatan --</option>');
                         $('#village').html('<option value="">-- Pilih Desa --</option>');
                     });
                 });
 
                 $('#city').on('change', function() {
-                    let city_code = $(this).val();
+                    const city_code = $(this).val();
                     $.post('/cuaca/kecamatan', { city_code, _token: '{{ csrf_token() }}' }, function(data) {
                         $('#district').html('<option value="">-- Pilih Kecamatan --</option>');
                         data.forEach(d => $('#district').append(`<option value="${d.code}">${d.name}</option>`));
@@ -184,12 +176,47 @@
                 });
 
                 $('#district').on('change', function() {
-                    let district_code = $(this).val();
+                    const district_code = $(this).val();
                     $.post('/cuaca/desa', { district_code, _token: '{{ csrf_token() }}' }, function(data) {
                         $('#village').html('<option value="">-- Pilih Desa --</option>');
                         data.forEach(v => $('#village').append(`<option value="${v.code}">${v.name}</option>`));
                     });
                 });
+
+                // ===== AUTO-POPULATE saved location saat page load =====
+                @if($cuaca?->province_code)
+                const savedCity     = '{{ $cuaca->city_code }}';
+                const savedDistrict = '{{ $cuaca->district_code }}';
+                const savedVillage  = '{{ $cuaca->village_code }}';
+
+                // 1. Load semua kota dari provinsi tersimpan
+                $.post('/cuaca/kota', { province_code: '{{ $cuaca->province_code }}', _token: '{{ csrf_token() }}' }, function(data) {
+                    $('#city').html('<option value="">-- Pilih Kota/Kabupaten --</option>');
+                    data.forEach(c => $('#city').append(
+                        `<option value="${c.code}" ${c.code == savedCity ? 'selected' : ''}>${c.name}</option>`
+                    ));
+
+                    if (!savedCity) return;
+
+                    // 2. Load semua kecamatan dari kota tersimpan
+                    $.post('/cuaca/kecamatan', { city_code: savedCity, _token: '{{ csrf_token() }}' }, function(data2) {
+                        $('#district').html('<option value="">-- Pilih Kecamatan --</option>');
+                        data2.forEach(d => $('#district').append(
+                            `<option value="${d.code}" ${d.code == savedDistrict ? 'selected' : ''}>${d.name}</option>`
+                        ));
+
+                        if (!savedDistrict) return;
+
+                        // 3. Load semua desa dari kecamatan tersimpan
+                        $.post('/cuaca/desa', { district_code: savedDistrict, _token: '{{ csrf_token() }}' }, function(data3) {
+                            $('#village').html('<option value="">-- Pilih Desa --</option>');
+                            data3.forEach(v => $('#village').append(
+                                `<option value="${v.code}" ${v.code == savedVillage ? 'selected' : ''}>${v.name}</option>`
+                            ));
+                        });
+                    });
+                });
+                @endif
             });
         </script>
     @endpush
