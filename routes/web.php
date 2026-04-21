@@ -39,6 +39,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/cuaca', [CuacaController::class, 'index'])->name('cuaca.index');
     Route::post('/cuaca', [CuacaController::class, 'store'])->name('cuaca.store');
+    Route::post('/cuaca/refresh', [CuacaController::class, 'refresh'])->name('cuaca.refresh');
     Route::post('/cuaca/kota', [CuacaController::class, 'getCities'])->name('cuaca.kota');
     Route::post('/cuaca/kecamatan', [CuacaController::class, 'getDistricts'])->name('cuaca.kecamatan');
     Route::post('/cuaca/desa', [CuacaController::class, 'getVillages'])->name('cuaca.desa');

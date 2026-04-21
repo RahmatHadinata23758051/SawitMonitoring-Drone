@@ -7,108 +7,187 @@
 
     <div class="pt-2 pb-12">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex flex-col gap-4">
-            <form action="{{ route('cuaca.store') }}" method="post" class="bg-white rounded-lg shadow p-4">
+
+            {{-- ===== FORM PILIH LOKASI ===== --}}
+            <form action="{{ route('cuaca.store') }}" method="post" class="bg-white rounded-xl shadow p-5">
                 @csrf
-                <h3 class="text-lg font-semibold mb-2">Pilih Wilayah Untuk Sumber Data Cuaca</h3>
+                <h3 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+                    <i class="fa-solid fa-location-dot text-primary"></i> Pilih Wilayah Sumber Data Cuaca
+                </h3>
+                <p class="text-xs text-slate-400 mb-4">Setelah menyimpan lokasi, data cuaca akan otomatis diambil dari OpenWeatherMap.</p>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                         <x-input-label for="province">{{ __('Provinsi') }}</x-input-label>
-                        <select id="province" class="block mt-1 w-full rounded-xl bg-gray-100" name="province"
-                            required>
+                        <select id="province" class="block mt-1 w-full rounded-xl bg-gray-100 border-gray-200 text-sm" name="province" required>
                             <option value="">-- Pilih Provinsi --</option>
                             @foreach ($provinces as $province)
-                                <option value="{{ $province->code }}">{{ $province->name }}</option>
+                                <option value="{{ $province->code }}" {{ ($cuaca?->province_code == $province->code) ? 'selected' : '' }}>
+                                    {{ $province->name }}
+                                </option>
                             @endforeach
                         </select>
                         <x-input-error :messages="$errors->get('province')" class="mt-2" />
                     </div>
                     <div>
                         <x-input-label for="city">{{ __('Kabupaten/Kota') }}</x-input-label>
-                        <select id="city" class="block mt-1 w-full rounded-xl bg-gray-100" name="city"
-                            required></select>
+                        <select id="city" class="block mt-1 w-full rounded-xl bg-gray-100 border-gray-200 text-sm" name="city" required>
+                            @if($cuaca?->city_code && $cuaca?->kabupaten_kota)
+                                <option value="{{ $cuaca->city_code }}" selected>{{ $cuaca->kabupaten_kota }}</option>
+                            @endif
+                        </select>
                         <x-input-error :messages="$errors->get('city')" class="mt-2" />
                     </div>
                     <div>
                         <x-input-label for="district">{{ __('Kecamatan') }}</x-input-label>
-                        <select id="district" class="block mt-1 w-full rounded-xl bg-gray-100" name="district"
-                            required></select>
+                        <select id="district" class="block mt-1 w-full rounded-xl bg-gray-100 border-gray-200 text-sm" name="district" required>
+                            @if($cuaca?->district_code && $cuaca?->kecamatan)
+                                <option value="{{ $cuaca->district_code }}" selected>{{ $cuaca->kecamatan }}</option>
+                            @endif
+                        </select>
                         <x-input-error :messages="$errors->get('district')" class="mt-2" />
                     </div>
                     <div>
                         <x-input-label for="village">{{ __('Desa') }}</x-input-label>
-                        <select id="village" class="block mt-1 w-full rounded-xl bg-gray-100" name="village"
-                            required></select>
+                        <select id="village" class="block mt-1 w-full rounded-xl bg-gray-100 border-gray-200 text-sm" name="village" required>
+                            @if($cuaca?->village_code && $cuaca?->desa)
+                                <option value="{{ $cuaca->village_code }}" selected>{{ $cuaca->desa }}</option>
+                            @endif
+                        </select>
                         <x-input-error :messages="$errors->get('village')" class="mt-2" />
                     </div>
                     <div class="md:col-span-2 mt-1 flex justify-end">
-                        <div>
-                            <button type="submit" class="bg-primary text-white px-5 py-1.5 rounded-lg">Simpan</button>
-                        </div>
+                        <button type="submit"
+                            class="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Simpan & Perbarui Cuaca
+                        </button>
                     </div>
                 </div>
             </form>
+
+            {{-- ===== WIDGET DATA CUACA TERKINI ===== --}}
+            @if($cuaca && $cuaca->temperature)
+                <div class="bg-white rounded-xl shadow p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-cloud-sun text-yellow-500"></i> Data Cuaca Terkini
+                            <span class="text-xs font-normal text-slate-400 ml-1">
+                                — {{ $cuaca->kabupaten_kota ?? '-' }}, {{ $cuaca->provinsi ?? '-' }}
+                            </span>
+                        </h3>
+                        {{-- Tombol Refresh --}}
+                        <form action="{{ route('cuaca.refresh') }}" method="POST" id="form-refresh">
+                            @csrf
+                            <button type="submit" id="btn-refresh"
+                                class="flex items-center gap-1.5 px-4 py-1.5 bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold rounded-lg hover:bg-sky-100 transition">
+                                <i class="fa-solid fa-rotate-right" id="icon-refresh"></i> Refresh dari OWM
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {{-- Suhu --}}
+                        <div class="flex flex-col items-center gap-2 p-4 rounded-xl bg-orange-50 border border-orange-100 text-center">
+                            @if($cuaca->image)
+                                <img src="{{ $cuaca->image }}" alt="Cuaca" class="w-14 h-14">
+                            @else
+                                <i class="fa-solid fa-temperature-half text-orange-400 text-3xl"></i>
+                            @endif
+                            <p class="text-3xl font-black text-slate-800">{{ $cuaca->temperature }}<span class="text-base text-slate-400">°C</span></p>
+                            <p class="text-xs text-slate-500 font-medium">{{ ucfirst($cuaca->description ?? '-') }}</p>
+                        </div>
+
+                        {{-- Angin --}}
+                        <div class="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl bg-sky-50 border border-sky-100 text-center">
+                            <i class="fa-solid fa-wind text-sky-400 text-2xl"></i>
+                            <p class="text-2xl font-black text-slate-800">{{ $cuaca->wind_speed ?? '--' }}<span class="text-xs text-slate-400 ml-1">km/h</span></p>
+                            <p class="text-xs text-slate-500 font-medium">Kecepatan Angin</p>
+                        </div>
+
+                        {{-- Kelembaban --}}
+                        <div class="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl bg-teal-50 border border-teal-100 text-center">
+                            <i class="fa-solid fa-droplet text-teal-400 text-2xl"></i>
+                            <p class="text-2xl font-black text-slate-800">{{ $cuaca->humidity ?? '--' }}<span class="text-xs text-slate-400 ml-1">%</span></p>
+                            <p class="text-xs text-slate-500 font-medium">Kelembaban</p>
+                        </div>
+
+                        {{-- Curah Hujan --}}
+                        <div class="flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl bg-blue-50 border border-blue-100 text-center">
+                            <i class="fa-solid fa-cloud-rain text-blue-400 text-2xl"></i>
+                            <p class="text-2xl font-black text-slate-800">{{ $cuaca->rainfall ?? '0' }}<span class="text-xs text-slate-400 ml-1">mm</span></p>
+                            <p class="text-xs text-slate-500 font-medium">Curah Hujan (1h)</p>
+                        </div>
+                    </div>
+
+                    {{-- Diperbarui --}}
+                    <p class="text-[11px] text-slate-400 mt-3 text-right">
+                        <i class="fa-regular fa-clock"></i>
+                        Terakhir diperbarui: {{ $cuaca->updated_at ? $cuaca->updated_at->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-' }}
+                    </p>
+                </div>
+            @else
+                <div class="bg-white rounded-xl shadow p-6 text-center text-slate-400 text-sm">
+                    <i class="fa-solid fa-cloud-sun text-4xl mb-2 block opacity-30"></i>
+                    Data cuaca belum tersedia. Simpan lokasi terlebih dahulu untuk mengambil data dari OpenWeatherMap.
+                </div>
+            @endif
+
         </div>
     </div>
+
     @push('scripts')
         <script>
-            // Alert berhasil
+            // Toast notifikasi
             @if (session('success'))
                 Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
+                    toast: true, position: 'top-end', icon: 'success',
                     title: '{{ session('success') }}',
-                    showConfirmButton: false,
-                    timer: 2500,
-                    timerProgressBar: true,
-                    customClass: {
-                        popup: 'toast-success'
-                    }
+                    showConfirmButton: false, timer: 3000, timerProgressBar: true,
+                });
+            @endif
+            @if (session('error'))
+                Swal.fire({
+                    toast: true, position: 'top-end', icon: 'error',
+                    title: '{{ session('error') }}',
+                    showConfirmButton: false, timer: 4000, timerProgressBar: true,
                 });
             @endif
 
+            // Spinner saat refresh
+            document.getElementById('form-refresh')?.addEventListener('submit', function() {
+                const icon = document.getElementById('icon-refresh');
+                const btn  = document.getElementById('btn-refresh');
+                icon.classList.add('fa-spin');
+                btn.disabled = true;
+                btn.innerText = ' Mengambil data...';
+            });
+
+            // Cascade dropdown
             window.addEventListener('load', function() {
                 $('#province').on('change', function() {
                     let province_code = $(this).val();
-                    $.post('/cuaca/kota', {
-                        province_code,
-                        _token: '{{ csrf_token() }}'
-                    }, function(data) {
-                        console.log(province_code)
-                        console.log(data)
+                    $.post('/cuaca/kota', { province_code, _token: '{{ csrf_token() }}' }, function(data) {
                         $('#city').html('<option value="">-- Pilih Kota/Kabupaten --</option>');
-                        data.forEach(city => {
-                            $('#city').append(
-                                `<option value="${city.code}">${city.name}</option>`);
-                        });
+                        data.forEach(city => $('#city').append(`<option value="${city.code}">${city.name}</option>`));
+                        $('#district').html('<option value="">-- Pilih Kecamatan --</option>');
+                        $('#village').html('<option value="">-- Pilih Desa --</option>');
                     });
                 });
 
                 $('#city').on('change', function() {
                     let city_code = $(this).val();
-                    $.post('/cuaca/kecamatan', {
-                        city_code,
-                        _token: '{{ csrf_token() }}'
-                    }, function(data) {
+                    $.post('/cuaca/kecamatan', { city_code, _token: '{{ csrf_token() }}' }, function(data) {
                         $('#district').html('<option value="">-- Pilih Kecamatan --</option>');
-                        data.forEach(d => {
-                            $('#district').append(
-                                `<option value="${d.code}">${d.name}</option>`);
-                        });
+                        data.forEach(d => $('#district').append(`<option value="${d.code}">${d.name}</option>`));
+                        $('#village').html('<option value="">-- Pilih Desa --</option>');
                     });
                 });
 
                 $('#district').on('change', function() {
                     let district_code = $(this).val();
-                    $.post('/cuaca/desa', {
-                        district_code,
-                        _token: '{{ csrf_token() }}'
-                    }, function(data) {
+                    $.post('/cuaca/desa', { district_code, _token: '{{ csrf_token() }}' }, function(data) {
                         $('#village').html('<option value="">-- Pilih Desa --</option>');
-                        data.forEach(v => {
-                            $('#village').append(
-                                `<option value="${v.code}">${v.name}</option>`);
-                        });
+                        data.forEach(v => $('#village').append(`<option value="${v.code}">${v.name}</option>`));
                     });
                 });
             });
