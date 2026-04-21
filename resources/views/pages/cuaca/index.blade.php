@@ -32,27 +32,30 @@
                     <div>
                         <x-input-label for="city">{{ __('Kabupaten/Kota') }}</x-input-label>
                         <select id="city" class="block mt-1 w-full rounded-xl bg-gray-100 border-gray-200 text-sm" name="city" required>
-                            @if($cuaca?->city_code && $cuaca?->kabupaten_kota)
-                                <option value="{{ $cuaca->city_code }}" selected>{{ $cuaca->kabupaten_kota }}</option>
-                            @endif
+                            <option value="">-- Pilih Kota/Kabupaten --</option>
+                            @foreach($cities as $city)
+                                <option value="{{ $city->code }}" {{ $cuaca?->city_code == $city->code ? 'selected' : '' }}>{{ $city->name }}</option>
+                            @endforeach
                         </select>
                         <x-input-error :messages="$errors->get('city')" class="mt-2" />
                     </div>
                     <div>
                         <x-input-label for="district">{{ __('Kecamatan') }}</x-input-label>
                         <select id="district" class="block mt-1 w-full rounded-xl bg-gray-100 border-gray-200 text-sm" name="district" required>
-                            @if($cuaca?->district_code && $cuaca?->kecamatan)
-                                <option value="{{ $cuaca->district_code }}" selected>{{ $cuaca->kecamatan }}</option>
-                            @endif
+                            <option value="">-- Pilih Kecamatan --</option>
+                            @foreach($districts as $district)
+                                <option value="{{ $district->code }}" {{ $cuaca?->district_code == $district->code ? 'selected' : '' }}>{{ $district->name }}</option>
+                            @endforeach
                         </select>
                         <x-input-error :messages="$errors->get('district')" class="mt-2" />
                     </div>
                     <div>
                         <x-input-label for="village">{{ __('Desa') }}</x-input-label>
                         <select id="village" class="block mt-1 w-full rounded-xl bg-gray-100 border-gray-200 text-sm" name="village" required>
-                            @if($cuaca?->village_code && $cuaca?->desa)
-                                <option value="{{ $cuaca->village_code }}" selected>{{ $cuaca->desa }}</option>
-                            @endif
+                            <option value="">-- Pilih Desa --</option>
+                            @foreach($villages as $village)
+                                <option value="{{ $village->code }}" {{ $cuaca?->village_code == $village->code ? 'selected' : '' }}>{{ $village->name }}</option>
+                            @endforeach
                         </select>
                         <x-input-error :messages="$errors->get('village')" class="mt-2" />
                     </div>
@@ -182,41 +185,7 @@
                         data.forEach(v => $('#village').append(`<option value="${v.code}">${v.name}</option>`));
                     });
                 });
-
-                // ===== AUTO-POPULATE saved location saat page load =====
-                @if($cuaca?->province_code)
-                const savedCity     = '{{ $cuaca->city_code }}';
-                const savedDistrict = '{{ $cuaca->district_code }}';
-                const savedVillage  = '{{ $cuaca->village_code }}';
-
-                // 1. Load semua kota dari provinsi tersimpan
-                $.post('/cuaca/kota', { province_code: '{{ $cuaca->province_code }}', _token: '{{ csrf_token() }}' }, function(data) {
-                    $('#city').html('<option value="">-- Pilih Kota/Kabupaten --</option>');
-                    data.forEach(c => $('#city').append(
-                        `<option value="${c.code}" ${c.code == savedCity ? 'selected' : ''}>${c.name}</option>`
-                    ));
-
-                    if (!savedCity) return;
-
-                    // 2. Load semua kecamatan dari kota tersimpan
-                    $.post('/cuaca/kecamatan', { city_code: savedCity, _token: '{{ csrf_token() }}' }, function(data2) {
-                        $('#district').html('<option value="">-- Pilih Kecamatan --</option>');
-                        data2.forEach(d => $('#district').append(
-                            `<option value="${d.code}" ${d.code == savedDistrict ? 'selected' : ''}>${d.name}</option>`
-                        ));
-
-                        if (!savedDistrict) return;
-
-                        // 3. Load semua desa dari kecamatan tersimpan
-                        $.post('/cuaca/desa', { district_code: savedDistrict, _token: '{{ csrf_token() }}' }, function(data3) {
-                            $('#village').html('<option value="">-- Pilih Desa --</option>');
-                            data3.forEach(v => $('#village').append(
-                                `<option value="${v.code}" ${v.code == savedVillage ? 'selected' : ''}>${v.name}</option>`
-                            ));
-                        });
-                    });
-                });
-                @endif
+                // (tidak perlu lagi auto-populate AJAX karena sudah dirender dari server)
             });
         </script>
     @endpush

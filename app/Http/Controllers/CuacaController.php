@@ -16,7 +16,11 @@ class CuacaController extends Controller
     {
         $provinces = Province::get();
         $cuaca     = Cuaca::first();
-        return view('pages.cuaca.index', compact('provinces', 'cuaca'));
+        // Load all options server-side sehingga dropdown langsung penuh tanpa AJAX delay
+        $cities    = $cuaca?->province_code ? City::where('province_code', $cuaca->province_code)->get()     : collect();
+        $districts = $cuaca?->city_code     ? District::where('city_code', $cuaca->city_code)->get()         : collect();
+        $villages  = $cuaca?->district_code ? Village::where('district_code', $cuaca->district_code)->get()  : collect();
+        return view('pages.cuaca.index', compact('provinces', 'cuaca', 'cities', 'districts', 'villages'));
     }
 
     public function store(Request $request)
