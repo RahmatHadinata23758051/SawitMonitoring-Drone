@@ -45,36 +45,50 @@ class FetchOpenWeather extends Command
     {
         $apiKey = config('services.openweather.key');
 
-        $response = Http::timeout(10)
-            ->withoutVerifying() // bypass SSL cert issue di Windows lokal
-            ->get('https://api.openweathermap.org/data/2.5/weather', [
-                'q'     => $cityName . ',ID',
-                'appid' => $apiKey,
-                'units' => 'metric',
-                'lang'  => 'id',
-            ]);
+        // Normalisasi nama kota: OWM tidak mengenali "KABUPATEN ..." atau "KOTA ..."
+        // Contoh: "KABUPATEN BANDUNG" → "Bandung", "KOTA PEKANBARU" → "Pekanbaru"
+        $normalized = preg_replace('/^(KABUPATEN|KOTA|KAB\.?)\s+/i', '', trim($cityName));
+        $normalized = ucwords(strtolower($normalized));
 
-        if ($response->successful()) {
-            $data = $response->json();
+        $queryNames = array_unique([$normalized, ucwords(strtolower(trim($cityName)))]);
 
-            $cuaca->kabupaten_kota = $data['name'] ?? $cityName;
-            $cuaca->temperature    = round($data['main']['temp'] ?? 0);
-            $cuaca->humidity       = $data['main']['humidity'] ?? '--';
-            $cuaca->wind_speed     = round(($data['wind']['speed'] ?? 0) * 3.6, 1); // m/s → km/h
-            $cuaca->rainfall       = $data['rain']['1h'] ?? '0';
-            $cuaca->description    = ucfirst($data['weather'][0]['description'] ?? '--');
-            $cuaca->image          = 'https://openweathermap.org/img/wn/' . ($data['weather'][0]['icon'] ?? '01d') . '@2x.png';
-            $cuaca->save();
+        foreach ($queryNames as $query) {
+            $response = Http::timeout(10)
+                ->withoutVerifying() // bypass SSL cert issue di Windows lokal
+                ->get('https://api.openweathermap.org/data/2.5/weather', [
+                    'q'     => $query . ',ID',
+                    'appid' => $apiKey,
+                    'units' => 'metric',
+                    'lang'  => 'id',
+                ]);
 
-            $msg = "Cuaca {$cuaca->kabupaten_kota}: {$cuaca->temperature}°C - {$cuaca->description}";
-            Log::info("[OWM] ✅ {$msg}");
-            $output?->info("✅ {$msg}");
-            return 0;
+            if ($response->successful()) {
+                $data = $response->json();
+
+                $cuaca->kabupaten_kota = $data['name'] ?? $cityName;
+                $cuaca->temperature    = round($data['main']['temp'] ?? 0);
+                $cuaca->humidity       = $data['main']['humidity'] ?? '--';
+                $cuaca->wind_speed     = round(($data['wind']['speed'] ?? 0) * 3.6, 1); // m/s → km/h
+                $cuaca->rainfall       = $data['rain']['1h'] ?? '0';
+                $cuaca->description    = ucfirst($data['weather'][0]['description'] ?? '--');
+                $cuaca->image          = 'https://openweathermap.org/img/wn/' . ($data['weather'][0]['icon'] ?? '01d') . '@2x.png';
+                $cuaca->save();
+
+                $msg = "Cuaca {$cuaca->kabupaten_kota}: {$cuaca->temperature}°C - {$cuaca->description}";
+                Log::info("[OWM] ✅ {$msg} (query: {$query})");
+                $output?->info("✅ {$msg}");
+                return 0;
+            }
+
+            // 404 = kota tidak ketemu, coba query berikutnya
+            if ($response->status() !== 404) {
+                break;
+            }
         }
 
-        $code = $response->status();
+        $code = $response->status() ?? 0;
         $msg  = $response->json('message') ?? 'Unknown error';
-        Log::error("[OWM] ❌ Gagal fetch: {$code} - {$msg} (kota: {$cityName})");
+        Log::error("[OWM] ❌ Gagal fetch: {$code} - {$msg} (kota: {$cityName} / query: {$normalized})");
         $output?->error("❌ Gagal fetch OWM [{$code}]: {$msg}");
         return 1;
     }
