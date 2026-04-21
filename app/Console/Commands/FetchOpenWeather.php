@@ -45,12 +45,14 @@ class FetchOpenWeather extends Command
     {
         $apiKey = config('services.openweather.key');
 
-        $response = Http::timeout(10)->get('https://api.openweathermap.org/data/2.5/weather', [
-            'q'     => $cityName . ',ID',
-            'appid' => $apiKey,
-            'units' => 'metric',
-            'lang'  => 'id',
-        ]);
+        $response = Http::timeout(10)
+            ->withoutVerifying() // bypass SSL cert issue di Windows lokal
+            ->get('https://api.openweathermap.org/data/2.5/weather', [
+                'q'     => $cityName . ',ID',
+                'appid' => $apiKey,
+                'units' => 'metric',
+                'lang'  => 'id',
+            ]);
 
         if ($response->successful()) {
             $data = $response->json();
