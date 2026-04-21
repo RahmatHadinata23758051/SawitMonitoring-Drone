@@ -521,38 +521,118 @@ const GCSRightPanel = ({
           {sidebarTab === 'ai' && (
             <div className="flex flex-col">
 
-              {/* Live AI Vision */}
+              {/* Live AI Vision — Dual Camera Feed */}
               <div className="p-3 border-b border-slate-100 flex flex-col gap-2.5">
-                <h3 className="text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 text-rose-600">
-                  <Camera className="w-3.5 h-3.5" /> Live AI Vision
-                </h3>
-                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
-                  {flightStatusUI === 'STANDBY' ? (
-                    <div className="flex flex-col items-center py-4 opacity-50">
-                      <Camera className="w-8 h-8 mb-2 text-slate-400" />
-                      <span className="text-[10px] text-slate-400">Kamera Siaga...</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2.5">
-                      <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                        <span className="text-[8px] font-bold tracking-widest text-slate-400">STATUS OBJEK</span>
-                        {liveAiVision.isPalmFruit
-                          ? <span className="text-[9px] font-bold px-2 py-0.5 rounded-full animate-pulse bg-emerald-100 text-emerald-700">SAWIT TERDETEKSI</span>
-                          : <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-500">SCANNING...</span>
-                        }
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 text-rose-600">
+                    <Camera className="w-3.5 h-3.5" /> Live AI Vision
+                  </h3>
+                  {liveAiVision.mode === 'dual' && flightStatusUI !== 'STANDBY' && (
+                    <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 tracking-wider">QLV DUAL CAM</span>
+                  )}
+                </div>
+
+                {flightStatusUI === 'STANDBY' ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-900 aspect-video flex flex-col items-center justify-center gap-2 opacity-60">
+                    <Camera className="w-8 h-8 text-slate-500" />
+                    <span className="text-[10px] text-slate-500 font-mono">CAMERA FEED OFFLINE</span>
+                  </div>
+                ) : liveAiVision.mode === 'dual' && liveAiVision.left && liveAiVision.right ? (
+                  /* QLV: Split dual camera feed */
+                  <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {/* LEFT CAM */}
+                      <div className="relative rounded-lg overflow-hidden bg-slate-900 border border-slate-700" style={{ aspectRatio: '4/3' }}>
+                        {liveAiVision.left.image_base64 ? (
+                          <img src={liveAiVision.left.image_base64} alt="CAM KIRI" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Camera className="w-6 h-6 text-slate-600 animate-pulse" />
+                          </div>
+                        )}
+                        {/* Overlay header */}
+                        <div className="absolute top-0 left-0 right-0 px-1.5 py-1 bg-gradient-to-b from-black/70 to-transparent">
+                          <span className="text-[8px] font-bold text-white font-mono tracking-widest">◀ CAM KIRI</span>
+                        </div>
+                        {/* Overlay result */}
+                        <div className="absolute bottom-0 left-0 right-0 px-1.5 py-1 bg-gradient-to-t from-black/80 to-transparent">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${liveAiVision.left.prediction === 'Matang' ? 'bg-orange-500 text-white' : 'bg-slate-500 text-white'}`}>
+                              {liveAiVision.left.prediction}
+                            </span>
+                            <span className="text-[7px] font-mono text-cyan-300">{liveAiVision.left.confidence_pct}%</span>
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-sm font-bold text-slate-800">{liveAiVision.objectDetected}</span>
+                      {/* RIGHT CAM */}
+                      <div className="relative rounded-lg overflow-hidden bg-slate-900 border border-slate-700" style={{ aspectRatio: '4/3' }}>
+                        {liveAiVision.right.image_base64 ? (
+                          <img src={liveAiVision.right.image_base64} alt="CAM KANAN" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Camera className="w-6 h-6 text-slate-600 animate-pulse" />
+                          </div>
+                        )}
+                        {/* Overlay header */}
+                        <div className="absolute top-0 left-0 right-0 px-1.5 py-1 bg-gradient-to-b from-black/70 to-transparent">
+                          <span className="text-[8px] font-bold text-white font-mono tracking-widest">CAM KANAN ▶</span>
+                        </div>
+                        {/* Overlay result */}
+                        <div className="absolute bottom-0 left-0 right-0 px-1.5 py-1 bg-gradient-to-t from-black/80 to-transparent">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${liveAiVision.right.prediction === 'Matang' ? 'bg-orange-500 text-white' : 'bg-slate-500 text-white'}`}>
+                              {liveAiVision.right.prediction}
+                            </span>
+                            <span className="text-[7px] font-mono text-cyan-300">{liveAiVision.right.confidence_pct}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Status bar */}
+                    <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-slate-100 border border-slate-200">
+                      <span className="text-[9px] font-bold text-slate-600 truncate">{liveAiVision.objectDetected}</span>
                       {liveAiVision.isPalmFruit && (
-                        <div className="flex justify-between items-center">
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${liveAiVision.condition === 'Matang' ? 'bg-orange-500 text-white' : 'bg-slate-400 text-white'}`}>
+                        <span className="text-[8px] font-mono text-blue-600 shrink-0 ml-2">{liveAiVision.confidence}%</span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* TRAD: Single camera feed */
+                  <div className="flex flex-col gap-2">
+                    <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-700" style={{ aspectRatio: '4/3' }}>
+                      {liveAiVision.image_base64 ? (
+                        <img src={liveAiVision.image_base64} alt="CAM UTAMA" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                          <Camera className={`w-8 h-8 ${liveAiVision.isPalmFruit ? 'text-orange-400' : 'text-slate-600'} ${!liveAiVision.isPalmFruit ? 'animate-pulse' : ''}`} />
+                          <span className="text-[9px] font-mono text-slate-500">{liveAiVision.isPalmFruit ? 'ANALYZING...' : 'SCANNING...'}</span>
+                        </div>
+                      )}
+                      {/* Overlay top */}
+                      <div className="absolute top-0 left-0 right-0 px-2 py-1.5 bg-gradient-to-b from-black/70 to-transparent flex items-center justify-between">
+                        <span className="text-[8px] font-bold text-white font-mono tracking-widest">📷 CAM UTAMA</span>
+                        <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full ${liveAiVision.isPalmFruit ? 'bg-emerald-500 text-white animate-pulse' : 'bg-slate-600 text-slate-300'}`}>
+                          {liveAiVision.isPalmFruit ? '● LIVE' : '● SCAN'}
+                        </span>
+                      </div>
+                      {/* Overlay bottom result */}
+                      {liveAiVision.isPalmFruit && (
+                        <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between">
+                          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded ${liveAiVision.condition === 'Matang' ? 'bg-orange-500 text-white' : 'bg-slate-500 text-white'}`}>
                             {liveAiVision.condition}
                           </span>
-                          <span className="text-[9px] font-mono text-blue-600 font-bold">Conf: {liveAiVision.confidence}%</span>
+                          <span className="text-[8px] font-mono text-cyan-300 font-bold">
+                            Conf: {liveAiVision.confidence}%
+                          </span>
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
+                    {/* Status text */}
+                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-slate-100 border border-slate-200">
+                      <span className="text-[9px] font-bold text-slate-600 truncate">{liveAiVision.objectDetected}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Statistik Sampel */}

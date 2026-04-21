@@ -143,6 +143,12 @@ const AppGCS = () => {
   const currentFlightInfoRef = useRef(null);
   const scannedTreesRef = useRef(0);
 
+  // ✅ AI Result Accumulators
+  const matangCountRef = useRef(0);
+  const accuracyAccumRef = useRef(0);
+  const aiCallCountRef = useRef(0);
+  const pendingScanEventRef = useRef(null); // 'trad' | 'qlv' | null
+
   // Flight UI State
   const [flightStatusUI, setFlightStatusUI] = useState('STANDBY');
   const [cockpitWarning, setCockpitWarning] = useState('');
@@ -153,6 +159,7 @@ const AppGCS = () => {
   const [liveAiVision, setLiveAiVision] = useState({
     active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false,
     condition: null, confidence: 0, boxPos: { top: 30, left: 40 },
+    mode: 'single', image_base64: null, left: null, right: null,
   });
 
   // Flight Logs — BL-09: load dari DB, kosong di awal
@@ -307,6 +314,81 @@ const AppGCS = () => {
   const radarLeft = Math.max(5, Math.min(95, ((telemetry.x + 35) / mapWidth) * 100));
   const radarTop = Math.max(5, Math.min(95, ((telemetry.y + 20) / mapHeight) * 100));
 
+  // ✅ AI SERVER URL
+  const AI_SERVER_URL = 'http://127.0.0.1:8001';
+
+  // ✅ AI Scan helper — TRAD mode (1 kamera)
+  const fireAiScanTrad = () => {
+    fetch(`${AI_SERVER_URL}/simulate`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        if (data.prediction === 'Matang') matangCountRef.current += 1;
+        accuracyAccumRef.current += parseFloat(data.confidence) * 100;
+        aiCallCountRef.current += 1;
+        setLiveAiVision({
+          active: true, objectDetected: `Inspeksi 360°: ${data.prediction}`,
+          isPalmFruit: true, condition: data.prediction,
+          confidence: (parseFloat(data.confidence) * 100).toFixed(1),
+          boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
+          mode: 'single', image_base64: data.image_base64 || null, left: null, right: null,
+        });
+      })
+      .catch(() => {
+        const isMtg = Math.random() > 0.35;
+        if (isMtg) matangCountRef.current += 1;
+        const fakeConf = (Math.random() * 10 + 89).toFixed(1);
+        accuracyAccumRef.current += parseFloat(fakeConf);
+        aiCallCountRef.current += 1;
+        setLiveAiVision({
+          active: true, objectDetected: `Inspeksi 360°: ${isMtg ? 'Matang' : 'Mentah'} (Offline)`,
+          isPalmFruit: true, condition: isMtg ? 'Matang' : 'Mentah',
+          confidence: fakeConf,
+          boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
+          mode: 'single', image_base64: null, left: null, right: null,
+        });
+      });
+  };
+
+  // ✅ AI Scan helper — QLV mode (2 kamera: kiri & kanan)
+  const fireAiScanQlv = () => {
+    fetch(`${AI_SERVER_URL}/simulate/dual`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        if (data.left?.prediction === 'Matang') matangCountRef.current += 1;
+        if (data.right?.prediction === 'Matang') matangCountRef.current += 1;
+        const leftConf  = parseFloat(data.left?.confidence  || 0) * 100;
+        const rightConf = parseFloat(data.right?.confidence || 0) * 100;
+        accuracyAccumRef.current += (leftConf + rightConf) / 2;
+        aiCallCountRef.current += 1;
+        setLiveAiVision({
+          active: true, objectDetected: `QLV: L=${data.left?.prediction} | R=${data.right?.prediction}`,
+          isPalmFruit: true, condition: leftConf >= rightConf ? data.left?.prediction : data.right?.prediction,
+          confidence: Math.max(leftConf, rightConf).toFixed(1),
+          boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
+          mode: 'dual', image_base64: null,
+          left:  { prediction: data.left?.prediction,  confidence_pct: leftConf.toFixed(1),  image_base64: data.left?.image_base64  || null },
+          right: { prediction: data.right?.prediction, confidence_pct: rightConf.toFixed(1), image_base64: data.right?.image_base64 || null },
+        });
+      })
+      .catch(() => {
+        const l = Math.random() > 0.35; const r = Math.random() > 0.35;
+        if (l) matangCountRef.current += 1;
+        if (r) matangCountRef.current += 1;
+        const fakeConf = (Math.random() * 10 + 89).toFixed(1);
+        accuracyAccumRef.current += parseFloat(fakeConf);
+        aiCallCountRef.current += 1;
+        setLiveAiVision({
+          active: true, objectDetected: `QLV: L=${l ? 'Matang' : 'Mentah'} | R=${r ? 'Matang' : 'Mentah'} (Offline)`,
+          isPalmFruit: true, condition: l ? 'Matang' : 'Mentah',
+          confidence: fakeConf,
+          boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
+          mode: 'dual', image_base64: null,
+          left:  { prediction: l ? 'Matang' : 'Mentah', confidence_pct: fakeConf, image_base64: null },
+          right: { prediction: r ? 'Matang' : 'Mentah', confidence_pct: fakeConf, image_base64: null },
+        });
+      });
+  };
+
   // --- PHYSICS ENGINE (200ms) ---
   useEffect(() => {
     const interval = setInterval(() => {
@@ -314,23 +396,31 @@ const AppGCS = () => {
       if (!droneMode || (!isTelemConnected && !isVideoConnected)) return;
       const status = flightStatusRef.current; const subState = autoSubStateRef.current;
 
-      // AI Vision Update
+      // ✅ Process pending AI scan event (fire-and-forget)
+      if (pendingScanEventRef.current) {
+        const evt = pendingScanEventRef.current;
+        pendingScanEventRef.current = null;
+        if (evt === 'trad') fireAiScanTrad();
+        else if (evt === 'qlv') fireAiScanQlv();
+      }
+
+      // AI Vision loading states (hasil nyata dari fireAiScan callbacks)
       if (status === 'AUTO') {
         if (subState === 'SCAN_TRAD') {
-          const isMatang = Math.random() > 0.35; const conf = (Math.random() * 10 + 89).toFixed(1);
-          setLiveAiVision({ active: true, objectDetected: 'Inspeksi 360Â°: Tandan Buah Segar', isPalmFruit: true, condition: isMatang ? 'Matang' : 'Mentah', confidence: conf, boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 } });
+          if (scanTimerRef.current <= 3) {
+            setLiveAiVision({ active: true, objectDetected: 'Rotasi & Inspeksi 360°...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
+          }
         } else if (subState === 'SCAN_QLV_CAPTURE') {
-          let objMsg = 'Quick Look Geometri...'; let isPalm = false; let cond = null; let conf = 0;
-          if (scanTimerRef.current === 1) objMsg = 'Transmisi Gambar ke GCS...';
-          else if (scanTimerRef.current >= 2) { objMsg = 'Validasi AI GCS: Tandan Sawit'; isPalm = true; cond = Math.random() > 0.35 ? 'Matang' : 'Mentah'; conf = (Math.random() * 10 + 89).toFixed(1); }
-          setLiveAiVision({ active: true, objectDetected: objMsg, isPalmFruit: isPalm, condition: cond, confidence: conf, boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 } });
+          if (scanTimerRef.current === 1) {
+            setLiveAiVision({ active: true, objectDetected: 'Transmisi ke AI Server...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
+          }
         } else {
-          setLiveAiVision({ active: true, objectDetected: Math.random() > 0.8 ? 'Pelepah / Area Daun' : 'Menyusuri Koridor...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 } });
+          setLiveAiVision({ active: true, objectDetected: Math.random() > 0.8 ? 'Pelepah / Area Daun' : 'Menyusuri Koridor...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
         }
       } else if (status !== 'STANDBY') {
-        setLiveAiVision({ active: true, objectDetected: status === 'TAKEOFF' ? 'Sistem Vision Siap...' : 'Manuver RTH...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 } });
+        setLiveAiVision({ active: true, objectDetected: status === 'TAKEOFF' ? 'Sistem Vision Siap...' : 'Manuver RTH...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
       } else {
-        setLiveAiVision({ active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 } });
+        setLiveAiVision({ active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
       }
 
       setTelemetry(prev => {
@@ -367,11 +457,15 @@ const AppGCS = () => {
               }
               else if (curSub === 'SCAN_TRAD') {
                 newSpeed = 0; newYaw = (prev.yaw + 30) % 360; scanTimerRef.current += 1;
-                if (scanTimerRef.current === 12) { scannedTreesRef.current += 1; setScannedTrees(scannedTreesRef.current); currentWpIndexRef.current += 1; autoSubStateRef.current = 'NAV'; newYaw = baseYawRef.current; }
+                if (scanTimerRef.current === 12) {
+                  pendingScanEventRef.current = 'trad'; // ✅ trigger async AI call
+                  scannedTreesRef.current += 1; setScannedTrees(scannedTreesRef.current); currentWpIndexRef.current += 1; autoSubStateRef.current = 'NAV'; newYaw = baseYawRef.current;
+                }
               }
               else if (curSub === 'SCAN_QLV_CAPTURE') {
                 newSpeed = 0; newYaw = baseYawRef.current; scanTimerRef.current += 1;
                 if (scanTimerRef.current > 4) {
+                  pendingScanEventRef.current = 'qlv'; // ✅ trigger async AI call (2 pohon)
                   const remaining = config.jumlahSampel - scannedTreesRef.current;
                   const toAdd = Math.min(2, Math.max(0, remaining));
                   scannedTreesRef.current += toAdd; setScannedTrees(scannedTreesRef.current);
@@ -394,11 +488,14 @@ const AppGCS = () => {
             const finalCount = scannedTreesRef.current;
             if (currentFlightInfoRef.current) {
               const fInfo = currentFlightInfoRef.current;
-              const finalMatang = Math.floor(finalCount * 0.65);
+              // ✅ Gunakan hasil AI nyata, fallback ke estimasi jika offline
+              const finalMatang = aiCallCountRef.current > 0
+                ? matangCountRef.current
+                : Math.floor(finalCount * 0.65);
               const finalBelum  = finalCount - finalMatang;
-              const acc = fInfo.scan === 'qlv'
-                ? Math.floor(Math.random() * 6) + 89
-                : Math.floor(Math.random() * 4) + 96;
+              const acc = aiCallCountRef.current > 0
+                ? Math.round(accuracyAccumRef.current / aiCallCountRef.current)
+                : (fInfo.scan === 'qlv' ? Math.floor(Math.random() * 6) + 89 : Math.floor(Math.random() * 4) + 96);
               const flightSecs  = flightTimeRef.current;
               const battUsed    = parseFloat((flightSecs * 0.01).toFixed(2));
 
@@ -495,6 +592,8 @@ const AppGCS = () => {
       configData: { namaBlok: config.namaBlok, luasKebun: config.luasKebun, totalPohon: config.totalPohon },
     };
     currentWpIndexRef.current = 0; flightTimeRef.current = 0; scannedTreesRef.current = 0;
+    matangCountRef.current = 0; accuracyAccumRef.current = 0; aiCallCountRef.current = 0;
+    pendingScanEventRef.current = null;
     setScannedTrees(0); setFlightTime(0); autoSubStateRef.current = 'NAV';
     flightStatusRef.current = 'TAKEOFF'; setFlightStatusUI('TAKEOFF');
   };
