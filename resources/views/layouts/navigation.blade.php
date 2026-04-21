@@ -194,6 +194,7 @@
          x-transition:enter-start="opacity-0 -translate-y-2"
          x-transition:enter-end="opacity-100 translate-y-0">
         <div class="px-4 pt-3 space-y-1">
+            {{-- Dashboard --}}
             <a href="{{ route('dashboard') }}" class="mobile-nav {{ request()->routeIs('dashboard') ? 'mobile-nav-active' : '' }}"><i class="fa-solid fa-house w-5 text-blue-500"></i> Dashboard</a>
 
             <div class="text-blue-400 text-[10px] font-bold uppercase tracking-wider pt-2 pb-1">Data Master</div>

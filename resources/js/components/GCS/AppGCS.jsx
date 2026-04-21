@@ -28,9 +28,9 @@ const AppGCS = () => {
   // ============================================
 
   // Tema & Fullscreen
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState('light');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const t = (darkClass, lightClass) => theme === 'dark' ? darkClass : lightClass;
+  const t = (darkClass, lightClass) => lightClass; // always light mode
   const toggleFullScreen = () => setIsFullscreen(!isFullscreen);
 
   // Popup notifikasi error
@@ -667,39 +667,8 @@ const AppGCS = () => {
         setIsReportsOpen={setIsReportsOpen}
       />
 
-      {/* ======== MAIN CONTENT ======== */}
-      <main className="flex-1 p-3 flex flex-col gap-3 overflow-hidden">
-
-        {/* TOP SECTION: Camera + Radar + Cockpit */}
-        <div className="flex-[0.35] grid grid-cols-3 gap-3 min-h-[220px]">
-          <GCSMapPanel
-            droneMode={droneMode}
-            isVideoConnected={isVideoConnected}
-            webcamStream={webcamStream}
-            videoRef={videoRef}
-            liveStreamUrl={liveStreamUrl}
-            setIsVideoConnected={setIsVideoConnected}
-            setAlertPopup={setAlertPopup}
-            telemetry={telemetry}
-            flightStatusUI={flightStatusUI}
-            targetAltitude={targetAltitude}
-            radarLeft={radarLeft}
-            radarTop={radarTop}
-            liveAiVision={liveAiVision}
-            t={t}
-          />
-          <GCSCockpit
-            telemetry={telemetry}
-            flightTime={flightTime}
-            cockpitWarning={cockpitWarning}
-            formatTime={formatTime}
-            handleStartFlight={handleStartFlight}
-            handleRTH={handleRTH}
-            t={t}
-          />
-        </div>
-
-        {/* BOTTOM SECTION: Mission Planner (Map + Workflow Sidebar) */}
+      {/* ======== MAIN CONTENT — IMMERSIVE LAYOUT ======== */}
+      <main className="flex-1 flex overflow-hidden p-2 gap-2 bg-slate-100">
         <GCSRightPanel
           config={config}
           managedBlocks={managedBlocks}
@@ -763,6 +732,36 @@ const AppGCS = () => {
           isUploadReady={isUploadReady}
 
           t={t}
+
+          topMapPanel={
+            <GCSMapPanel
+              droneMode={droneMode}
+              isVideoConnected={isVideoConnected}
+              webcamStream={webcamStream}
+              videoRef={videoRef}
+              liveStreamUrl={liveStreamUrl}
+              setIsVideoConnected={setIsVideoConnected}
+              setAlertPopup={setAlertPopup}
+              telemetry={telemetry}
+              flightStatusUI={flightStatusUI}
+              targetAltitude={targetAltitude}
+              radarLeft={radarLeft}
+              radarTop={radarTop}
+              liveAiVision={liveAiVision}
+              t={t}
+            />
+          }
+          topCockpitPanel={
+            <GCSCockpit
+              telemetry={telemetry}
+              flightTime={flightTime}
+              cockpitWarning={cockpitWarning}
+              formatTime={formatTime}
+              handleStartFlight={handleStartFlight}
+              handleRTH={handleRTH}
+              t={t}
+            />
+          }
         />
       </main>
 

@@ -82,32 +82,42 @@
                         <i class="fa-solid fa-gamepad"></i>
                         Buka GCS
                     </a>
-                </div>
-                <div class="overflow-x-auto">
+                </div>                <div class="overflow-x-auto">
                     <table class="w-full text-sm" id="log-penerbangan-table">
                         <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                             <tr>
                                 <th class="text-center px-3 py-3 font-semibold whitespace-nowrap">Kode Log</th>
+                                <th class="text-center px-3 py-3 font-semibold whitespace-nowrap">Tanggal</th>
                                 <th class="text-left px-3 py-3 font-semibold">Nama Misi</th>
                                 <th class="text-center px-3 py-3 font-semibold whitespace-nowrap">Algoritma</th>
                                 <th class="text-center px-3 py-3 font-semibold whitespace-nowrap">Mode Scan</th>
                                 <th class="text-center px-3 py-3 font-semibold whitespace-nowrap">Waktu Terbang</th>
-                                <th class="text-center px-3 py-3 font-semibold whitespace-nowrap">Baterai</th>
                                 <th class="text-center px-3 py-3 font-semibold">Sampel</th>
-                                <th class="text-center px-3 py-3 font-semibold text-orange-600">Matang</th>
+                                <th class="text-center px-3 py-3 font-semibold" colspan="2">
+                                    Hasil Result
+                                    <div class="flex justify-center gap-4 text-[10px] font-normal text-slate-400 mt-0.5">
+                                        <span>🟠 Matang</span><span>⚫ Mentah</span>
+                                    </div>
+                                </th>
                                 <th class="text-center px-3 py-3 font-semibold text-emerald-600">Akurasi</th>
-                                <th class="text-center px-3 py-3 font-semibold whitespace-nowrap">Tanggal</th>
                                 <th class="text-center px-3 py-3 font-semibold">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($flightLogs as $log)
                                 <tr class="hover:bg-slate-50 transition">
+
                                     {{-- Kode Log --}}
                                     <td class="px-3 py-3 text-center">
                                         <span class="inline-block bg-slate-800 text-white text-xs font-mono px-2 py-0.5 rounded">
                                             {{ $log->log_code }}
                                         </span>
+                                    </td>
+
+                                    {{-- Tanggal --}}
+                                    <td class="px-3 py-3 text-center text-slate-600 text-xs whitespace-nowrap">
+                                        <div class="font-semibold">{{ $log->created_at->format('d M Y') }}</div>
+                                        <div class="text-slate-400">{{ $log->created_at->format('H:i:s') }}</div>
                                     </td>
 
                                     {{-- Nama Misi --}}
@@ -153,21 +163,24 @@
                                         {{ $log->flight_time_label }}
                                     </td>
 
-                                    {{-- Baterai --}}
-                                    <td class="px-3 py-3 text-center">
-                                        <span class="text-rose-600 font-semibold">{{ $log->battery_used }}%</span>
-                                    </td>
-
                                     {{-- Sampel --}}
                                     <td class="px-3 py-3 text-center">
                                         <span class="font-bold text-slate-700">{{ $log->samples_count }}</span>
-                                        <span class="text-xs text-slate-400">pohon</span>
+                                        <span class="text-xs text-slate-400"> pohon</span>
                                     </td>
 
-                                    {{-- Matang --}}
-                                    <td class="px-3 py-3 text-center">
-                                        <span class="font-bold text-orange-600">{{ $log->matang }}</span>
-                                        <span class="text-xs text-slate-400">/ {{ $log->belum_matang }} mentah</span>
+                                    {{-- Hasil Result: Matang (side by side) --}}
+                                    <td class="px-2 py-3 text-center border-r border-slate-100">
+                                        <div class="flex flex-col items-center">
+                                            <span class="text-lg font-black text-orange-600">{{ $log->matang }}</span>
+                                            <span class="text-[10px] font-semibold text-orange-400 uppercase tracking-wide">Matang</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-2 py-3 text-center">
+                                        <div class="flex flex-col items-center">
+                                            <span class="text-lg font-black text-slate-500">{{ $log->belum_matang }}</span>
+                                            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Mentah</span>
+                                        </div>
                                     </td>
 
                                     {{-- Akurasi --}}
@@ -175,12 +188,6 @@
                                         <span class="font-bold text-sm {{ $log->accuracy >= 95 ? 'text-emerald-600' : 'text-amber-600' }}">
                                             {{ number_format($log->accuracy, 1) }}%
                                         </span>
-                                    </td>
-
-                                    {{-- Tanggal --}}
-                                    <td class="px-3 py-3 text-center text-slate-600 text-xs whitespace-nowrap">
-                                        <div>{{ $log->created_at->format('d M Y') }}</div>
-                                        <div class="text-slate-400">{{ $log->created_at->format('H:i:s') }}</div>
                                     </td>
 
                                     {{-- Aksi --}}
@@ -195,7 +202,6 @@
                                                 {{ $log->matang }},
                                                 {{ $log->belum_matang }},
                                                 {{ $log->flight_time_seconds }},
-                                                {{ $log->battery_used }},
                                                 {{ $log->accuracy }},
                                                 '{{ $log->created_at->format('d M Y H:i:s') }}'
                                             )"
@@ -206,7 +212,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="11" class="px-4 py-16 text-center">
+                                    <td colspan="10" class="px-4 py-16 text-center">
                                         <div class="flex flex-col items-center gap-3 text-slate-400">
                                             <i class="fa-solid fa-inbox text-5xl opacity-30"></i>
                                             <div class="text-sm font-medium">Belum ada log penerbangan</div>
@@ -259,7 +265,7 @@
                 return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
             }
 
-            function showDetail(logCode, name, algo, scan, samples, matang, belum, flightSec, bat, acc, date) {
+            function showDetail(logCode, name, algo, scan, samples, matang, belum, flightSec, acc, date) {
                 const algoLabel = {
                     dead_reckoning: 'Dead Reckoning',
                     live_reckoning: 'Live Reckoning',
@@ -291,24 +297,20 @@
                             <div class="font-bold text-sky-700">${fmtTime(flightSec)}</div>
                         </div>
                         <div>
-                            <div class="text-xs text-slate-400 mb-0.5">Baterai Terpakai</div>
-                            <div class="font-bold text-rose-600">${bat}%</div>
-                        </div>
-                        <div>
                             <div class="text-xs text-slate-400 mb-0.5">Total Sampel</div>
                             <div class="font-bold text-2xl text-slate-800">${samples} <span class="text-sm font-normal text-slate-400">pohon</span></div>
                         </div>
                         <div>
+                            <div class="text-xs text-slate-400 mb-0.5">🟠 Matang</div>
+                            <div class="font-bold text-xl text-orange-600">${matang} <span class="text-sm font-normal text-slate-400">pohon</span></div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400 mb-0.5">⚫ Mentah</div>
+                            <div class="font-bold text-xl text-slate-600">${belum} <span class="text-sm font-normal text-slate-400">pohon</span></div>
+                        </div>
+                        <div class="col-span-2">
                             <div class="text-xs text-slate-400 mb-0.5">Akurasi AI</div>
                             <div class="font-bold text-2xl ${accColor}">${parseFloat(acc).toFixed(1)}%</div>
-                        </div>
-                        <div>
-                            <div class="text-xs text-slate-400 mb-0.5">Matang</div>
-                            <div class="font-bold text-orange-600">${matang} pohon</div>
-                        </div>
-                        <div>
-                            <div class="text-xs text-slate-400 mb-0.5">Belum Matang</div>
-                            <div class="font-bold text-slate-600">${belum} pohon</div>
                         </div>
                         <div class="col-span-2">
                             <div class="text-xs text-slate-400 mb-0.5">Tanggal Dicatat</div>

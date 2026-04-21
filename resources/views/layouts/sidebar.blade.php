@@ -78,12 +78,12 @@
                     </ul>
                 </li>
 
-                {{-- <li class="menu-item">
+                <li class="menu-item">
                     <a href="{{ route('panen.index') }}" @class(['menu-link', 'active-icon' => request()->routeIs('panen.*')])>
                         <i class="menu-icon fa-solid fa-seedling"></i>
                         <div class="text-base">Manajemen Panen</div>
                     </a>
-                </li> --}}
+                </li>
 
                 <li class="menu-item">
                     <a href="{{ route('cuaca.index') }}" @class(['menu-link', 'active-icon' => request()->routeIs('cuaca.*')])>
