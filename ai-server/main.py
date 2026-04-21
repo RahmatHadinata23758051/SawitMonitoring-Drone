@@ -9,6 +9,7 @@ import glob
 import json
 import random
 import time
+import base64
 from pathlib import Path
 from datetime import datetime
 
@@ -94,12 +95,22 @@ def predict_from_array(arr: np.ndarray) -> dict:
 
 
 def predict_from_path(image_path: str) -> dict:
-    """Load gambar dari path lalu predict."""
+    """Load gambar dari path lalu predict. Sertakan base64 untuk display di GCS."""
     img = Image.open(image_path)
     arr = preprocess_image(img)
     result = predict_from_array(arr)
     result["image_path"] = image_path
     result["filename"] = Path(image_path).name
+
+    # Encode gambar asli ke base64 agar bisa ditampilkan di kamera feed GCS
+    try:
+        with open(image_path, "rb") as f:
+            ext = Path(image_path).suffix.lower().lstrip('.')
+            mime = "jpeg" if ext in ('jpg', 'jpeg') else ext
+            result["image_base64"] = f"data:image/{mime};base64," + base64.b64encode(f.read()).decode("utf-8")
+    except Exception:
+        result["image_base64"] = None
+
     return result
 
 # ============================================================
