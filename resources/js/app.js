@@ -3,8 +3,6 @@ import "./bootstrap";
 import Alpine from "alpinejs";
 import Hls from "hls.js";
 import ApexCharts from "apexcharts";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import nipplejs from 'nipplejs';
 
 // jQuery (harus pertama)
@@ -29,7 +27,6 @@ window.Swal = Swal;
 window.Alpine = Alpine;
 window.Hls = Hls;
 window.ApexCharts = ApexCharts;
-window.L = L;
 window.nipplejs = nipplejs;
 
 Alpine.start();
