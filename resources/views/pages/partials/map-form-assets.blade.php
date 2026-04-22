@@ -1,19 +1,91 @@
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://unpkg.com/leaflet-geometryutil@0.10.3/src/leaflet.geometryutil.js"></script>
 <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
 <script>
+// Fix Leaflet default marker icon paths
+delete (L.Icon.Default.prototype)._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+// Fix Leaflet.draw locale strings (Indonesian)
+L.drawLocal = {
+    draw: {
+        toolbar: {
+            actions: { title: 'Batal menggambar', text: 'Batal' },
+            finish: { title: 'Selesai menggambar', text: 'Selesai' },
+            undo: { title: 'Hapus titik terakhir', text: 'Hapus Titik' },
+            buttons: {
+                polyline: 'Gambar garis',
+                polygon: 'Gambar area (poligon)',
+                rectangle: 'Gambar kotak',
+                circle: 'Gambar lingkaran',
+                marker: 'Tambah penanda',
+                circlemarker: 'Tambah penanda lingkaran'
+            }
+        },
+        handlers: {
+            circle: { tooltip: { start: 'Klik dan seret untuk menggambar lingkaran.' }, radius: 'Radius' },
+            circlemarker: { tooltip: { start: 'Klik peta untuk menaruh penanda lingkaran.' } },
+            marker: { tooltip: { start: 'Klik peta untuk menaruh penanda.' } },
+            polygon: {
+                tooltip: {
+                    start: 'Klik untuk mulai menggambar area.',
+                    cont: 'Klik untuk melanjutkan menggambar.',
+                    end: 'Klik titik pertama untuk menutup area.'
+                }
+            },
+            polyline: {
+                error: '<strong>Error:</strong> garis tidak boleh bersilangan!',
+                tooltip: {
+                    start: 'Klik untuk mulai menggambar garis.',
+                    cont: 'Klik untuk melanjutkan menggambar.',
+                    end: 'Klik titik terakhir untuk selesai.'
+                }
+            },
+            rectangle: { tooltip: { start: 'Klik dan seret untuk menggambar kotak.' } },
+            simpleshape: { tooltip: { end: 'Lepas mouse untuk selesai menggambar.' } }
+        }
+    },
+    edit: {
+        toolbar: {
+            actions: {
+                save: { title: 'Simpan perubahan', text: 'Simpan' },
+                cancel: { title: 'Batalkan semua perubahan', text: 'Batal' },
+                clearAll: { title: 'Hapus semua area', text: 'Hapus Semua' }
+            },
+            buttons: {
+                edit: 'Ubah area',
+                editDisabled: 'Tidak ada area untuk diubah',
+                remove: 'Hapus area',
+                removeDisabled: 'Tidak ada area untuk dihapus'
+            }
+        },
+        handlers: {
+            edit: {
+                tooltip: {
+                    text: 'Seret titik untuk mengubah bentuk.',
+                    subtext: 'Klik batal untuk membatalkan perubahan.'
+                }
+            },
+            remove: { tooltip: { text: 'Klik pada area untuk menghapus.' } }
+        }
+    }
+};
+
     window.MapFormHelpers = window.MapFormHelpers || (() => {
         function createStandardMap({
             mapId = 'map',
-            defaultCenter = [-2.5489, 118.0149],
-            defaultZoom = 5
+            defaultCenter = [-6.9, 107.6],
+            defaultZoom = 9
         } = {}) {
-            const map = L.map(mapId, {
-                zoomControl: true,
-            });
+            const map = L.map(mapId);
+            
+            // Use setView for proper initialization (matches React pattern)
+            map.setView(defaultCenter, defaultZoom);
 
             const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors',
@@ -34,6 +106,21 @@
             }, {}, {
                 position: 'topleft'
             }).addTo(map);
+
+            // Try geolocation (matches React pattern)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        map.setView([position.coords.latitude, position.coords.longitude], 15);
+                    },
+                    () => {
+                        // Geolocation denied or failed - keep default view
+                    }
+                );
+            }
+
+            // Force resize after render (matches React setTimeout pattern)
+            setTimeout(() => map.invalidateSize(), 200);
 
             return {
                 map,
@@ -167,6 +254,34 @@
             };
         }
 
+        // Calculate polygon info with validation (matches React pattern)
+        function calculatePolygonInfo(layer) {
+            try {
+                const geojson = layer.toGeoJSON();
+                const bounds = layer.getBounds();
+                const center = bounds.getCenter();
+                const latlngs = layer.getLatLngs()[0];
+                
+                if (!Array.isArray(latlngs) || latlngs.length < 3) {
+                    console.warn('⚠️ Polygon must have at least 3 points');
+                    return null;
+                }
+                
+                const areaSquareMeters = L.GeometryUtil.geodesicArea(latlngs);
+                const areaHectares = areaSquareMeters / 10000;
+
+                return {
+                    polygon: geojson.geometry,
+                    latitude: parseFloat(center.lat.toFixed(7)),
+                    longitude: parseFloat(center.lng.toFixed(7)),
+                    area_hectare: parseFloat(areaHectares.toFixed(3))
+                };
+            } catch (error) {
+                console.error('❌ Error calculating polygon info:', error);
+                return null;
+            }
+        }
+
         async function syncPolygonFields({
             layer,
             luasInput,
@@ -174,25 +289,30 @@
             polygonInput,
             updateAddress = null
         }) {
-            const latlngs = layer.getLatLngs()[0];
-            const area = L.GeometryUtil.geodesicArea(latlngs);
-            const hektar = (area / 10000).toFixed(2);
-            const center = layer.getBounds().getCenter();
+            try {
+                const info = calculatePolygonInfo(layer);
+                if (!info) {
+                    console.error('❌ Could not calculate polygon info');
+                    return;
+                }
 
-            if (luasInput) {
-                luasInput.value = hektar;
-            }
+                if (luasInput) {
+                    luasInput.value = info.area_hectare.toFixed(2);
+                }
 
-            if (koordinatInput) {
-                koordinatInput.value = `${center.lat.toFixed(8)},${center.lng.toFixed(8)}`;
-            }
+                if (koordinatInput) {
+                    koordinatInput.value = `${info.latitude.toFixed(8)},${info.longitude.toFixed(8)}`;
+                }
 
-            if (polygonInput) {
-                polygonInput.value = JSON.stringify(layer.toGeoJSON());
-            }
+                if (polygonInput) {
+                    polygonInput.value = JSON.stringify(info.polygon);
+                }
 
-            if (typeof updateAddress === 'function') {
-                await updateAddress(center.lat, center.lng);
+                if (typeof updateAddress === 'function') {
+                    await updateAddress(info.latitude, info.longitude);
+                }
+            } catch (error) {
+                console.error('❌ Error syncing polygon fields:', error);
             }
         }
 
@@ -228,22 +348,28 @@
                 drawControl.options.draw.polygon = true;
             }
 
-            if (!button) {
+            if (!button || !handler) {
                 return;
             }
 
             if (enabled) {
                 button.title = 'Gambar polygon';
+                button.disabled = false;
                 button.dataset.drawReady = 'true';
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
                 return;
             }
 
-            if (handler?.enabled && handler.enabled()) {
+            if (handler.enabled && handler.enabled()) {
                 handler.disable();
             }
 
             button.title = 'Pilih lahan terlebih dahulu';
+            button.disabled = true;
             button.dataset.drawReady = 'false';
+            button.style.opacity = '0.5';
+            button.style.cursor = 'not-allowed';
         }
 
         function bindPolygonToolbarButton(drawControl, beforeEnable = null) {
@@ -264,7 +390,11 @@
                     return;
                 }
 
-                if (!(handler.enabled && handler.enabled())) {
+                if (typeof handler.enabled === 'function') {
+                    if (!handler.enabled()) {
+                        handler.enable();
+                    }
+                } else {
                     handler.enable();
                 }
             });
@@ -308,6 +438,7 @@
             addLegend,
             attachTreeCountSync,
             bindColorInput,
+            calculatePolygonInfo,
             clearPolygonFields,
             createAddressUpdater,
             createStandardMap,
