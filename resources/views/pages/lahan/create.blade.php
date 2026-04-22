@@ -140,26 +140,149 @@
     </div>
 
     @push('scripts')
-        @include('pages.partials.map-form-assets')
+        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+        <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+        <script src="https://unpkg.com/leaflet-geometryutil"></script>
         <script>
-            const helpers = window.MapFormHelpers;
             const lahanData = @json($lahan);
             const alamatInput = document.getElementById('alamat');
             const luasInput = document.getElementById('luas');
             const koordinatInput = document.getElementById('koordinat');
             const polygonInput = document.getElementById('polygon');
             const warnaInput = document.getElementById('warna');
-            const {
-                map,
-                defaultCenter,
-                defaultZoom
-            } = helpers.createStandardMap();
+            const defaultCenter = [-2.5489, 118.0149];
+            const defaultZoom = 5;
+
+            const map = L.map('map', {
+                center: defaultCenter,
+                zoom: defaultZoom,
+                zoomControl: true
+            });
+
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 19,
+            });
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 19,
+            });
+
+            streetLayer.addTo(map);
+            L.control.layers({
+                'Peta Jalan': streetLayer,
+                'Citra Satelit': satelliteLayer
+            }, {}, {
+                position: 'topleft'
+            }).addTo(map);
+
             const referenceGroup = L.featureGroup().addTo(map);
             const drawnItems = new L.FeatureGroup().addTo(map);
-            const updateAddress = helpers.createAddressUpdater(alamatInput);
+            let currentPolygon = null;
+            let addressRequestId = 0;
+
+            function fitMap() {
+                const focusGroup = L.featureGroup();
+                referenceGroup.eachLayer(layer => focusGroup.addLayer(layer));
+                drawnItems.eachLayer(layer => focusGroup.addLayer(layer));
+
+                if (focusGroup.getLayers().length) {
+                    map.fitBounds(focusGroup.getBounds(), {
+                        padding: [40, 40]
+                    });
+                    return;
+                }
+
+                map.setView(defaultCenter, defaultZoom);
+            }
+
+            function addLegend() {
+                const legend = L.control({
+                    position: 'bottomright'
+                });
+
+                legend.onAdd = function() {
+                    const div = L.DomUtil.create('div');
+                    div.className = 'bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-lg px-4 py-3 text-xs text-slate-700';
+                    div.innerHTML = `
+                        <div class="font-semibold text-slate-800 mb-2">Legenda Peta</div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span style="width:12px;height:12px;border-radius:9999px;background:#2F6B3C;display:inline-block;"></span>
+                            <span>Polygon lahan</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span style="width:12px;height:12px;border-radius:9999px;background:#2185c7;display:inline-block;"></span>
+                            <span>Polygon kebun</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500">Gunakan draw polygon untuk menentukan area lahan.</div>
+                    `;
+                    return div;
+                };
+
+                legend.addTo(map);
+            }
+
+            function getPolygonStyle() {
+                return {
+                    color: warnaInput.value,
+                    fillColor: warnaInput.value,
+                    fillOpacity: 0.4,
+                    weight: 2
+                };
+            }
+
+            async function updateAddress(lat, lng) {
+                const requestId = ++addressRequestId;
+                alamatInput.value = 'Memuat alamat...';
+
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=id`, {
+                        headers: {
+                            Accept: 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Reverse geocoding gagal');
+                    }
+
+                    const data = await response.json();
+                    if (requestId !== addressRequestId) {
+                        return;
+                    }
+
+                    alamatInput.value = data.display_name || '';
+                } catch (error) {
+                    if (requestId !== addressRequestId) {
+                        return;
+                    }
+
+                    alamatInput.value = '';
+                }
+            }
+
+            async function syncPolygonFields(layer) {
+                const latlngs = layer.getLatLngs()[0];
+                const area = L.GeometryUtil.geodesicArea(latlngs);
+                const center = layer.getBounds().getCenter();
+
+                luasInput.value = (area / 10000).toFixed(2);
+                koordinatInput.value = `${center.lat.toFixed(8)},${center.lng.toFixed(8)}`;
+                polygonInput.value = JSON.stringify(layer.toGeoJSON());
+                await updateAddress(center.lat, center.lng);
+            }
+
+            function clearPolygonFields() {
+                luasInput.value = '';
+                koordinatInput.value = '';
+                polygonInput.value = '';
+                alamatInput.value = '';
+            }
 
             lahanData.forEach(lahan => {
-                const lahanLayer = L.geoJSON(JSON.parse(lahan.polygon), {
+                referenceGroup.addLayer(L.geoJSON(JSON.parse(lahan.polygon), {
                     interactive: false,
                     bubblingMouseEvents: false,
                     style: {
@@ -168,12 +291,10 @@
                         dashArray: '6,6',
                         fillOpacity: 0.1
                     }
-                });
-
-                referenceGroup.addLayer(lahanLayer);
+                }));
 
                 lahan.kebun.forEach(kebun => {
-                    const kebunLayer = L.geoJSON(JSON.parse(kebun.polygon), {
+                    referenceGroup.addLayer(L.geoJSON(JSON.parse(kebun.polygon), {
                         interactive: false,
                         bubblingMouseEvents: false,
                         style: {
@@ -181,24 +302,8 @@
                             weight: 2,
                             fillOpacity: 0.4
                         }
-                    });
-
-                    referenceGroup.addLayer(kebunLayer);
+                    }));
                 });
-            });
-
-            helpers.fitMapToLayers(map, [referenceGroup], defaultCenter, defaultZoom);
-            helpers.addLegend(map, {
-                items: [{
-                        color: '#2F6B3C',
-                        label: 'Polygon lahan'
-                    },
-                    {
-                        color: '#2185c7',
-                        label: 'Polygon kebun'
-                    }
-                ],
-                note: 'Gunakan draw polygon untuk menentukan area lahan.'
             });
 
             const drawControl = new L.Control.Draw({
@@ -215,52 +320,45 @@
                 }
             });
             map.addControl(drawControl);
-            helpers.bindPolygonToolbarButton(drawControl);
-
-            let currentPolygon = null;
 
             map.on(L.Draw.Event.CREATED, async function(event) {
                 const layer = event.layer;
-                layer.setStyle(helpers.getPolygonStyle(warnaInput.value));
+                layer.setStyle(getPolygonStyle());
 
                 drawnItems.clearLayers();
                 drawnItems.addLayer(layer);
                 currentPolygon = layer;
 
-                await helpers.syncPolygonFields({
-                    layer,
-                    luasInput,
-                    koordinatInput,
-                    polygonInput,
-                    updateAddress,
-                });
+                await syncPolygonFields(layer);
             });
 
             map.on(L.Draw.Event.EDITED, async function(event) {
                 for (const layerId in event.layers._layers) {
                     currentPolygon = event.layers._layers[layerId];
-                    await helpers.syncPolygonFields({
-                        layer: currentPolygon,
-                        luasInput,
-                        koordinatInput,
-                        polygonInput,
-                        updateAddress,
-                    });
+                    await syncPolygonFields(currentPolygon);
                 }
             });
 
             map.on(L.Draw.Event.DELETED, function() {
                 currentPolygon = null;
-                helpers.clearPolygonFields({
-                    luasInput,
-                    koordinatInput,
-                    polygonInput,
-                    alamatInput,
+                clearPolygonFields();
+            });
+
+            warnaInput.addEventListener('input', function() {
+                if (!currentPolygon) {
+                    return;
+                }
+
+                currentPolygon.setStyle({
+                    color: this.value,
+                    fillColor: this.value
                 });
             });
 
-            helpers.bindColorInput(warnaInput, () => currentPolygon);
-            helpers.invalidateMapOnResize(map);
+            addLegend();
+            fitMap();
+            setTimeout(() => map.invalidateSize(), 200);
+            window.addEventListener('resize', () => map.invalidateSize());
         </script>
     @endpush
 </x-app-layout>
