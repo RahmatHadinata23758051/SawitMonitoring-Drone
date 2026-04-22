@@ -69,6 +69,64 @@
                 </div>
             </div>
 
+            {{-- Filter & Export --}}
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <form action="{{ route('laporan.log-penerbangan') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:min-w-[520px]">
+                        <div>
+                            <label for="tanggal_dari" class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Dari</label>
+                            <input type="date" id="tanggal_dari" name="tanggal_dari" value="{{ request('tanggal_dari') }}"
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label for="tanggal_sampai" class="block text-xs font-semibold text-slate-500 mb-1">Tanggal Sampai</label>
+                            <input type="date" id="tanggal_sampai" name="tanggal_sampai" value="{{ request('tanggal_sampai') }}"
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <button type="submit"
+                                class="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 transition">
+                                <i class="fa-solid fa-filter"></i> Filter
+                            </button>
+                            <a href="{{ route('laporan.log-penerbangan') }}"
+                                class="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200 transition">
+                                <i class="fa-solid fa-rotate-left"></i> Reset
+                            </a>
+                        </div>
+                    </form>
+
+                    @php
+                        $exportQuery = request()->only(['tanggal_dari', 'tanggal_sampai']);
+                    @endphp
+                    <div class="flex flex-col gap-2 lg:items-end">
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ route('laporan.log-penerbangan.export', array_merge(['format' => 'pdf'], $exportQuery)) }}"
+                                class="inline-flex items-center gap-2 rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600 transition">
+                                <i class="fa-solid fa-file-pdf"></i> Export PDF
+                            </a>
+                            <a href="{{ route('laporan.log-penerbangan.export', array_merge(['format' => 'csv'], $exportQuery)) }}"
+                                class="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-600 transition">
+                                <i class="fa-solid fa-file-csv"></i> Export CSV
+                            </a>
+                            <a href="{{ route('laporan.log-penerbangan.export', array_merge(['format' => 'xlsx'], $exportQuery)) }}"
+                                class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition">
+                                <i class="fa-solid fa-file-excel"></i> Export XLSX
+                            </a>
+                        </div>
+                        <p class="text-xs text-slate-500">
+                            Rentang aktif:
+                            <span class="font-semibold text-slate-700">{{ $filterLabel }}</span>
+                        </p>
+                    </div>
+                </div>
+
+                @if ($errors->any())
+                    <div class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                        {{ $errors->first() }}
+                    </div>
+                @endif
+            </div>
+
             {{-- Tabel Utama --}}
             <div class="bg-white overflow-hidden shadow-sm rounded-lg">
                 <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -77,12 +135,12 @@
                         <h3 class="font-semibold text-slate-700">Log Penerbangan Drone</h3>
                         <span class="text-xs text-slate-400 ml-2">· Sumber: <code class="bg-slate-100 px-1 rounded">flight_logs</code></span>
                     </div>
-                    <a href="{{ route('gcs.index') }}"
-                        class="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
-                        <i class="fa-solid fa-gamepad"></i>
-                        Buka GCS
-                    </a>
-                </div>                <div class="overflow-x-auto">
+                    <div class="text-right">
+                        <div class="text-xs text-slate-500">Rentang data</div>
+                        <div class="text-sm font-semibold text-slate-700">{{ $filterLabel }}</div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
                     <table class="w-full text-sm" id="log-penerbangan-table">
                         <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                             <tr>
@@ -212,7 +270,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="px-4 py-16 text-center">
+                                    <td colspan="11" class="px-4 py-16 text-center">
                                         <div class="flex flex-col items-center gap-3 text-slate-400">
                                             <i class="fa-solid fa-inbox text-5xl opacity-30"></i>
                                             <div class="text-sm font-medium">Belum ada log penerbangan</div>

@@ -71,6 +71,7 @@ Route::middleware('auth')->group(function () {
     ])->parameters(['kebun' => 'kebunDataset']);
     Route::resource('rule-engine/dead-reckoning', DeadReckoningController::class)->except('show');
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
+    Route::get('/laporan/log-penerbangan/export/{format}', [FlightLogController::class, 'export'])->name('laporan.log-penerbangan.export');
     Route::get('/laporan/log-penerbangan', [FlightLogController::class, 'logPenerbangan'])->name('laporan.log-penerbangan');
 
     Route::get('/pengaturan-aplikasi', [PengaturanAplikasiController::class, 'index'])->name('pengaturan-aplikasi.index');
