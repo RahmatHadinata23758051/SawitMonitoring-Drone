@@ -233,9 +233,8 @@
             }
 
             if (enabled) {
-                button.classList.remove('leaflet-disabled');
-                button.removeAttribute('aria-disabled');
                 button.title = 'Gambar polygon';
+                button.dataset.drawReady = 'true';
                 return;
             }
 
@@ -243,9 +242,8 @@
                 handler.disable();
             }
 
-            button.classList.add('leaflet-disabled');
-            button.setAttribute('aria-disabled', 'true');
             button.title = 'Pilih lahan terlebih dahulu';
+            button.dataset.drawReady = 'false';
         }
 
         function attachTreeCountSync(totalInput, ripeInput, unripeInput) {

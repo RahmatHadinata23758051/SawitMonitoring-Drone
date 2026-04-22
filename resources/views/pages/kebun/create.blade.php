@@ -296,6 +296,26 @@
 
             lahanSelect.addEventListener('change', () => renderActiveLahan(lahanSelect.value));
 
+            map.on(L.Draw.Event.DRAWSTART, function(event) {
+                if (event.layerType !== 'polygon' || activeLahanGeoJson) {
+                    return;
+                }
+
+                updateMapStatus('Pilih lahan sebelum menggambar polygon kebun.', 'danger');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pilih lahan dahulu',
+                    text: 'Pilih lahan terlebih dahulu sebelum menggambar polygon kebun.',
+                });
+
+                setTimeout(() => {
+                    const polygonHandler = drawControl?._toolbars?.draw?._modes?.polygon?.handler;
+                    if (polygonHandler?.enabled && polygonHandler.enabled()) {
+                        polygonHandler.disable();
+                    }
+                }, 0);
+            });
+
             map.on(L.Draw.Event.CREATED, async function(event) {
                 if (!activeLahanGeoJson) {
                     updateMapStatus('Pilih lahan sebelum menggambar polygon kebun.', 'danger');
@@ -334,24 +354,20 @@
                     if (!polygonWithinActiveLahan(layer)) {
                         drawnItems.clearLayers();
                         currentPolygon = null;
-                        polygonInput.value = '';
-                        luasInput.value = '';
-                        koordinatInput.value = '';
-                        alamatInput.value = '';
                         updateMapStatus('Perubahan dibatalkan karena polygon keluar dari boundary lahan.', 'danger');
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Polygon tidak valid',
-                        text: 'Polygon kebun harus tetap berada di dalam area lahan yang dipilih.',
-                    });
-                    helpers.clearPolygonFields({
-                        luasInput,
-                        koordinatInput,
-                        polygonInput,
-                        alamatInput,
-                    });
-                    return;
-                }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Polygon tidak valid',
+                            text: 'Polygon kebun harus tetap berada di dalam area lahan yang dipilih.',
+                        });
+                        helpers.clearPolygonFields({
+                            luasInput,
+                            koordinatInput,
+                            polygonInput,
+                            alamatInput,
+                        });
+                        return;
+                    }
 
                     currentPolygon = layer;
                     await helpers.syncPolygonFields({
