@@ -124,22 +124,6 @@
                                 </div>
 
                                 <div>
-                                    <x-input-label for="jumlah_pohon_matang">{{ __('Jumlah Pohon Matang') }}</x-input-label>
-                                    <x-text-input id="jumlah_pohon_matang" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                        type="number" name="jumlah_pohon_matang" :value="old('jumlah_pohon_matang', 0)"
-                                        min="0" step="1" required autofocus autocomplete="jumlah_pohon_matang" />
-                                    <x-input-error :messages="$errors->get('jumlah_pohon_matang')" class="mt-2" />
-                                </div>
-
-                                <div>
-                                    <x-input-label for="jumlah_pohon_belum_matang">{{ __('Jumlah Pohon Belum Matang') }}</x-input-label>
-                                    <x-text-input id="jumlah_pohon_belum_matang" class="block mt-1 w-full rounded-xl bg-gray-100" type="number"
-                                        name="jumlah_pohon_belum_matang" :value="old('jumlah_pohon_belum_matang', 0)"
-                                        min="0" step="1" required readonly />
-                                    <x-input-error :messages="$errors->get('jumlah_pohon_belum_matang')" class="mt-2" />
-                                </div>
-
-                                <div>
                                     <x-input-label for="warna">{{ __('Warna Polygon') }}</x-input-label>
                                     <div class="mt-1 flex items-center gap-3 rounded-xl bg-gray-100 px-3 py-2">
                                         <x-text-input id="warna" class="h-11 w-16 rounded-lg border-0 bg-transparent p-0"
@@ -165,6 +149,22 @@
     @push('scripts')
         @include('pages.partials.map-form-assets')
         <script>
+            // Wait for helper functions and libraries to be ready
+            function waitForHelpers(callback, attempts = 0) {
+                if (typeof window.MapFormHelpers !== 'undefined' && typeof L !== 'undefined' && typeof L.Draw !== 'undefined') {
+                    callback();
+                } else if (attempts < 50) {
+                    setTimeout(() => waitForHelpers(callback, attempts + 1), 50);
+                } else {
+                    console.error('Helpers or libraries failed to load after timeout');
+                }
+            }
+
+            waitForHelpers(() => {
+                initializeKebunMap();
+            });
+
+            function initializeKebunMap() {
             const helpers = window.MapFormHelpers;
             const lahanData = @json($lahan);
             const selectedLahanId = @json(old('lahan'));
@@ -175,9 +175,6 @@
             const alamatInput = document.getElementById('alamat');
             const lahanSelect = document.getElementById('lahan');
             const warnaInput = document.getElementById('warna');
-            const jumlahPohonInput = document.getElementById('jumlah_pohon');
-            const jumlahPohonMatangInput = document.getElementById('jumlah_pohon_matang');
-            const jumlahPohonBelumMatangInput = document.getElementById('jumlah_pohon_belum_matang');
             const {
                 map,
                 defaultCenter,
@@ -317,58 +314,36 @@
             lahanSelect.addEventListener('change', () => renderActiveLahan(lahanSelect.value));
 
             map.on(L.Draw.Event.CREATED, async function(event) {
-                if (!activeLahanGeoJson) {
-                    updateMapStatus('Pilih lahan sebelum menggambar polygon kebun.', 'danger');
-                    return;
-                }
+                try {
+                    if (!activeLahanGeoJson) {
+                        updateMapStatus('Pilih lahan sebelum menggambar polygon kebun.', 'danger');
+                        return;
+                    }
 
-                const layer = event.layer;
-                layer.setStyle(helpers.getPolygonStyle(warnaInput.value));
+                    const layer = event.layer;
+                    const latlngs = layer.getLatLngs()[0];
 
-                if (!polygonWithinActiveLahan(layer)) {
-                    updateMapStatus('Polygon kebun berada di luar boundary lahan aktif.', 'danger');
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Polygon tidak valid',
-                        text: 'Polygon kebun harus berada di dalam area lahan yang dipilih.',
-                    });
-                    return;
-                }
+                    // Validate minimum 3 points
+                    if (!Array.isArray(latlngs) || latlngs.length < 3) {
+                        alert('❌ Area harus mempunyai minimal 3 titik sudut!');
+                        updateMapStatus('Polygon kebun harus mempunyai minimal 3 titik sudut.', 'danger');
+                        return;
+                    }
 
-                drawnItems.clearLayers();
-                drawnItems.addLayer(layer);
-                currentPolygon = layer;
-                await helpers.syncPolygonFields({
-                    layer,
-                    luasInput,
-                    koordinatInput,
-                    polygonInput,
-                    updateAddress,
-                });
-                updateMapStatus('Polygon kebun valid dan berada di dalam boundary lahan.', 'success');
-            });
+                    layer.setStyle(helpers.getPolygonStyle(warnaInput.value));
 
-            map.on(L.Draw.Event.EDITED, async function(event) {
-                for (const layerId in event.layers._layers) {
-                    const layer = event.layers._layers[layerId];
                     if (!polygonWithinActiveLahan(layer)) {
-                        drawnItems.clearLayers();
-                        currentPolygon = null;
-                        updateMapStatus('Perubahan dibatalkan karena polygon keluar dari boundary lahan.', 'danger');
+                        updateMapStatus('Polygon kebun berada di luar boundary lahan aktif.', 'danger');
                         Swal.fire({
                             icon: 'error',
                             title: 'Polygon tidak valid',
-                            text: 'Polygon kebun harus tetap berada di dalam area lahan yang dipilih.',
-                        });
-                        helpers.clearPolygonFields({
-                            luasInput,
-                            koordinatInput,
-                            polygonInput,
-                            alamatInput,
+                            text: 'Polygon kebun harus berada di dalam area lahan yang dipilih.',
                         });
                         return;
                     }
 
+                    drawnItems.clearLayers();
+                    drawnItems.addLayer(layer);
                     currentPolygon = layer;
                     await helpers.syncPolygonFields({
                         layer,
@@ -378,11 +353,53 @@
                         updateAddress,
                     });
                     updateMapStatus('Polygon kebun valid dan berada di dalam boundary lahan.', 'success');
+                    console.log('✅ Kebun polygon created successfully');
+                } catch (error) {
+                    console.error('❌ Error in CREATED handler:', error);
+                    updateMapStatus('Gagal membuat polygon kebun: ' + error.message, 'danger');
+                }
+            });
+
+            map.on(L.Draw.Event.EDITED, async function(event) {
+                try {
+                    for (const layerId in event.layers._layers) {
+                        const layer = event.layers._layers[layerId];
+                        if (!polygonWithinActiveLahan(layer)) {
+                            drawnItems.clearLayers();
+                            currentPolygon = null;
+                            updateMapStatus('Perubahan dibatalkan karena polygon keluar dari boundary lahan.', 'danger');
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Polygon tidak valid',
+                                text: 'Polygon kebun harus tetap berada di dalam area lahan yang dipilih.',
+                            });
+                            helpers.clearPolygonFields({
+                                luasInput,
+                                koordinatInput,
+                                polygonInput,
+                                alamatInput,
+                            });
+                            return;
+                        }
+
+                        currentPolygon = layer;
+                        await helpers.syncPolygonFields({
+                            layer,
+                            luasInput,
+                            koordinatInput,
+                            polygonInput,
+                            updateAddress,
+                        });
+                        updateMapStatus('Polygon kebun valid dan berada di dalam boundary lahan.', 'success');
+                        console.log('✅ Kebun polygon edited successfully');
+                    }
+                } catch (error) {
+                    console.error('❌ Error in EDITED handler:', error);
+                    updateMapStatus('Gagal mengedit polygon kebun: ' + error.message, 'danger');
                 }
             });
 
             helpers.bindColorInput(warnaInput, () => currentPolygon);
-            helpers.attachTreeCountSync(jumlahPohonInput, jumlahPohonMatangInput, jumlahPohonBelumMatangInput);
 
             helpers.addLegend(map, {
                 items: [{
@@ -399,7 +416,11 @@
 
             renderBaseReference();
             renderActiveLahan(selectedLahanId ?? lahanSelect.value);
-            helpers.invalidateMapOnResize(map);
+            
+            // Ensure map is properly sized
+            setTimeout(() => map.invalidateSize(), 200);
+            window.addEventListener('resize', () => map.invalidateSize());
+            } // End of initializeKebunMap function
         </script>
     @endpush
 </x-app-layout>

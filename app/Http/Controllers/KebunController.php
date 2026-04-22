@@ -153,8 +153,6 @@ class KebunController extends Controller
             'alamat' => 'nullable|string|max:500',
             'lahan' => 'required|integer|exists:lahans,id',
             'jumlah_pohon' => 'nullable|integer|min:0',
-            'jumlah_pohon_matang' => 'nullable|integer|min:0|lte:jumlah_pohon',
-            'jumlah_pohon_belum_matang' => 'nullable|integer|min:0|lte:jumlah_pohon',
         ], [
             'polygon.required' => 'Polygon wajib diisi.',
             'polygon.json' => 'Polygon harus berupa JSON.',
@@ -170,26 +168,7 @@ class KebunController extends Controller
             'lahan.integer' => 'Lahan tidak valid.',
             'jumlah_pohon.integer' => 'Jumlah pohon tidak valid.',
             'jumlah_pohon.min' => 'Jumlah pohon harus lebih dari atau sama dengan 0.',
-            'jumlah_pohon_matang.integer' => 'Jumlah pohon matang tidak valid.',
-            'jumlah_pohon_matang.min' => 'Jumlah pohon matang harus lebih dari atau sama dengan 0.',
-            'jumlah_pohon_matang.lte' => 'Jumlah pohon matang harus kurang dari atau sama dengan jumlah pohon.',
-            'jumlah_pohon_belum_matang.integer' => 'Jumlah pohon belum matang tidak valid.',
-            'jumlah_pohon_belum_matang.min' => 'Jumlah pohon belum matang harus lebih dari atau sama dengan 0.',
-            'jumlah_pohon_belum_matang.lte' => 'Jumlah pohon belum matang harus kurang dari atau sama dengan jumlah pohon.',
         ]);
-
-        $total = $validated['jumlah_pohon'];
-
-        if ($total !== null) {
-            $matang = $validated['jumlah_pohon_matang'] ?? 0;
-            $belum = $validated['jumlah_pohon_belum_matang'] ?? 0;
-
-            if (($matang + $belum) > $total) {
-                return back()->withErrors([
-                    'jumlah_pohon' => 'Total pohon matang dan belum matang melebihi jumlah pohon.'
-                ])->withInput();
-            }
-        }
 
         $selectedLahan = Lahan::findOrFail($validated['lahan']);
         if (!$this->polygonWithinLahan($validated['polygon'], $selectedLahan)) {
@@ -209,9 +188,7 @@ class KebunController extends Controller
             'warna' => $validated['warna'],
             'alamat' => $validated['alamat'] ?? null,
             'lahan_id' => $validated['lahan'],
-            'jumlah_pohon' => $validated['jumlah_pohon'],
-            'jumlah_pohon_matang' => $validated['jumlah_pohon_matang'],
-            'jumlah_pohon_belum_matang' => $validated['jumlah_pohon_belum_matang'],
+            'jumlah_pohon' => $validated['jumlah_pohon'] ?? null,
         ];
 
         $post = Kebun::create($data);
@@ -256,8 +233,6 @@ class KebunController extends Controller
             'alamat' => 'nullable|string|max:500',
             'lahan' => 'required|integer|exists:lahans,id',
             'jumlah_pohon' => 'nullable|integer|min:0',
-            'jumlah_pohon_matang' => 'nullable|integer|min:0|lte:jumlah_pohon',
-            'jumlah_pohon_belum_matang' => 'nullable|integer|min:0|lte:jumlah_pohon',
         ], [
             'polygon.required' => 'Polygon wajib diisi.',
             'polygon.json' => 'Polygon harus berupa JSON.',
@@ -273,26 +248,7 @@ class KebunController extends Controller
             'lahan.integer' => 'Lahan tidak valid.',
             'jumlah_pohon.integer' => 'Jumlah pohon tidak valid.',
             'jumlah_pohon.min' => 'Jumlah pohon harus lebih dari atau sama dengan 0.',
-            'jumlah_pohon_matang.integer' => 'Jumlah pohon matang tidak valid.',
-            'jumlah_pohon_matang.min' => 'Jumlah pohon matang harus lebih dari atau sama dengan 0.',
-            'jumlah_pohon_matang.lte' => 'Jumlah pohon matang harus kurang dari atau sama dengan jumlah pohon.',
-            'jumlah_pohon_belum_matang.integer' => 'Jumlah pohon belum matang tidak valid.',
-            'jumlah_pohon_belum_matang.min' => 'Jumlah pohon belum matang harus lebih dari atau sama dengan 0.',
-            'jumlah_pohon_belum_matang.lte' => 'Jumlah pohon belum matang harus kurang dari atau sama dengan jumlah pohon.',
         ]);
-
-        $total = $validated['jumlah_pohon'];
-
-        if ($total !== null) {
-            $matang = $validated['jumlah_pohon_matang'] ?? 0;
-            $belum = $validated['jumlah_pohon_belum_matang'] ?? 0;
-
-            if (($matang + $belum) > $total) {
-                return back()->withErrors([
-                    'jumlah_pohon' => 'Total pohon matang dan belum matang melebihi jumlah pohon.'
-                ])->withInput();
-            }
-        }
 
         $selectedLahan = Lahan::findOrFail($validated['lahan']);
         if (!$this->polygonWithinLahan($validated['polygon'], $selectedLahan)) {
@@ -312,9 +268,7 @@ class KebunController extends Controller
             'warna' => $validated['warna'],
             'alamat' => $validated['alamat'] ?? null,
             'lahan_id' => $validated['lahan'],
-            'jumlah_pohon' => $validated['jumlah_pohon'],
-            'jumlah_pohon_matang' => $validated['jumlah_pohon_matang'],
-            'jumlah_pohon_belum_matang' => $validated['jumlah_pohon_belum_matang'],
+            'jumlah_pohon' => $validated['jumlah_pohon'] ?? null,
         ];
 
         $original = $kebun->getOriginal();

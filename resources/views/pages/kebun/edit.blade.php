@@ -127,24 +127,6 @@
                                 </div>
 
                                 <div>
-                                    <x-input-label for="jumlah_pohon_matang">{{ __('Jumlah Pohon Matang') }}</x-input-label>
-                                    <x-text-input id="jumlah_pohon_matang" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                        type="number" name="jumlah_pohon_matang"
-                                        :value="old('jumlah_pohon_matang', $kebun->jumlah_pohon_matang)" min="0" step="1"
-                                        required autofocus autocomplete="jumlah_pohon_matang" />
-                                    <x-input-error :messages="$errors->get('jumlah_pohon_matang')" class="mt-2" />
-                                </div>
-
-                                <div>
-                                    <x-input-label for="jumlah_pohon_belum_matang">{{ __('Jumlah Pohon Belum Matang') }}</x-input-label>
-                                    <x-text-input id="jumlah_pohon_belum_matang" class="block mt-1 w-full rounded-xl bg-gray-100" type="number"
-                                        name="jumlah_pohon_belum_matang"
-                                        :value="old('jumlah_pohon_belum_matang', $kebun->jumlah_pohon_belum_matang)" min="0"
-                                        step="1" required readonly />
-                                    <x-input-error :messages="$errors->get('jumlah_pohon_belum_matang')" class="mt-2" />
-                                </div>
-
-                                <div>
                                     <x-input-label for="warna">{{ __('Warna Polygon') }}</x-input-label>
                                     <div class="mt-1 flex items-center gap-3 rounded-xl bg-gray-100 px-3 py-2">
                                         <x-text-input id="warna" class="h-11 w-16 rounded-lg border-0 bg-transparent p-0"
@@ -170,6 +152,22 @@
     @push('scripts')
         @include('pages.partials.map-form-assets')
         <script>
+            // Wait for helper functions and libraries to be ready
+            function waitForHelpers(callback, attempts = 0) {
+                if (typeof window.MapFormHelpers !== 'undefined' && typeof L !== 'undefined' && typeof L.Draw !== 'undefined') {
+                    callback();
+                } else if (attempts < 50) {
+                    setTimeout(() => waitForHelpers(callback, attempts + 1), 50);
+                } else {
+                    console.error('Helpers or libraries failed to load after timeout');
+                }
+            }
+
+            waitForHelpers(() => {
+                initializeKebunMap();
+            });
+
+            function initializeKebunMap() {
             const helpers = window.MapFormHelpers;
             const lahanData = @json($lahan);
             const selectedLahanId = @json(old('lahan', $kebun->lahan_id));
@@ -182,9 +180,6 @@
             const alamatInput = document.getElementById('alamat');
             const lahanSelect = document.getElementById('lahan');
             const warnaInput = document.getElementById('warna');
-            const jumlahPohonInput = document.getElementById('jumlah_pohon');
-            const jumlahPohonMatangInput = document.getElementById('jumlah_pohon_matang');
-            const jumlahPohonBelumMatangInput = document.getElementById('jumlah_pohon_belum_matang');
             const {
                 map,
                 defaultCenter,
@@ -425,7 +420,6 @@
             });
 
             helpers.bindColorInput(warnaInput, () => currentPolygon);
-            helpers.attachTreeCountSync(jumlahPohonInput, jumlahPohonMatangInput, jumlahPohonBelumMatangInput);
 
             helpers.addLegend(map, {
                 items: [{
@@ -442,7 +436,11 @@
 
             renderBaseReference();
             renderActiveLahan(selectedLahanId ?? lahanSelect.value);
-            helpers.invalidateMapOnResize(map);
+            
+            // Ensure map is properly sized
+            setTimeout(() => map.invalidateSize(), 200);
+            window.addEventListener('resize', () => map.invalidateSize());
+            } // End of initializeKebunMap function
         </script>
     @endpush
 </x-app-layout>
