@@ -255,6 +255,8 @@
                     if (activeLahan && String(lahan.id) === String(activeLahan.id)) return;
 
                     L.geoJSON(JSON.parse(lahan.polygon), {
+                        interactive: false,
+                        bubblingMouseEvents: false,
                         style: {
                             color: lahan.warna ?? '#94a3b8',
                             weight: 1.5,
@@ -309,6 +311,8 @@
 
                 activeLahanGeoJson = JSON.parse(activeLahan.polygon);
                 L.geoJSON(activeLahanGeoJson, {
+                    interactive: false,
+                    bubblingMouseEvents: false,
                     style: {
                         color: activeLahan.warna ?? '#2F6B3C',
                         weight: 3,
@@ -319,6 +323,8 @@
                 activeLahan.kebun.forEach(kebun => {
                     if (String(kebun.id) === @json((string) $kebun->id)) return;
                     L.geoJSON(JSON.parse(kebun.polygon), {
+                        interactive: false,
+                        bubblingMouseEvents: false,
                         style: {
                             color: kebun.warna ?? '#2185c7',
                             weight: 2,

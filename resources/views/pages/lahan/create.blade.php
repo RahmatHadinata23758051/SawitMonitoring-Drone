@@ -160,18 +160,13 @@
 
             lahanData.forEach(lahan => {
                 const lahanLayer = L.geoJSON(JSON.parse(lahan.polygon), {
+                    interactive: false,
+                    bubblingMouseEvents: false,
                     style: {
                         color: lahan.warna ?? '#2F6B3C',
                         weight: 2,
                         dashArray: '6,6',
                         fillOpacity: 0.1
-                    },
-                    onEachFeature: function(feature, layer) {
-                        layer.bindPopup(`
-                            <strong>${lahan.nama}</strong><br>
-                            Luas: ${lahan.luas} ha<br>
-                            Total kebun: ${lahan.kebun.length}
-                        `);
                     }
                 });
 
@@ -179,17 +174,12 @@
 
                 lahan.kebun.forEach(kebun => {
                     const kebunLayer = L.geoJSON(JSON.parse(kebun.polygon), {
+                        interactive: false,
+                        bubblingMouseEvents: false,
                         style: {
                             color: kebun.warna ?? '#2185c7',
                             weight: 2,
                             fillOpacity: 0.4
-                        },
-                        onEachFeature: function(feature, layer) {
-                            layer.bindPopup(`
-                                <strong>${kebun.nama}</strong><br>
-                                Luas: ${kebun.luas} ha<br>
-                                Pohon: ${kebun.jumlah_pohon}
-                            `);
                         }
                     });
 
