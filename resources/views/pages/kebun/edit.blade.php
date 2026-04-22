@@ -210,6 +210,20 @@
                 }
             });
             map.addControl(drawControl);
+            helpers.bindPolygonToolbarButton(drawControl, () => {
+                if (activeLahanGeoJson) {
+                    return true;
+                }
+
+                updateMapStatus('Pilih lahan sebelum menggambar polygon kebun.', 'danger');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pilih lahan dahulu',
+                    text: 'Pilih lahan terlebih dahulu sebelum menggambar polygon kebun.',
+                });
+
+                return false;
+            });
 
             let currentPolygon = null;
             let activeLahan = null;
@@ -349,26 +363,6 @@
 
             lahanSelect.addEventListener('change', () => {
                 renderActiveLahan(lahanSelect.value);
-            });
-
-            map.on(L.Draw.Event.DRAWSTART, function(event) {
-                if (event.layerType !== 'polygon' || activeLahanGeoJson) {
-                    return;
-                }
-
-                updateMapStatus('Pilih lahan sebelum menggambar polygon kebun.', 'danger');
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Pilih lahan dahulu',
-                    text: 'Pilih lahan terlebih dahulu sebelum menggambar polygon kebun.',
-                });
-
-                setTimeout(() => {
-                    const polygonHandler = drawControl?._toolbars?.draw?._modes?.polygon?.handler;
-                    if (polygonHandler?.enabled && polygonHandler.enabled()) {
-                        polygonHandler.disable();
-                    }
-                }, 0);
             });
 
             map.on(L.Draw.Event.CREATED, async function(event) {

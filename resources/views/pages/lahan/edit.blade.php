@@ -221,6 +221,7 @@
                 }
             });
             map.addControl(drawControl);
+            helpers.bindPolygonToolbarButton(drawControl);
 
             let currentPolygon = null;
 

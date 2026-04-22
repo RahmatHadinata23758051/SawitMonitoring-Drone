@@ -246,6 +246,30 @@
             button.dataset.drawReady = 'false';
         }
 
+        function bindPolygonToolbarButton(drawControl, beforeEnable = null) {
+            const polygonMode = drawControl?._toolbars?.draw?._modes?.polygon;
+            const button = polygonMode?.button;
+            const handler = polygonMode?.handler;
+
+            if (!button || !handler || button.dataset.manualPolygonBinding === 'true') {
+                return;
+            }
+
+            button.dataset.manualPolygonBinding = 'true';
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (typeof beforeEnable === 'function' && beforeEnable() === false) {
+                    return;
+                }
+
+                if (!(handler.enabled && handler.enabled())) {
+                    handler.enable();
+                }
+            });
+        }
+
         function attachTreeCountSync(totalInput, ripeInput, unripeInput) {
             const sync = () => {
                 const total = parseInt(totalInput?.value ?? '0', 10) || 0;
@@ -288,6 +312,7 @@
             createAddressUpdater,
             createStandardMap,
             createStatusBadgeUpdater,
+            bindPolygonToolbarButton,
             fitMapToLayers,
             getPolygonStyle,
             invalidateMapOnResize,
