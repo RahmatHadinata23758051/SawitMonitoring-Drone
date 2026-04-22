@@ -19,28 +19,32 @@ class DashboardController extends Controller
         $countPerangkat = Perangkat::count();
         $countUser     = User::count();
         $countPohon    = Kebun::sum('jumlah_pohon');
-        $countPohonMatang       = Kebun::sum('jumlah_pohon_matang');
-        $countPohonBelumMatang  = Kebun::sum('jumlah_pohon_belum_matang');
         $lahan = Lahan::with('kebun')->get();
         $cuaca = Cuaca::first();
-        $kebun = Kebun::query()
-            ->withSum('panen as target', 'target_panen')
-            ->withSum('panen as hasil', 'hasil_panen')
-            ->get(['id', 'nama', 'jumlah_pohon_matang', 'jumlah_pohon_belum_matang']);
+
+        $flightSummary = FlightLog::query()
+            ->selectRaw('COALESCE(SUM(samples_count), 0) as total_sampel')
+            ->selectRaw('COALESCE(SUM(matang), 0) as total_matang')
+            ->selectRaw('COALESCE(SUM(belum_matang), 0) as total_belum')
+            ->selectRaw('COALESCE(AVG(accuracy), 0) as avg_accuracy')
+            ->first();
 
         // Flight & Mission Stats (BL-06)
         $countMissions   = Mission::count();
         $countFlightLogs = FlightLog::count();
-        $totalSampel     = FlightLog::sum('samples_count');
-        $totalMatang     = FlightLog::sum('matang');
-        $avgAccuracy     = FlightLog::avg('accuracy') ?? 0;
+        $totalSampel     = (int) ($flightSummary->total_sampel ?? 0);
+        $totalMatang     = (int) ($flightSummary->total_matang ?? 0);
+        $totalBelum      = (int) ($flightSummary->total_belum ?? 0);
+        $avgAccuracy     = (float) ($flightSummary->avg_accuracy ?? 0);
+        $countPohonMatang      = $totalMatang;
+        $countPohonBelumMatang = $totalBelum;
         $recentFlights   = FlightLog::latest()->limit(5)->get();
 
         return view('dashboard', compact(
             'countLahan', 'countKebun', 'countPerangkat', 'countUser',
             'countPohon', 'countPohonMatang', 'countPohonBelumMatang',
-            'lahan', 'cuaca', 'kebun',
-            'countMissions', 'countFlightLogs', 'totalSampel', 'totalMatang',
+            'lahan', 'cuaca',
+            'countMissions', 'countFlightLogs', 'totalSampel', 'totalMatang', 'totalBelum',
             'avgAccuracy', 'recentFlights'
         ));
     }

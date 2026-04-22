@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FlightLog;
 use App\Models\LaporanPrediksi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -11,8 +12,15 @@ class LaporanController extends Controller
     public function index()
     {
         $laporan = LaporanPrediksi::latest()->get();
-        $flightLogs = \App\Models\FlightLog::with('mission')->latest()->limit(5)->get(); // ambil 5 misi terakhir sbg rekap
-        return view('pages.laporan.index', compact('laporan', 'flightLogs'));
+        $flightLogs = FlightLog::with('mission')->latest()->limit(5)->get();
+        $flightLogSummary = FlightLog::query()
+            ->selectRaw('COALESCE(SUM(samples_count), 0) as total_sampel')
+            ->selectRaw('COALESCE(SUM(matang), 0) as total_matang')
+            ->selectRaw('COALESCE(SUM(belum_matang), 0) as total_belum')
+            ->selectRaw('COALESCE(AVG(accuracy), 0) as avg_accuracy')
+            ->first();
+
+        return view('pages.laporan.index', compact('laporan', 'flightLogs', 'flightLogSummary'));
     }
 
     public function sendSample(Request $request)

@@ -124,7 +124,7 @@
                                     <p class="text-xs text-green-600 font-medium mt-1">Matang</p>
                                 </div>
                                 <div class="bg-amber-50 rounded-xl p-4 text-center border border-amber-100">
-                                    <p class="text-3xl font-black text-amber-700">{{ number_format($totalSampel - $totalMatang) }}</p>
+                                    <p class="text-3xl font-black text-amber-700">{{ number_format($totalBelum) }}</p>
                                     <p class="text-xs text-amber-600 font-medium mt-1">Belum Matang</p>
                                 </div>
                             </div>
@@ -265,14 +265,15 @@
 
                         {{-- Data Master Summary --}}
                         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                            <h2 class="text-lg font-bold text-slate-800 mb-4">Inventaris Sistem</h2>
+                            <h2 class="text-lg font-bold text-slate-800 mb-1">Inventaris & Rekap Scan</h2>
+                            <p class="text-xs text-slate-400 mb-4">Inventaris pohon master dan hasil scan AI menggunakan sumber data terpisah yang sudah diselaraskan.</p>
                             <div class="space-y-3">
                                 <div class="flex items-center justify-between py-2 border-b border-slate-50">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 text-xs">
                                             <i class="fa-solid fa-tree"></i>
                                         </div>
-                                        <p class="text-sm text-slate-600">Total Pohon</p>
+                                        <p class="text-sm text-slate-600">Total Pohon Master</p>
                                     </div>
                                     <p class="font-bold text-slate-800">{{ number_format($countPohon) }}</p>
                                 </div>
@@ -281,7 +282,7 @@
                                         <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-green-600 text-xs">
                                             <i class="fa-solid fa-check"></i>
                                         </div>
-                                        <p class="text-sm text-slate-600">Pohon Matang</p>
+                                        <p class="text-sm text-slate-600">Hasil Scan Matang</p>
                                     </div>
                                     <p class="font-bold text-green-600">{{ number_format($countPohonMatang) }}</p>
                                 </div>
@@ -290,7 +291,7 @@
                                         <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 text-xs">
                                             <i class="fa-solid fa-clock"></i>
                                         </div>
-                                        <p class="text-sm text-slate-600">Belum Matang</p>
+                                        <p class="text-sm text-slate-600">Hasil Scan Belum Matang</p>
                                     </div>
                                     <p class="font-bold text-amber-600">{{ number_format($countPohonBelumMatang) }}</p>
                                 </div>

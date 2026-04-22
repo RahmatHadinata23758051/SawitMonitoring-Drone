@@ -35,10 +35,10 @@
 
                 @if($flightLogs->isNotEmpty())
                     @php
-                        $totalSampel = $flightLogs->sum('samples_count');
-                        $totalMatang = $flightLogs->sum('matang');
-                        $totalBelum  = $flightLogs->sum('belum_matang');
-                        $avgAcc      = $flightLogs->avg('accuracy');
+                        $totalSampel = (int) ($flightLogSummary->total_sampel ?? 0);
+                        $totalMatang = (int) ($flightLogSummary->total_matang ?? 0);
+                        $totalBelum  = (int) ($flightLogSummary->total_belum ?? 0);
+                        $avgAcc      = (float) ($flightLogSummary->avg_accuracy ?? 0);
                         $matangPct   = $totalSampel > 0 ? round(($totalMatang / $totalSampel) * 100, 1) : 0;
                         $belumPct    = round(100 - $matangPct, 1);
                     @endphp
