@@ -168,13 +168,9 @@
         </div>
     </div>
     @push('scripts')
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-        <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
-        <script src="https://unpkg.com/leaflet-geometryutil@0.10.3/src/leaflet.geometryutil.js"></script>
-        <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+        @include('pages.partials.map-form-assets')
         <script>
+            const helpers = window.MapFormHelpers;
             const lahanData = @json($lahan);
             const selectedLahanId = @json(old('lahan', $kebun->lahan_id));
             const existingKebunGeoJson = {!! $kebun->polygon !!};
@@ -186,22 +182,18 @@
             const alamatInput = document.getElementById('alamat');
             const lahanSelect = document.getElementById('lahan');
             const warnaInput = document.getElementById('warna');
-            const defaultCenter = [-2.5489, 118.0149];
+            const jumlahPohonInput = document.getElementById('jumlah_pohon');
+            const jumlahPohonMatangInput = document.getElementById('jumlah_pohon_matang');
+            const jumlahPohonBelumMatangInput = document.getElementById('jumlah_pohon_belum_matang');
+            const {
+                map,
+                defaultCenter,
+                defaultZoom
+            } = helpers.createStandardMap();
+            const updateMapStatus = helpers.createStatusBadgeUpdater(mapStatusBadge);
+            const updateAddress = helpers.createAddressUpdater(alamatInput);
 
             const lahanById = Object.fromEntries(lahanData.map(item => [String(item.id), item]));
-            const map = L.map('map', { zoomControl: true });
-            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors',
-                maxZoom: 19,
-            });
-            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri',
-                maxZoom: 19,
-            });
-
-            streetLayer.addTo(map);
-            L.control.layers({ 'Peta Jalan': streetLayer, 'Citra Satelit': satelliteLayer }, {}, { position: 'topleft' }).addTo(map);
-
             const baseGroup = L.featureGroup().addTo(map);
             const activeLahanGroup = L.featureGroup().addTo(map);
             const drawnItems = new L.FeatureGroup().addTo(map);
@@ -222,85 +214,28 @@
             let currentPolygon = null;
             let activeLahan = null;
             let activeLahanGeoJson = null;
-            let addressRequestId = 0;
-
-            function updateMapStatus(message, tone = 'warning') {
-                const tones = {
-                    warning: 'bg-amber-50 border-amber-100 text-amber-700',
-                    success: 'bg-emerald-50 border-emerald-100 text-emerald-700',
-                    info: 'bg-blue-50 border-blue-100 text-blue-700',
-                    danger: 'bg-red-50 border-red-100 text-red-700',
-                };
-
-                mapStatusBadge.className = `inline-flex items-center gap-2 rounded-full px-3 py-1.5 border ${tones[tone]}`;
-                mapStatusBadge.textContent = message;
-            }
-
-            function getPolygonStyle() {
-                const color = warnaInput.value;
-                return { color, fillColor: color, fillOpacity: 0.4, weight: 2 };
-            }
 
             function setDrawEnabled(enabled) {
-                if (enabled) {
-                    drawControl.setDrawingOptions({ draw: { polygon: true } });
-                } else {
-                    drawControl.setDrawingOptions({ draw: { polygon: false } });
-                }
+                helpers.setDrawEnabled(drawControl, enabled);
             }
 
             function clearCurrentPolygonFields() {
                 if (!currentPolygon) {
-                    polygonInput.value = '';
-                    luasInput.value = '';
-                    koordinatInput.value = '';
-                    alamatInput.value = '';
+                    helpers.clearPolygonFields({
+                        luasInput,
+                        koordinatInput,
+                        polygonInput,
+                        alamatInput,
+                    });
                     return;
                 }
 
-                const geojson = currentPolygon.toGeoJSON();
-                polygonInput.value = JSON.stringify(geojson);
-
-                const latlngs = currentPolygon.getLatLngs()[0];
-                const area = L.GeometryUtil.geodesicArea(latlngs);
-                const center = currentPolygon.getBounds().getCenter();
-                luasInput.value = (area / 10000).toFixed(2);
-                koordinatInput.value = `${center.lat.toFixed(8)},${center.lng.toFixed(8)}`;
-            }
-
-            async function updateAddress(lat, lng) {
-                const requestId = ++addressRequestId;
-                alamatInput.value = 'Memuat alamat...';
-
-                try {
-                    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=id`;
-                    const response = await fetch(url, {
-                        headers: { 'Accept': 'application/json' }
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Reverse geocoding gagal');
-                    }
-
-                    const data = await response.json();
-                    if (requestId !== addressRequestId) return;
-                    alamatInput.value = data.display_name || '';
-                } catch (error) {
-                    if (requestId !== addressRequestId) return;
-                    alamatInput.value = '';
-                }
-            }
-
-            async function syncPolygonFields(layer) {
-                const latlngs = layer.getLatLngs()[0];
-                const area = L.GeometryUtil.geodesicArea(latlngs);
-                const hektar = (area / 10000).toFixed(2);
-                const center = layer.getBounds().getCenter();
-
-                luasInput.value = hektar;
-                koordinatInput.value = `${center.lat.toFixed(8)},${center.lng.toFixed(8)}`;
-                polygonInput.value = JSON.stringify(layer.toGeoJSON());
-                await updateAddress(center.lat, center.lng);
+                helpers.syncPolygonFields({
+                    layer: currentPolygon,
+                    luasInput,
+                    koordinatInput,
+                    polygonInput,
+                });
             }
 
             function polygonWithinActiveLahan(layer) {
@@ -367,7 +302,7 @@
                     if (baseGroup.getLayers().length) {
                         map.fitBounds(baseGroup.getBounds(), { padding: [40, 40] });
                     } else {
-                        map.setView(defaultCenter, 5);
+                        map.setView(defaultCenter, defaultZoom);
                     }
                     return;
                 }
@@ -406,26 +341,6 @@
                 }
             }
 
-            const legend = L.control({ position: 'bottomright' });
-            legend.onAdd = function() {
-                const div = L.DomUtil.create('div');
-                div.className = 'bg-white/95 backdrop-blur border border-slate-200 rounded-2xl shadow-lg px-4 py-3 text-xs text-slate-700';
-                div.innerHTML = `
-                    <div class="font-semibold text-slate-800 mb-2">Legenda Peta</div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <span style="width:12px;height:12px;border-radius:9999px;background:#2F6B3C;display:inline-block;"></span>
-                        <span>Boundary lahan aktif</span>
-                    </div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <span style="width:12px;height:12px;border-radius:9999px;background:#2185c7;display:inline-block;"></span>
-                        <span>Polygon kebun</span>
-                    </div>
-                    <div class="text-[11px] text-slate-500">Polygon kebun di luar batas lahan akan ditolak.</div>
-                `;
-                return div;
-            };
-            legend.addTo(map);
-
             lahanSelect.addEventListener('change', () => {
                 renderActiveLahan(lahanSelect.value);
             });
@@ -437,7 +352,7 @@
                 }
 
                 const layer = event.layer;
-                layer.setStyle(getPolygonStyle());
+                layer.setStyle(helpers.getPolygonStyle(warnaInput.value));
 
                 if (!polygonWithinActiveLahan(layer)) {
                     updateMapStatus('Polygon kebun berada di luar boundary lahan aktif.', 'danger');
@@ -453,7 +368,13 @@
                 drawnItems.clearLayers();
                 drawnItems.addLayer(layer);
                 currentPolygon = layer;
-                await syncPolygonFields(layer);
+                await helpers.syncPolygonFields({
+                    layer,
+                    luasInput,
+                    koordinatInput,
+                    polygonInput,
+                    updateAddress,
+                });
                 updateMapStatus('Polygon kebun valid dan berada di dalam boundary lahan.', 'success');
             });
 
@@ -472,28 +393,36 @@
                     }
 
                     currentPolygon = layer;
-                    await syncPolygonFields(layer);
+                    await helpers.syncPolygonFields({
+                        layer,
+                        luasInput,
+                        koordinatInput,
+                        polygonInput,
+                        updateAddress,
+                    });
                     updateMapStatus('Polygon kebun valid dan berada di dalam boundary lahan.', 'success');
                 }
             });
 
-            warnaInput.addEventListener('input', function() {
-                if (!currentPolygon) return;
-                currentPolygon.setStyle({ color: this.value, fillColor: this.value });
-            });
+            helpers.bindColorInput(warnaInput, () => currentPolygon);
+            helpers.attachTreeCountSync(jumlahPohonInput, jumlahPohonMatangInput, jumlahPohonBelumMatangInput);
 
-            $(document).ready(function() {
-                $('#jumlah_pohon, #jumlah_pohon_matang').on('input', function() {
-                    const jumlahPohon = parseInt($('#jumlah_pohon').val()) || 0;
-                    const jumlahPohonMatang = parseInt($('#jumlah_pohon_matang').val()) || 0;
-                    $('#jumlah_pohon_belum_matang').val(jumlahPohon - jumlahPohonMatang);
-                });
+            helpers.addLegend(map, {
+                items: [{
+                        color: '#2F6B3C',
+                        label: 'Boundary lahan aktif'
+                    },
+                    {
+                        color: '#2185c7',
+                        label: 'Polygon kebun'
+                    }
+                ],
+                note: 'Polygon kebun di luar batas lahan akan ditolak.'
             });
 
             renderBaseReference();
             renderActiveLahan(selectedLahanId ?? lahanSelect.value);
-            setTimeout(() => map.invalidateSize(), 200);
-            window.addEventListener('resize', () => map.invalidateSize());
+            helpers.invalidateMapOnResize(map);
         </script>
     @endpush
 </x-app-layout>
