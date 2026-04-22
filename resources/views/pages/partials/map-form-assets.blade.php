@@ -220,11 +220,32 @@
         }
 
         function setDrawEnabled(drawControl, enabled) {
-            drawControl.setDrawingOptions({
-                draw: {
-                    polygon: enabled,
-                }
-            });
+            const polygonMode = drawControl?._toolbars?.draw?._modes?.polygon;
+            const button = polygonMode?.button;
+            const handler = polygonMode?.handler;
+
+            if (drawControl?.options?.draw) {
+                drawControl.options.draw.polygon = true;
+            }
+
+            if (!button) {
+                return;
+            }
+
+            if (enabled) {
+                button.classList.remove('leaflet-disabled');
+                button.removeAttribute('aria-disabled');
+                button.title = 'Gambar polygon';
+                return;
+            }
+
+            if (handler?.enabled && handler.enabled()) {
+                handler.disable();
+            }
+
+            button.classList.add('leaflet-disabled');
+            button.setAttribute('aria-disabled', 'true');
+            button.title = 'Pilih lahan terlebih dahulu';
         }
 
         function attachTreeCountSync(totalInput, ripeInput, unripeInput) {

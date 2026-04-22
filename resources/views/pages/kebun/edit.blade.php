@@ -201,7 +201,7 @@
             const drawControl = new L.Control.Draw({
                 edit: { featureGroup: drawnItems },
                 draw: {
-                    polygon: false,
+                    polygon: true,
                     polyline: false,
                     rectangle: false,
                     circle: false,
