@@ -36,7 +36,8 @@ class LahanController extends Controller
             'nama' => 'required|string',
             'luas' => 'required|decimal:0,2',
             'koordinat' => 'required',
-            'warna' => 'required'
+            'warna' => 'required',
+            'alamat' => 'nullable|string|max:500',
         ], [
             'polygon.required' => 'Polygon wajib diisi.',
             'polygon.json' => 'Polygon harus berupa JSON.',
@@ -45,7 +46,9 @@ class LahanController extends Controller
             'luas.required' => 'Luas lahan wajib diisi.',
             'luas.decimal' => 'Luas lahan harus berupa desimal',
             'koordinat.required' => 'Koordinat wajib diisi.',
-            'warna.required' => 'Warna wajib diisi.'
+            'warna.required' => 'Warna wajib diisi.',
+            'alamat.string' => 'Alamat harus berupa teks.',
+            'alamat.max' => 'Alamat maksimal 500 karakter.'
         ]);
 
         [$lat, $lng] = explode(',', $validated['koordinat']);
@@ -57,6 +60,7 @@ class LahanController extends Controller
             'latitude' => trim($lat),
             'longitude' => trim($lng),
             'warna' => $validated['warna'],
+            'alamat' => $validated['alamat'] ?? null,
         ];
 
         $post = Lahan::create($data);
@@ -97,7 +101,8 @@ class LahanController extends Controller
             'nama' => 'required|string',
             'luas' => 'required|decimal:0,2',
             'koordinat' => 'required',
-            'warna' => 'required'
+            'warna' => 'required',
+            'alamat' => 'nullable|string|max:500',
         ], [
             'polygon.required' => 'Polygon wajib diisi.',
             'polygon.json' => 'Polygon harus berupa JSON.',
@@ -106,7 +111,9 @@ class LahanController extends Controller
             'luas.required' => 'Luas lahan wajib diisi.',
             'luas.decimal' => 'Luas lahan harus berupa desimal',
             'koordinat.required' => 'Koordinat wajib diisi.',
-            'warna.required' => 'Warna wajib diisi.'
+            'warna.required' => 'Warna wajib diisi.',
+            'alamat.string' => 'Alamat harus berupa teks.',
+            'alamat.max' => 'Alamat maksimal 500 karakter.'
         ]);
 
         [$lat, $lng] = explode(',', $validated['koordinat']);
@@ -118,6 +125,7 @@ class LahanController extends Controller
             'latitude' => trim($lat),
             'longitude' => trim($lng),
             'warna' => $validated['warna'],
+            'alamat' => $validated['alamat'] ?? null,
         ];
 
         $original = $lahan->getOriginal();
