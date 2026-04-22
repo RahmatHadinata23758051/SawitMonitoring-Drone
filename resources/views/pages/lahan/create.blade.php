@@ -54,10 +54,6 @@
                                     <span class="w-3 h-3 rounded-full bg-[#2F6B3C]"></span>
                                     Polygon lahan
                                 </div>
-                                <div class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 border border-blue-100">
-                                    <span class="w-3 h-3 rounded-full bg-[#2185c7]"></span>
-                                    Polygon kebun
-                                </div>
                                 <div class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 border border-amber-100 text-amber-700">
                                     Basemap dapat diganti dari kontrol kiri atas
                                 </div>
@@ -205,16 +201,15 @@
                     if (typeof L.Draw === 'undefined') throw new Error('Leaflet Draw not loaded');
                     if (typeof L.GeometryUtil === 'undefined') throw new Error('Leaflet GeometryUtil not loaded');
 
-                    const lahanData = @json($lahan);
                     const alamatInput = document.getElementById('alamat');
                     const luasInput = document.getElementById('luas');
                     const koordinatInput = document.getElementById('koordinat');
                     const polygonInput = document.getElementById('polygon');
                     const warnaInput = document.getElementById('warna');
 
-                    // Initialize map with proper setView (matches React pattern)
+                    // Start from a clean national view when creating a new lahan.
                     const map = L.map('map');
-                    map.setView([-6.9, 107.6], 9);
+                    map.setView([-2.5489, 118.0149], 5);
 
                     // Add tile layers
                     const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -235,38 +230,7 @@
                     }).addTo(map);
 
                     // Add feature groups
-                    const referenceGroup = L.featureGroup().addTo(map);
                     const drawnItems = new L.FeatureGroup().addTo(map);
-
-                    // Add existing reference polygons
-                    lahanData.forEach(lahan => {
-                        try {
-                            referenceGroup.addLayer(L.geoJSON(JSON.parse(lahan.polygon), {
-                                interactive: false,
-                                bubblingMouseEvents: false,
-                                style: {
-                                    color: lahan.warna ?? '#2F6B3C',
-                                    weight: 2,
-                                    dashArray: '6,6',
-                                    fillOpacity: 0.1
-                                }
-                            }));
-
-                            lahan.kebun.forEach(kebun => {
-                                referenceGroup.addLayer(L.geoJSON(JSON.parse(kebun.polygon), {
-                                    interactive: false,
-                                    bubblingMouseEvents: false,
-                                    style: {
-                                        color: kebun.warna ?? '#2185c7',
-                                        weight: 2,
-                                        fillOpacity: 0.4
-                                    }
-                                }));
-                            });
-                        } catch (e) {
-                            console.warn('Could not parse reference polygon:', e);
-                        }
-                    });
 
                     // Add draw control
                     const drawControl = new L.Control.Draw({
@@ -344,25 +308,11 @@
                                 <span style="width:12px;height:12px;border-radius:9999px;background:#2F6B3C;display:inline-block;"></span>
                                 <span>Polygon lahan</span>
                             </div>
-                            <div class="flex items-center gap-2 mb-2">
-                                <span style="width:12px;height:12px;border-radius:9999px;background:#2185c7;display:inline-block;"></span>
-                                <span>Polygon kebun</span>
-                            </div>
+                            <div class="text-slate-500">Peta tambah lahan dimulai dari tampilan Indonesia tanpa overlay lahan lama.</div>
                         `;
                         return div;
                     };
                     legend.addTo(map);
-
-                    // Fit map to bounds
-                    function fitMap() {
-                        const focusGroup = L.featureGroup();
-                        referenceGroup.eachLayer(layer => focusGroup.addLayer(layer));
-                        drawnItems.eachLayer(layer => focusGroup.addLayer(layer));
-
-                        if (focusGroup.getLayers().length > 0) {
-                            map.fitBounds(focusGroup.getBounds(), { padding: [40, 40] });
-                        }
-                    }
 
                     // ══════════════════════════════════════════════════════
                     // Event Handlers (matches React LeafletDrawMap pattern)
@@ -427,7 +377,6 @@
                     });
 
                     // Initialize map display
-                    fitMap();
                     setTimeout(() => map.invalidateSize(), 200);
                     window.addEventListener('resize', () => map.invalidateSize());
 

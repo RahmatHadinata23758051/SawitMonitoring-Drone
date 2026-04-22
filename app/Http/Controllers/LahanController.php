@@ -22,8 +22,7 @@ class LahanController extends Controller
      */
     public function create()
     {
-        $lahan = Lahan::with('kebun')->get();
-        return view('pages.lahan.create', compact('lahan'));
+        return view('pages.lahan.create');
     }
 
     /**
@@ -71,7 +70,7 @@ class LahanController extends Controller
             ->causedBy(Auth::user())
             ->log('Lahan baru ditambahkan: ' . $validated['nama']);
 
-        return redirect()->route('lahan.index')->with('success', 'Data lahan berhasil dibuat!');
+        return redirect('/lahan')->with('success', 'Data lahan berhasil dibuat!');
     }
 
     /**
