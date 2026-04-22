@@ -184,7 +184,6 @@
             const updateAddress = helpers.createAddressUpdater(alamatInput);
 
             const lahanById = Object.fromEntries(lahanData.map(item => [String(item.id), item]));
-            const baseGroup = L.featureGroup().addTo(map);
             const activeLahanGroup = L.featureGroup().addTo(map);
             const drawnItems = new L.FeatureGroup().addTo(map);
 
@@ -236,31 +235,7 @@
 
             function polygonWithinActiveLahan(layer) {
                 if (!activeLahanGeoJson) return false;
-
-                const geojson = layer.toGeoJSON();
-                const points = geojson.geometry.coordinates[0] || [];
-
-                return points.every(point => turf.booleanPointInPolygon(turf.point(point), activeLahanGeoJson, {
-                    ignoreBoundary: false
-                }));
-            }
-
-            function renderBaseReference() {
-                baseGroup.clearLayers();
-                lahanData.forEach(lahan => {
-                    if (activeLahan && String(lahan.id) === String(activeLahan.id)) return;
-
-                    L.geoJSON(JSON.parse(lahan.polygon), {
-                        interactive: false,
-                        bubblingMouseEvents: false,
-                        style: {
-                            color: lahan.warna ?? '#94a3b8',
-                            weight: 1.5,
-                            dashArray: '4,6',
-                            fillOpacity: 0.04
-                        }
-                    }).addTo(baseGroup);
-                });
+                return helpers.polygonWithinBoundary(layer.toGeoJSON(), activeLahanGeoJson);
             }
 
             function renderActiveLahan(lahanId) {
@@ -270,14 +245,9 @@
                 clearKebunPolygon();
 
                 if (!activeLahan) {
-                    renderBaseReference();
                     setDrawEnabled(false);
                     updateMapStatus('Pilih lahan untuk mulai menggambar', 'warning');
-                    if (baseGroup.getLayers().length) {
-                        map.fitBounds(baseGroup.getBounds(), { padding: [40, 40] });
-                    } else {
-                        map.setView(defaultCenter, defaultZoom);
-                    }
+                    map.setView(defaultCenter, defaultZoom);
                     return;
                 }
 
@@ -305,7 +275,6 @@
                     }).addTo(activeLahanGroup);
                 });
 
-                renderBaseReference();
                 setDrawEnabled(true);
                 updateMapStatus(`Lahan aktif: ${activeLahan.nama}. Polygon kebun harus tetap di dalam boundary lahan ini.`, 'success');
                 map.fitBounds(activeLahanGroup.getBounds(), { padding: [40, 40] });
@@ -414,7 +383,6 @@
                 note: 'Polygon kebun di luar batas lahan akan ditolak.'
             });
 
-            renderBaseReference();
             renderActiveLahan(selectedLahanId ?? lahanSelect.value);
             
             // Ensure map is properly sized

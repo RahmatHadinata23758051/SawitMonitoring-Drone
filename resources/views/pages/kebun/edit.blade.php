@@ -249,13 +249,7 @@
 
             function polygonWithinActiveLahan(layer) {
                 if (!activeLahanGeoJson) return false;
-
-                const geojson = layer.toGeoJSON();
-                const points = geojson.geometry.coordinates[0] || [];
-
-                return points.every(point => turf.booleanPointInPolygon(turf.point(point), activeLahanGeoJson, {
-                    ignoreBoundary: false
-                }));
+                return helpers.polygonWithinBoundary(layer.toGeoJSON(), activeLahanGeoJson);
             }
 
             function renderBaseReference() {

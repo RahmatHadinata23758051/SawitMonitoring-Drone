@@ -81,8 +81,9 @@ L.drawLocal = {
     window.MapFormHelpers = window.MapFormHelpers || (() => {
         function createStandardMap({
             mapId = 'map',
-            defaultCenter = [-6.9, 107.6],
-            defaultZoom = 9
+            defaultCenter = [-2.5489, 118.0149],
+            defaultZoom = 5,
+            useGeolocation = false
         } = {}) {
             const map = L.map(mapId);
             
@@ -110,7 +111,7 @@ L.drawLocal = {
             }).addTo(map);
 
             // Try geolocation (matches React pattern)
-            if (navigator.geolocation) {
+            if (useGeolocation && navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         map.setView([position.coords.latitude, position.coords.longitude], 15);
@@ -195,6 +196,74 @@ L.drawLocal = {
                 fillOpacity: 0.4,
                 weight: 2
             };
+        }
+
+        function normalizeGeoJson(input) {
+            if (!input) {
+                return null;
+            }
+
+            const parsed = typeof input === 'string' ? JSON.parse(input) : input;
+            if (!parsed || typeof parsed !== 'object') {
+                return null;
+            }
+
+            if (parsed.type === 'Feature') {
+                return parsed;
+            }
+
+            return {
+                type: 'Feature',
+                properties: {},
+                geometry: parsed
+            };
+        }
+
+        function getOuterRingCoordinates(input) {
+            const feature = normalizeGeoJson(input);
+            const geometry = feature?.geometry;
+
+            if (!geometry || geometry.type !== 'Polygon' || !Array.isArray(geometry.coordinates?.[0])) {
+                return [];
+            }
+
+            return geometry.coordinates[0];
+        }
+
+        function polygonWithinBoundary(candidate, boundary) {
+            const boundaryFeature = normalizeGeoJson(boundary);
+            const ring = getOuterRingCoordinates(candidate);
+
+            if (!boundaryFeature || ring.length < 4) {
+                return false;
+            }
+
+            const isPointInsideBoundary = (point) => turf.booleanPointInPolygon(
+                turf.point(point),
+                boundaryFeature, {
+                    ignoreBoundary: false
+                }
+            );
+
+            for (let index = 0; index < ring.length - 1; index += 1) {
+                const start = ring[index];
+                const end = ring[index + 1];
+
+                if (!isPointInsideBoundary(start)) {
+                    return false;
+                }
+
+                const midpoint = [
+                    (start[0] + end[0]) / 2,
+                    (start[1] + end[1]) / 2,
+                ];
+
+                if (!isPointInsideBoundary(midpoint)) {
+                    return false;
+                }
+            }
+
+            return isPointInsideBoundary(ring[ring.length - 1]);
         }
 
         function bindColorInput(colorInput, getLayer) {
@@ -449,6 +518,7 @@ L.drawLocal = {
             fitMapToLayers,
             getPolygonStyle,
             invalidateMapOnResize,
+            polygonWithinBoundary,
             setDrawEnabled,
             syncPolygonFields,
         };

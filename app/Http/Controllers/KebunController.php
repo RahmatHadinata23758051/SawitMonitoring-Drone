@@ -17,7 +17,10 @@ class KebunController extends Controller
             return null;
         }
 
-        $geometry = $decoded['geometry'] ?? null;
+        $geometry = ($decoded['type'] ?? null) === 'Feature'
+            ? ($decoded['geometry'] ?? null)
+            : $decoded;
+
         if (!is_array($geometry) || ($geometry['type'] ?? null) !== 'Polygon') {
             return null;
         }
@@ -91,7 +94,24 @@ class KebunController extends Controller
             return false;
         }
 
-        foreach ($candidate as $point) {
+        $pointsToCheck = [];
+
+        for ($index = 0; $index < count($candidate) - 1; $index++) {
+            $start = $candidate[$index];
+            $end = $candidate[$index + 1];
+
+            if (!is_array($start) || count($start) < 2 || !is_array($end) || count($end) < 2) {
+                return false;
+            }
+
+            $pointsToCheck[] = [(float) $start[0], (float) $start[1]];
+            $pointsToCheck[] = [
+                ((float) $start[0] + (float) $end[0]) / 2,
+                ((float) $start[1] + (float) $end[1]) / 2,
+            ];
+        }
+
+        foreach ($pointsToCheck as $point) {
             if (!is_array($point) || count($point) < 2) {
                 return false;
             }
