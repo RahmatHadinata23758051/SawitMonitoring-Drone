@@ -105,10 +105,26 @@
 
                         {{-- Flight Scan Summary --}}
                         <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                            @php
+                                $latestFlightUpdate = $recentFlights->first()?->created_at?->timezone('Asia/Jakarta');
+                            @endphp
                             <div class="flex items-center justify-between mb-5">
                                 <div>
                                     <h2 class="text-lg font-bold text-slate-800">Ringkasan Pemindaian</h2>
                                     <p class="text-xs text-slate-400 mt-0.5">Akumulasi hasil scan dari semua penerbangan</p>
+                                    <div class="mt-2">
+                                        @if($latestFlightUpdate)
+                                            <span class="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-600">
+                                                <i class="fa-solid fa-clock-rotate-left text-blue-500"></i>
+                                                Update terakhir: {{ $latestFlightUpdate->translatedFormat('d M Y, H:i') }} WIB
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-500">
+                                                <i class="fa-solid fa-clock text-slate-400"></i>
+                                                Belum ada update scan
+                                            </span>
+                                        @endif
+                                    </div>
                                 </div>
                                 <a href="{{ route('laporan.log-penerbangan') }}" class="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
                                     Lihat semua <i class="fa-solid fa-arrow-right text-[10px]"></i>
