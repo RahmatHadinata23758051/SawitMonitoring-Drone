@@ -33,7 +33,7 @@
                             @foreach ($rules as $rule)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $rule->drone_dataset->nama_kondisi }}</td>
+                                    <td>{{ $rule->drone_dataset->label }}</td>
                                     <td>{{ $rule->durasi }}</td>
                                     <td>{{ $rule->satuan_waktu }}</td>
                                     <td class="h-full">

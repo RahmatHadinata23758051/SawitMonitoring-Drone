@@ -23,7 +23,7 @@ class DeadReckoningController extends Controller
      */
     public function create()
     {
-        $aksi = DroneDataset::get(['id', 'nama_kondisi']);
+        $aksi = DroneDataset::get(['id', 'label']);
         return view('pages.rule-engine.dead-reckoning.create', compact('aksi'));
     }
 
@@ -57,7 +57,7 @@ class DeadReckoningController extends Controller
             ->performedOn($post)
             ->event('create')
             ->causedBy(Auth::user())
-            ->log('Rule berhasil ditambahkan: ' . $post->drone_dataset->nama_kondisi . ' selama ' . $post->durasi . ' ' . $post->satuan_waktu);
+            ->log('Rule berhasil ditambahkan: ' . $post->drone_dataset->label . ' selama ' . $post->durasi . ' ' . $post->satuan_waktu);
 
         return redirect()->route('dead-reckoning.index')->with('success', 'Rule berhasil dibuat!');
     }
@@ -75,7 +75,7 @@ class DeadReckoningController extends Controller
      */
     public function edit(DeadReckoning $deadReckoning)
     {
-        $aksi = DroneDataset::get(['id', 'nama_kondisi']);
+        $aksi = DroneDataset::get(['id', 'label']);
         return view('pages.rule-engine.dead-reckoning.edit', compact('deadReckoning', 'aksi'));
     }
 
@@ -137,7 +137,7 @@ class DeadReckoningController extends Controller
             ->performedOn($deadReckoning)
             ->event('delete')
             ->causedBy(Auth::user())
-            ->log('Rule dihapus: ' . $deadReckoning->drone_dataset->nama_kondisi);
+            ->log('Rule dihapus: ' . $deadReckoning->drone_dataset->label);
 
         return redirect()->route('dead-reckoning.index')->with('success', 'Rule berhasil dihapus!');
     }

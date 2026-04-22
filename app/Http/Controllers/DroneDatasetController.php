@@ -5,9 +5,29 @@ namespace App\Http\Controllers;
 use App\Models\DroneDataset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class DroneDatasetController extends Controller
 {
+    private const DECIMAL_FIELDS = [
+        'lat',
+        'lon',
+        'alt',
+        'ax',
+        'ay',
+        'az',
+        'gx',
+        'gy',
+        'gz',
+        'vx',
+        'vy',
+        'vz',
+        'dist_front',
+        'dist_left',
+        'dist_right',
+        'dist_back',
+    ];
+
     public function index()
     {
         $dataset = DroneDataset::latest()->get();
@@ -21,27 +41,8 @@ class DroneDatasetController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'kode_kondisi' => 'required|string|unique:drone_datasets,kode_kondisi',
-            'nama_kondisi' => 'required|string',
-            'accel_x' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-            'accel_y' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-            'accel_z' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-            'gyro_x' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-            'gyro_y' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-            'gyro_z' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-        ]);
-
-        $fields = ['accel_x', 'accel_y', 'accel_z', 'gyro_x', 'gyro_y', 'gyro_z'];
-
-        $data = [
-            'kode_kondisi' => $validated['kode_kondisi'],
-            'nama_kondisi' => $validated['nama_kondisi'],
-        ];
-
-        foreach ($fields as $field) {
-            $data[$field] = (float) str_replace(',', '.', trim($validated[$field]));
-        }
+        $validated = $request->validate($this->rules());
+        $data = $this->preparePayload($validated);
 
         $post = DroneDataset::create($data);
 
@@ -49,7 +50,7 @@ class DroneDatasetController extends Controller
             ->performedOn($post)
             ->event('create')
             ->causedBy(Auth::user())
-            ->log('Dataset drone baru ditambahkan: ' . $post->nama_kondisi);
+            ->log('Dataset drone baru ditambahkan: ' . $post->label);
 
         return redirect()->route('drone-dataset.index')->with('success', 'Dataset drone berhasil dibuat!');
     }
@@ -61,27 +62,8 @@ class DroneDatasetController extends Controller
 
     public function update(Request $request, DroneDataset $droneDataset)
     {
-        $validated = $request->validate([
-            'kode_kondisi' => 'required|string|unique:drone_datasets,kode_kondisi',
-            'nama_kondisi' => 'required|string',
-            'accel_x' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-            'accel_y' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-            'accel_z' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-            'gyro_x' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-            'gyro_y' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-            'gyro_z' => 'required|regex:/^-?\d+([.,]\d+)?$/',
-        ]);
-
-        $fields = ['accel_x', 'accel_y', 'accel_z', 'gyro_x', 'gyro_y', 'gyro_z'];
-
-        $data = [
-            'kode_kondisi' => $validated['kode_kondisi'],
-            'nama_kondisi' => $validated['nama_kondisi'],
-        ];
-
-        foreach ($fields as $field) {
-            $data[$field] = (float) str_replace(',', '.', trim($validated[$field]));
-        }
+        $validated = $request->validate($this->rules($droneDataset));
+        $data = $this->preparePayload($validated);
 
         $original = $droneDataset->getOriginal();
         $droneDataset->update($data);
@@ -114,8 +96,38 @@ class DroneDatasetController extends Controller
             ->performedOn($droneDataset)
             ->event('delete')
             ->causedBy(Auth::user())
-            ->log('Dataset dihapus: ' . $droneDataset->kode_kondisi . ' - ' . $droneDataset->nama_kondisi);
+            ->log('Dataset dihapus: ' . $droneDataset->kode . ' - ' . $droneDataset->label);
 
         return redirect()->route('drone-dataset.index')->with('success', 'Dataset berhasil dihapus!');
+    }
+
+    private function rules(?DroneDataset $droneDataset = null): array
+    {
+        $rules = [
+            'kode' => ['required', 'string', Rule::unique('drone_datasets', 'kode')->ignore($droneDataset?->id)],
+            'label' => ['required', 'string'],
+            'obstacle_status' => ['required', 'string'],
+        ];
+
+        foreach (self::DECIMAL_FIELDS as $field) {
+            $rules[$field] = ['required', 'regex:/^-?\d+([.,]\d+)?$/'];
+        }
+
+        return $rules;
+    }
+
+    private function preparePayload(array $validated): array
+    {
+        $data = [
+            'kode' => trim((string) $validated['kode']),
+            'label' => trim((string) $validated['label']),
+            'obstacle_status' => trim((string) $validated['obstacle_status']),
+        ];
+
+        foreach (self::DECIMAL_FIELDS as $field) {
+            $data[$field] = (float) str_replace(',', '.', trim((string) $validated[$field]));
+        }
+
+        return $data;
     }
 }

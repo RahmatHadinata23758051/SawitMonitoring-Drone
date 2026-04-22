@@ -1,4 +1,69 @@
 <x-app-layout>
+    @php
+        $sections = [
+            [
+                'title' => 'Informasi Utama',
+                'description' => 'Kode, label, dan status obstacle untuk payload dataset.',
+                'grid' => 'md:grid-cols-2 xl:grid-cols-3',
+                'fields' => [
+                    ['name' => 'kode', 'label' => 'Kode', 'placeholder' => 'Contoh: DRN-001'],
+                    ['name' => 'label', 'label' => 'Label', 'placeholder' => 'Contoh: Hover Aman'],
+                    ['name' => 'obstacle_status', 'label' => 'Obstacle Status', 'placeholder' => 'Contoh: aman'],
+                ],
+            ],
+            [
+                'title' => 'Posisi',
+                'description' => 'Koordinat dan ketinggian drone saat payload direkam.',
+                'grid' => 'md:grid-cols-3',
+                'fields' => [
+                    ['name' => 'lat', 'label' => 'Lat', 'numeric' => true, 'placeholder' => '-2.123456'],
+                    ['name' => 'lon', 'label' => 'Lon', 'numeric' => true, 'placeholder' => '106.123456'],
+                    ['name' => 'alt', 'label' => 'Alt', 'numeric' => true, 'placeholder' => '150.5'],
+                ],
+            ],
+            [
+                'title' => 'Acceleration',
+                'description' => 'Nilai akselerasi pada sumbu X, Y, dan Z.',
+                'grid' => 'md:grid-cols-3',
+                'fields' => [
+                    ['name' => 'ax', 'label' => 'AX', 'numeric' => true, 'placeholder' => '0.11'],
+                    ['name' => 'ay', 'label' => 'AY', 'numeric' => true, 'placeholder' => '0.22'],
+                    ['name' => 'az', 'label' => 'AZ', 'numeric' => true, 'placeholder' => '0.33'],
+                ],
+            ],
+            [
+                'title' => 'Gyro',
+                'description' => 'Nilai gyroscope pada sumbu X, Y, dan Z.',
+                'grid' => 'md:grid-cols-3',
+                'fields' => [
+                    ['name' => 'gx', 'label' => 'GX', 'numeric' => true, 'placeholder' => '1.11'],
+                    ['name' => 'gy', 'label' => 'GY', 'numeric' => true, 'placeholder' => '1.22'],
+                    ['name' => 'gz', 'label' => 'GZ', 'numeric' => true, 'placeholder' => '1.33'],
+                ],
+            ],
+            [
+                'title' => 'Velocity',
+                'description' => 'Kecepatan drone pada masing-masing sumbu.',
+                'grid' => 'md:grid-cols-3',
+                'fields' => [
+                    ['name' => 'vx', 'label' => 'VX', 'numeric' => true, 'placeholder' => '2.11'],
+                    ['name' => 'vy', 'label' => 'VY', 'numeric' => true, 'placeholder' => '2.22'],
+                    ['name' => 'vz', 'label' => 'VZ', 'numeric' => true, 'placeholder' => '2.33'],
+                ],
+            ],
+            [
+                'title' => 'Distance',
+                'description' => 'Jarak obstacle dari empat arah sensor.',
+                'grid' => 'md:grid-cols-2 xl:grid-cols-4',
+                'fields' => [
+                    ['name' => 'dist_front', 'label' => 'Distance Front', 'numeric' => true, 'placeholder' => '3.11'],
+                    ['name' => 'dist_left', 'label' => 'Distance Left', 'numeric' => true, 'placeholder' => '3.22'],
+                    ['name' => 'dist_right', 'label' => 'Distance Right', 'numeric' => true, 'placeholder' => '3.33'],
+                    ['name' => 'dist_back', 'label' => 'Distance Back', 'numeric' => true, 'placeholder' => '3.44'],
+                ],
+            ],
+        ];
+    @endphp
     <x-slot name="header">
         <h2 class="leading-tight">
             <ol class="breadcrumb">
@@ -18,7 +83,7 @@
     <div class="pt-2 pb-12">
         <div class="max-w-8xl mx-auto px-3 sm:px-6 lg:px-8 flex flex-col gap-4">
             <div class="flex justify-center items-center w-full">
-                <div class="bg-white shadow-sm w-full md:w-5/6 lg:w-3/4 h-auto px-6 py-4 rounded-lg">
+                <div class="bg-white shadow-sm w-full md:w-11/12 xl:w-5/6 h-auto px-6 py-5 rounded-2xl border border-slate-200">
                     <div class="mb-5">
                         <h3 class="text-lg font-semibold">Edit Dataset Drone</h3>
                         <p class="text-sm text-slate-500">Silakan isi semua informasi yang dibutuhkan</p>
@@ -26,68 +91,41 @@
                     <form action="{{ route('drone-dataset.update', $droneDataset->id) }}" method="post">
                         @csrf
                         @method('PUT')
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <x-input-label for="kode_kondisi">{{ __('Kode') }}</x-input-label>
-                                <x-text-input id="kode_kondisi" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="text" name="kode_kondisi" :value="old('kode_kondisi', $droneDataset->kode_kondisi)" required autofocus
-                                    autocomplete="kode_kondisi" />
-                                <x-input-error :messages="$errors->get('kode_kondisi')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="nama_kondisi">{{ __('Nama Kondisi') }}</x-input-label>
-                                <x-text-input id="nama_kondisi" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="text" name="nama_kondisi" :value="old('nama_kondisi', $droneDataset->nama_kondisi)" required autofocus
-                                    autocomplete="nama_kondisi" />
-                                <x-input-error :messages="$errors->get('nama_kondisi')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="accel_x">{{ __('Accelerometer X') }}</x-input-label>
-                                <x-text-input id="accel_x" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="text" name="accel_x" :value="old('accel_x', $droneDataset->accel_x)" required autofocus
-                                    autocomplete="accel_x" inputmode="decimal" oninput="validateDecimal(this)" />
-                                <x-input-error :messages="$errors->get('accel_x')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="accel_y">{{ __('Accelerometer Y') }}</x-input-label>
-                                <x-text-input id="accel_y" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="text" name="accel_y" :value="old('accel_y', $droneDataset->accel_y)" required autofocus
-                                    autocomplete="accel_y" inputmode="decimal" oninput="validateDecimal(this)" />
-                                <x-input-error :messages="$errors->get('accel_y')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="accel_z">{{ __('Accelerometer Z') }}</x-input-label>
-                                <x-text-input id="accel_z" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="text" name="accel_z" :value="old('accel_z', $droneDataset->accel_z)" required autofocus
-                                    autocomplete="accel_z" inputmode="decimal" oninput="validateDecimal(this)" />
-                                <x-input-error :messages="$errors->get('accel_z')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="gyro_x">{{ __('Gyroscope X') }}</x-input-label>
-                                <x-text-input id="gyro_x" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="text" name="gyro_x" :value="old('gyro_x', $droneDataset->gyro_x)" required autofocus
-                                    autocomplete="gyro_x" inputmode="decimal" oninput="validateDecimal(this)" />
-                                <x-input-error :messages="$errors->get('gyro_x')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="gyro_y">{{ __('Gyroscope Y') }}</x-input-label>
-                                <x-text-input id="gyro_y" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="text" name="gyro_y" :value="old('gyro_y', $droneDataset->gyro_y)" required autofocus
-                                    autocomplete="gyro_y" inputmode="decimal" oninput="validateDecimal(this)" />
-                                <x-input-error :messages="$errors->get('gyro_y')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="gyro_z">{{ __('Gyroscope Z') }}</x-input-label>
-                                <x-text-input id="gyro_z" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="text" name="gyro_z" :value="old('gyro_z', $droneDataset->gyro_z)" required autofocus
-                                    autocomplete="gyro_z" inputmode="decimal" oninput="validateDecimal(this)" />
-                                <x-input-error :messages="$errors->get('gyro_z')" class="mt-2" />
-                            </div>
-                            <div class="flex items-center justify-end gap-3 md:col-span-2">
+                        <div class="space-y-6">
+                            @foreach ($sections as $section)
+                                <section class="rounded-2xl border border-slate-200 bg-slate-50/60 p-5">
+                                    <div class="mb-4">
+                                        <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-600">
+                                            {{ $section['title'] }}
+                                        </h4>
+                                        <p class="mt-1 text-sm text-slate-500">{{ $section['description'] }}</p>
+                                    </div>
+                                    <div class="grid grid-cols-1 {{ $section['grid'] }} gap-5">
+                                        @foreach ($section['fields'] as $field)
+                                            @php
+                                                $name = $field['name'];
+                                                $isNumeric = $field['numeric'] ?? false;
+                                            @endphp
+                                            <div>
+                                                <x-input-label for="{{ $name }}">{{ __($field['label']) }}</x-input-label>
+                                                <input id="{{ $name }}" name="{{ $name }}" type="text"
+                                                    value="{{ old($name, $droneDataset->{$name}) }}"
+                                                    class="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10"
+                                                    placeholder="{{ $field['placeholder'] ?? '' }}"
+                                                    autocomplete="{{ $name }}" required
+                                                    @if ($loop->parent->first && $loop->first) autofocus @endif
+                                                    @if ($isNumeric) inputmode="decimal" oninput="validateDecimal(this)" @endif>
+                                                <x-input-error :messages="$errors->get($name)" class="mt-2" />
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </section>
+                            @endforeach
+                            <div class="flex items-center justify-end gap-3 pt-2">
                                 <a href="{{ route('drone-dataset.index') }}"
-                                    class="bg-gray-200 text-slate-500 px-5 py-1.5 rounded-lg">Batal</a>
+                                    class="rounded-xl bg-gray-200 px-5 py-2 text-slate-500 transition hover:bg-gray-300">Batal</a>
                                 <button type="submit"
-                                    class="bg-primary text-white px-5 py-1.5 rounded-lg">Simpan</button>
+                                    class="rounded-xl bg-primary px-5 py-2 text-white transition hover:brightness-95">Simpan</button>
                             </div>
                         </div>
                     </form>

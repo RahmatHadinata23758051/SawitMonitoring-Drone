@@ -9,12 +9,22 @@ class DroneDataset extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'accel_x'     => 'float',
-        'accel_y'     => 'float',
-        'accel_z'     => 'float',
-        'gyro_x'      => 'float',
-        'gyro_y'      => 'float',
-        'gyro_z'      => 'float',
+        'lat' => 'float',
+        'lon' => 'float',
+        'alt' => 'float',
+        'ax' => 'float',
+        'ay' => 'float',
+        'az' => 'float',
+        'gx' => 'float',
+        'gy' => 'float',
+        'gz' => 'float',
+        'vx' => 'float',
+        'vy' => 'float',
+        'vz' => 'float',
+        'dist_front' => 'float',
+        'dist_left' => 'float',
+        'dist_right' => 'float',
+        'dist_back' => 'float',
     ];
 
     public function dead_reckoning()
