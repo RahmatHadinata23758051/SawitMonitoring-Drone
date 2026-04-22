@@ -111,6 +111,14 @@
                                 </div>
 
                                 <div>
+                                    <x-input-label for="alamat">{{ __('Alamat') }}</x-input-label>
+                                    <textarea id="alamat" name="alamat" rows="4" readonly
+                                        class="block mt-1 w-full rounded-xl bg-gray-100 border-gray-300 focus:border-primary focus:ring-primary text-sm">{{ old('alamat', $kebun->alamat) }}</textarea>
+                                    <p class="mt-2 text-xs text-slate-500">Diperbarui otomatis dari titik tengah polygon saat area digambar atau diedit.</p>
+                                    <x-input-error :messages="$errors->get('alamat')" class="mt-2" />
+                                </div>
+
+                                <div>
                                     <x-input-label for="jumlah_pohon">{{ __('Jumlah Pohon') }}</x-input-label>
                                     <x-text-input id="jumlah_pohon" class="block mt-1 w-full rounded-xl bg-gray-100"
                                         type="number" name="jumlah_pohon" :value="old('jumlah_pohon', $kebun->jumlah_pohon)"
@@ -175,6 +183,7 @@
             const polygonInput = document.getElementById('polygon');
             const luasInput = document.getElementById('luas');
             const koordinatInput = document.getElementById('koordinat');
+            const alamatInput = document.getElementById('alamat');
             const lahanSelect = document.getElementById('lahan');
             const warnaInput = document.getElementById('warna');
             const defaultCenter = [-2.5489, 118.0149];
@@ -213,6 +222,7 @@
             let currentPolygon = null;
             let activeLahan = null;
             let activeLahanGeoJson = null;
+            let addressRequestId = 0;
 
             function updateMapStatus(message, tone = 'warning') {
                 const tones = {
@@ -244,6 +254,7 @@
                     polygonInput.value = '';
                     luasInput.value = '';
                     koordinatInput.value = '';
+                    alamatInput.value = '';
                     return;
                 }
 
@@ -257,7 +268,30 @@
                 koordinatInput.value = `${center.lat.toFixed(8)},${center.lng.toFixed(8)}`;
             }
 
-            function syncPolygonFields(layer) {
+            async function updateAddress(lat, lng) {
+                const requestId = ++addressRequestId;
+                alamatInput.value = 'Memuat alamat...';
+
+                try {
+                    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=id`;
+                    const response = await fetch(url, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Reverse geocoding gagal');
+                    }
+
+                    const data = await response.json();
+                    if (requestId !== addressRequestId) return;
+                    alamatInput.value = data.display_name || '';
+                } catch (error) {
+                    if (requestId !== addressRequestId) return;
+                    alamatInput.value = '';
+                }
+            }
+
+            async function syncPolygonFields(layer) {
                 const latlngs = layer.getLatLngs()[0];
                 const area = L.GeometryUtil.geodesicArea(latlngs);
                 const hektar = (area / 10000).toFixed(2);
@@ -266,6 +300,7 @@
                 luasInput.value = hektar;
                 koordinatInput.value = `${center.lat.toFixed(8)},${center.lng.toFixed(8)}`;
                 polygonInput.value = JSON.stringify(layer.toGeoJSON());
+                await updateAddress(center.lat, center.lng);
             }
 
             function polygonWithinActiveLahan(layer) {
@@ -313,6 +348,10 @@
                 });
                 drawnItems.addLayer(currentPolygon);
                 clearCurrentPolygonFields();
+                if (!alamatInput.value) {
+                    const center = currentPolygon.getBounds().getCenter();
+                    updateAddress(center.lat, center.lng);
+                }
             }
 
             function renderActiveLahan(lahanId) {
@@ -391,7 +430,7 @@
                 renderActiveLahan(lahanSelect.value);
             });
 
-            map.on(L.Draw.Event.CREATED, function(event) {
+            map.on(L.Draw.Event.CREATED, async function(event) {
                 if (!activeLahanGeoJson) {
                     updateMapStatus('Pilih lahan sebelum menggambar polygon kebun.', 'danger');
                     return;
@@ -414,12 +453,13 @@
                 drawnItems.clearLayers();
                 drawnItems.addLayer(layer);
                 currentPolygon = layer;
-                syncPolygonFields(layer);
+                await syncPolygonFields(layer);
                 updateMapStatus('Polygon kebun valid dan berada di dalam boundary lahan.', 'success');
             });
 
-            map.on(L.Draw.Event.EDITED, function(event) {
-                event.layers.eachLayer(function(layer) {
+            map.on(L.Draw.Event.EDITED, async function(event) {
+                for (const layerId in event.layers._layers) {
+                    const layer = event.layers._layers[layerId];
                     if (!polygonWithinActiveLahan(layer)) {
                         restoreExistingPolygonIfNeeded();
                         updateMapStatus('Perubahan dibatalkan karena polygon keluar dari boundary lahan.', 'danger');
@@ -432,9 +472,9 @@
                     }
 
                     currentPolygon = layer;
-                    syncPolygonFields(layer);
+                    await syncPolygonFields(layer);
                     updateMapStatus('Polygon kebun valid dan berada di dalam boundary lahan.', 'success');
-                });
+                }
             });
 
             warnaInput.addEventListener('input', function() {
