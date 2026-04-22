@@ -9,6 +9,101 @@ use Illuminate\Support\Facades\Auth;
 
 class KebunController extends Controller
 {
+    private function decodePolygonCoordinates(string $geoJson): ?array
+    {
+        $decoded = json_decode($geoJson, true);
+
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $geometry = $decoded['geometry'] ?? null;
+        if (!is_array($geometry) || ($geometry['type'] ?? null) !== 'Polygon') {
+            return null;
+        }
+
+        $coordinates = $geometry['coordinates'][0] ?? null;
+        if (!is_array($coordinates) || count($coordinates) < 4) {
+            return null;
+        }
+
+        return $coordinates;
+    }
+
+    private function isPointOnSegment(array $point, array $start, array $end): bool
+    {
+        $epsilon = 1.0E-10;
+        [$px, $py] = $point;
+        [$x1, $y1] = $start;
+        [$x2, $y2] = $end;
+
+        $cross = (($px - $x1) * ($y2 - $y1)) - (($py - $y1) * ($x2 - $x1));
+        if (abs($cross) > $epsilon) {
+            return false;
+        }
+
+        $dot = (($px - $x1) * ($x2 - $x1)) + (($py - $y1) * ($y2 - $y1));
+        if ($dot < 0) {
+            return false;
+        }
+
+        $squaredLength = (($x2 - $x1) ** 2) + (($y2 - $y1) ** 2);
+        if ($dot > $squaredLength) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function pointInPolygon(array $point, array $polygon): bool
+    {
+        $inside = false;
+        $count = count($polygon);
+
+        for ($i = 0, $j = $count - 1; $i < $count; $j = $i++) {
+            $start = $polygon[$j];
+            $end = $polygon[$i];
+
+            if ($this->isPointOnSegment($point, $start, $end)) {
+                return true;
+            }
+
+            [$xi, $yi] = $end;
+            [$xj, $yj] = $start;
+
+            $intersects = (($yi > $point[1]) !== ($yj > $point[1]))
+                && ($point[0] < (($xj - $xi) * ($point[1] - $yi) / (($yj - $yi) ?: 1.0E-10)) + $xi);
+
+            if ($intersects) {
+                $inside = !$inside;
+            }
+        }
+
+        return $inside;
+    }
+
+    private function polygonWithinLahan(string $candidateGeoJson, Lahan $lahan): bool
+    {
+        $candidate = $this->decodePolygonCoordinates($candidateGeoJson);
+        $parent = $this->decodePolygonCoordinates((string) $lahan->polygon);
+
+        if ($candidate === null || $parent === null) {
+            return false;
+        }
+
+        foreach ($candidate as $point) {
+            if (!is_array($point) || count($point) < 2) {
+                return false;
+            }
+
+            if (!$this->pointInPolygon([(float) $point[0], (float) $point[1]], $parent)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -91,6 +186,13 @@ class KebunController extends Controller
                     'jumlah_pohon' => 'Total pohon matang dan belum matang melebihi jumlah pohon.'
                 ])->withInput();
             }
+        }
+
+        $selectedLahan = Lahan::findOrFail($validated['lahan']);
+        if (!$this->polygonWithinLahan($validated['polygon'], $selectedLahan)) {
+            return back()->withErrors([
+                'polygon' => 'Polygon kebun harus berada di dalam batas lahan yang dipilih.'
+            ])->withInput();
         }
 
         [$lat, $lng] = explode(',', $validated['koordinat']);
@@ -183,6 +285,13 @@ class KebunController extends Controller
                     'jumlah_pohon' => 'Total pohon matang dan belum matang melebihi jumlah pohon.'
                 ])->withInput();
             }
+        }
+
+        $selectedLahan = Lahan::findOrFail($validated['lahan']);
+        if (!$this->polygonWithinLahan($validated['polygon'], $selectedLahan)) {
+            return back()->withErrors([
+                'polygon' => 'Polygon kebun harus berada di dalam batas lahan yang dipilih.'
+            ])->withInput();
         }
 
         [$lat, $lng] = explode(',', $validated['koordinat']);
