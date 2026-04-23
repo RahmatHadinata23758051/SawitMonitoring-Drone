@@ -56,8 +56,27 @@ const GCSHeader = ({
 
       {/* Right side: telemetry readouts + controls */}
       <div className="flex items-center gap-4 text-xs font-mono">
-        <div className={`flex items-center gap-1 ${t('text-emerald-400', 'text-emerald-600')}`}><Signal className="w-3 h-3" /><span>LINK: 98%</span></div>
-        <div className={`flex items-center gap-1 ${t('text-slate-300', 'text-slate-600')}`}><Navigation className="w-3 h-3" /><span>GPS: 3D FIX (14)</span></div>
+
+        {/* LINK — placeholder sampai data MAVLink RADIO_STATUS masuk */}
+        <div
+          className={`flex items-center gap-1 ${t('text-slate-500', 'text-slate-400')}`}
+          title="Kualitas sinyal radio — menunggu data MAVLink RADIO_STATUS dari hardware"
+        >
+          <Signal className="w-3 h-3" />
+          <span className="line-through opacity-50">LINK</span>
+          <span className="text-amber-400 font-bold">: --</span>
+        </div>
+
+        {/* GPS — placeholder sampai data MAVLink GPS_RAW_INT masuk */}
+        <div
+          className={`flex items-center gap-1 ${t('text-slate-500', 'text-slate-400')}`}
+          title="Status GPS — menunggu data MAVLink GPS_RAW_INT dari hardware"
+        >
+          <Navigation className="w-3 h-3" />
+          <span className="line-through opacity-50">GPS</span>
+          <span className="text-amber-400 font-bold">: --</span>
+        </div>
+
         <div className={`flex items-center gap-2 ml-4 pl-4 border-l ${t('border-slate-700', 'border-slate-300')}`}>
           <button onClick={() => setIsReportsOpen(true)} className={`p-1 rounded transition ${t('text-sky-400 hover:bg-slate-800', 'text-sky-600 hover:bg-slate-100')}`} title="Laporan"><FileText className="w-3.5 h-3.5" /></button>
           <button onClick={() => setIsSettingsOpen(true)} className={`p-1 rounded transition ${t('text-slate-400 hover:bg-slate-800 hover:text-white', 'text-slate-500 hover:bg-slate-100')}`} title="Pengaturan"><Settings className="w-3.5 h-3.5" /></button>
@@ -68,6 +87,7 @@ const GCSHeader = ({
         </div>
       </div>
     </header>
+
   );
 };
 
