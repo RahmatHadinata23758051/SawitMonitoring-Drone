@@ -52,8 +52,8 @@ const AppGCS = () => {
   // Popup notifikasi error
   const [alertPopup, setAlertPopup] = useState(null);
 
-  // Mode drone (simulasi / real)
-  const [droneMode, setDroneMode] = useState('');
+  // Mode drone (simulasi / real) — default ke simulasi agar langsung bisa dipakai
+  const [droneMode, setDroneMode] = useState('simulasi');
 
   // Settings Modal & Laporan
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -336,9 +336,10 @@ const AppGCS = () => {
 
   const handleDroneCommand = async (command) => {
     // ============================================================
-    // SIMULASI MODE: handle semua command secara lokal
+    // SIMULASI MODE (atau belum pilih mode): handle lokal
     // ============================================================
-    if (droneMode === 'simulasi') {
+    const effectiveMode = droneMode || 'simulasi'; // fallback ke simulasi
+    if (effectiveMode === 'simulasi') {
       if (command === 'arm') {
         if (droneFlightState === 'DISARMED') {
           setDroneFlightState('FLYING');
