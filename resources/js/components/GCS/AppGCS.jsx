@@ -15,6 +15,7 @@ import { useSerialPort } from './hooks/useSerialPort';
 import { useMissionManager } from './hooks/useMissionManager';
 import { useFlightControl } from './hooks/useFlightControl';
 import GCSHeader from './components/GCSHeader';
+import GCSLeftPanel from './components/GCSLeftPanel';
 import GCSCockpit from './components/GCSCockpit';
 import GCSMapPanel from './components/GCSMapPanel';
 import GCSRightPanel from './components/GCSRightPanel';
@@ -880,8 +881,35 @@ const AppGCS = () => {
         setIsReportsOpen={setIsReportsOpen}
       />
 
-      {/* ======== MAIN CONTENT — IMMERSIVE LAYOUT ======== */}
+      {/* ======== MAIN CONTENT — 3-COLUMN LAYOUT ======== */}
       <main className="flex-1 flex overflow-hidden p-2 gap-2 bg-slate-100">
+
+        {/* LEFT SIDEBAR */}
+        <GCSLeftPanel
+          droneMode={droneMode}
+          isVideoConnected={isVideoConnected}
+          webcamStream={webcamStream}
+          videoRef={videoRef}
+          liveStreamUrl={liveStreamUrl}
+          setIsVideoConnected={setIsVideoConnected}
+          setAlertPopup={setAlertPopup}
+          telemetry={telemetry}
+          flightTime={flightTime}
+          cockpitWarning={cockpitWarning}
+          formatTime={formatTime}
+          handleStartFlight={handleStartFlight}
+          handleRTH={handleRTH}
+          handleDroneCommand={handleDroneCommand}
+          droneFlightState={droneFlightState}
+          liveAiVision={liveAiVision}
+          flightStatusUI={flightStatusUI}
+          targetAltitude={targetAltitude}
+          radarLeft={radarLeft}
+          radarTop={radarTop}
+          t={t}
+        />
+
+        {/* CENTER + RIGHT — existing panel */}
         <GCSRightPanel
           config={config}
           managedBlocks={managedBlocks}
@@ -946,37 +974,8 @@ const AppGCS = () => {
 
           t={t}
 
-          topMapPanel={
-            <GCSMapPanel
-              droneMode={droneMode}
-              isVideoConnected={isVideoConnected}
-              webcamStream={webcamStream}
-              videoRef={videoRef}
-              liveStreamUrl={liveStreamUrl}
-              setIsVideoConnected={setIsVideoConnected}
-              setAlertPopup={setAlertPopup}
-              telemetry={telemetry}
-              flightStatusUI={flightStatusUI}
-              targetAltitude={targetAltitude}
-              radarLeft={radarLeft}
-              radarTop={radarTop}
-              liveAiVision={liveAiVision}
-              t={t}
-            />
-          }
-          topCockpitPanel={
-            <GCSCockpit
-              telemetry={telemetry}
-              flightTime={flightTime}
-              cockpitWarning={cockpitWarning}
-              formatTime={formatTime}
-              handleStartFlight={handleStartFlight}
-              handleRTH={handleRTH}
-              handleDroneCommand={handleDroneCommand}
-              droneFlightState={droneFlightState}
-              t={t}
-            />
-          }
+          topMapPanel={null}
+          topCockpitPanel={null}
         />
       </main>
 
