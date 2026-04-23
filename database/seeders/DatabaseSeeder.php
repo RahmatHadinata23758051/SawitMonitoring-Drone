@@ -24,5 +24,9 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password'),
             'phone_number' => '081234567890',
         ]);
+
+        $this->call([
+            DroneDatasetSeeder::class,
+        ]);
     }
 }
