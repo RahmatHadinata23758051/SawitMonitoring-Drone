@@ -364,7 +364,7 @@
                 return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
             }
 
-            function showDetail(logCode, name, algo, scan, samples, matang, belum, flightSec, acc, date) {
+            async function showDetail(logCode, name, algo, scan, samples, matang, belum, flightSec, acc, date) {
                 const algoLabel = {
                     dead_reckoning: 'Dead Reckoning',
                     live_reckoning: 'Live Reckoning',
@@ -373,8 +373,9 @@
                 const scanLabel = scan === 'qlv' ? 'QLV (Quick Look Vision)' : 'Traditional Scan';
                 const accColor = acc >= 95 ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50';
 
+                // Tampilkan info umum dulu + area loading telemetri
                 document.getElementById('modal-body').innerHTML = `
-                    <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="grid grid-cols-2 gap-4 text-sm mb-6">
                         <div class="col-span-2">
                             <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Kode Log</div>
                             <div class="font-mono font-bold text-slate-800 bg-slate-100 rounded-xl px-3 py-2 text-sm">${logCode}</div>
@@ -416,8 +417,73 @@
                             <div class="text-slate-700 font-medium">${date}</div>
                         </div>
                     </div>
+                    
+                    <div class="border-t border-slate-100 pt-4">
+                        <div class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-satellite-dish text-emerald-500"></i> Detail Raw Telemetry (IMU & GPS)
+                        </div>
+                        <div id="telemetry-container" class="bg-slate-50 rounded-xl p-4 text-center">
+                            <i class="fa-solid fa-spinner fa-spin text-slate-400 text-2xl mb-2"></i>
+                            <p class="text-xs text-slate-500">Memuat data sensor penerbangan...</p>
+                        </div>
+                    </div>
                 `;
                 document.getElementById('modal-detail').classList.remove('hidden');
+
+                // Load detail telemetri via AJAX
+                try {
+                    const response = await fetch('/api/flight-logs/' + logCode + '/details');
+                    const json = await response.json();
+                    
+                    if (json.status && json.data.length > 0) {
+                        let rows = json.data.map(d => {
+                            const lat = d.lat ? parseFloat(d.lat).toFixed(6) : '-';
+                            const lon = d.lon ? parseFloat(d.lon).toFixed(6) : '-';
+                            const alt = d.alt ? parseFloat(d.alt).toFixed(1) + 'm' : '-';
+                            return `
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="px-3 py-2 text-xs font-mono text-slate-500 whitespace-nowrap">${d.timestamp || '-'}</td>
+                                    <td class="px-3 py-2 text-xs font-semibold text-slate-700">${d.mode || '-'} <span class="text-slate-400 font-normal">/ ${d.sub_state || '-'}</span></td>
+                                    <td class="px-3 py-2 text-xs font-mono text-slate-600 text-right">${lat}, ${lon}</td>
+                                    <td class="px-3 py-2 text-xs font-mono text-slate-600 text-right">${alt}</td>
+                                </tr>
+                            `;
+                        }).join('');
+
+                        document.getElementById('telemetry-container').outerHTML = `
+                            <div class="border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                                <table class="w-full text-left">
+                                    <thead class="bg-slate-100 text-[10px] uppercase font-bold text-slate-500 sticky top-0">
+                                        <tr>
+                                            <th class="px-3 py-2">Waktu</th>
+                                            <th class="px-3 py-2">State</th>
+                                            <th class="px-3 py-2 text-right">GPS (Lat, Lon)</th>
+                                            <th class="px-3 py-2 text-right">Alt</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 bg-white">
+                                        ${rows}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('telemetry-container').innerHTML = `
+                            <div class="flex flex-col items-center gap-2 py-4">
+                                <i class="fa-solid fa-box-open text-slate-300 text-2xl"></i>
+                                <p class="text-xs text-slate-400">Log penerbangan ini tidak memiliki data raw telemetri.</p>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error fetching telemetry details:', error);
+                    document.getElementById('telemetry-container').innerHTML = `
+                        <div class="flex flex-col items-center gap-2 py-4 text-red-500">
+                            <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                            <p class="text-xs">Gagal memuat data telemetri. Coba lagi nanti.</p>
+                        </div>
+                    `;
+                }
             }
 
             function closeModal() {

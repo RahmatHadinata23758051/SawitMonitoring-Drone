@@ -90,6 +90,7 @@ Route::middleware('auth')->group(function () {
     // BL-09: Flight Logs API
     Route::get('/api/flight-logs', [FlightLogController::class, 'index']);
     Route::post('/api/flight-logs', [FlightLogController::class, 'store']);
+    Route::get('/api/flight-logs/{logCode}/details', [FlightLogController::class, 'details']);
 });
 
 require __DIR__ . '/auth.php';

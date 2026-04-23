@@ -470,6 +470,30 @@ class FlightLogController extends Controller
             'status'              => 'completed',
         ]);
 
+        if ($request->has('telemetry_data') && is_array($request->telemetry_data)) {
+            $details = [];
+            foreach ($request->telemetry_data as $data) {
+                $details[] = [
+                    'flight_log_id' => $log->id,
+                    'timestamp'     => $data['timestamp'] ?? null,
+                    'lat'           => $data['lat'] ?? null,
+                    'lon'           => $data['lon'] ?? null,
+                    'alt'           => $data['alt'] ?? null,
+                    'ax'            => $data['ax'] ?? null,
+                    'ay'            => $data['ay'] ?? null,
+                    'az'            => $data['az'] ?? null,
+                    'gx'            => $data['gx'] ?? null,
+                    'gy'            => $data['gy'] ?? null,
+                    'gz'            => $data['gz'] ?? null,
+                    'mode'          => $data['mode'] ?? null,
+                    'sub_state'     => $data['subState'] ?? null,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ];
+            }
+            \App\Models\FlightLogDetail::insert($details);
+        }
+
         // Activity log
         try {
             activity()
@@ -490,6 +514,20 @@ class FlightLogController extends Controller
                 'date'     => $log->created_at->format('d/m/Y H:i:s'),
             ],
         ], 201);
+    }
+
+    /**
+     * GET /api/flight-logs/{logCode}/details
+     * Ambil data telemetry raw sensor untuk penerbangan tertentu
+     */
+    public function details($logCode)
+    {
+        $log = FlightLog::where('log_code', $logCode)->firstOrFail();
+        $details = $log->details()->orderBy('id', 'asc')->get();
+        return response()->json([
+            'status' => true,
+            'data' => $details
+        ]);
     }
 
     /**

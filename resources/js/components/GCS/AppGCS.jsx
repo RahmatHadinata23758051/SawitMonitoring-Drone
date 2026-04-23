@@ -177,6 +177,7 @@ const AppGCS = () => {
 
   // Telemetry
   const [telemetryHistory, setTelemetryHistory] = useState([]);
+  const telemetryHistoryRef = useRef([]);
   const [telemetry, setTelemetry] = useState({
     x: homeWP.x, y: homeWP.y, alt: 0, speed: 0, pitch: 0, roll: 0, yaw: 145, bat: 84,
     lat: homeWP.lat, lon: homeWP.lon, mode: 'STANDBY', subState: 'NAV', timestamp: new Date().toLocaleTimeString(),
@@ -572,6 +573,7 @@ const AppGCS = () => {
                   belum_matang:        finalBelum,
                   accuracy:            acc,
                   config_data:         fInfo.configData || {},
+                  telemetry_data:      telemetryHistoryRef.current,
                 }),
               })
               .then(res => res.ok ? res.json() : Promise.reject(res.status))
@@ -626,11 +628,15 @@ const AppGCS = () => {
         // TASK 4.2: Temporary Logger - Hanya catat jika ada perpindahan >1 meter atau ganti mode
         setTelemetryHistory(h => {
           if (flightStatusRef.current === 'STANDBY') return h; // Jangan rekam terus menerus saat standby
-          if (h.length === 0) return [newTelem];
+          if (h.length === 0) {
+              telemetryHistoryRef.current = [newTelem];
+              return telemetryHistoryRef.current;
+          }
           const last = h[0];
           const distMoved = Math.sqrt(Math.pow(newX - last.x, 2) + Math.pow(newY - last.y, 2));
           if (curMode !== last.mode || distMoved > 1.0) {
-            return [newTelem, ...h].slice(0, 300); // Batasi max 300 record per penerbangan
+            telemetryHistoryRef.current = [newTelem, ...h].slice(0, 300); // Batasi max 300 record per penerbangan
+            return telemetryHistoryRef.current;
           }
           return h;
         });

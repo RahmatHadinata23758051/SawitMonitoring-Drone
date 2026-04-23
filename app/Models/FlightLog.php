@@ -38,4 +38,8 @@ class FlightLog extends Model
         $s = $this->flight_time_seconds;
         return floor($s / 60) . 'm ' . ($s % 60) . 's';
     }
+    public function details()
+    {
+        return $this->hasMany(FlightLogDetail::class);
+    }
 }
