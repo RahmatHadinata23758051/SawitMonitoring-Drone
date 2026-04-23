@@ -2,51 +2,69 @@
     <x-slot name="header">
         <h2 class="leading-tight">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    {{ __('Data Master') }}
-                </li>
-                <li class="breadcrumb-item breadcrumb-active">{{ __('Data User') }}</li>
+                <li class="breadcrumb-item">Data Master</li>
+                <li class="breadcrumb-item breadcrumb-active">Data User</li>
             </ol>
         </h2>
     </x-slot>
 
-    <div class="pt-2 pb-12">
-        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex flex-col gap-4">
-            <a href="{{ route('user.create') }}"
-                class="bg-primary text-white w-auto ms-auto rounded-lg py-2 px-3 flex justify-between items-center gap-2">
-                <i class="fa-solid fa-circle-plus"></i>
-                Tambah User
-            </a>
-            <div class="bg-white overflow-hidden shadow-sm">
-                <div class="overflow-x-scroll">
-                    <table class="w-full align-middle border-slate-400 table mb-0 px-2" id="user-table">
+    <div class="pt-4 pb-12">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-10 flex flex-col gap-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-primary"></i> Data User
+                    </h1>
+                    <p class="text-sm text-slate-500 mt-0.5">Manajemen akun pengguna sistem</p>
+                </div>
+                <a href="{{ route('user.create') }}" class="bg-primary text-white rounded-xl py-2.5 px-5 flex items-center gap-2 text-sm font-semibold shadow hover:opacity-90 transition">
+                    <i class="fa-solid fa-circle-plus"></i> Tambah User
+                </a>
+            </div>
+
+            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-slate-100">
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <i class="fa-solid fa-user-group text-primary text-sm"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-800">Daftar User</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full align-middle table mb-0 text-sm" id="user-table">
                         <thead>
-                            <tr>
-                                <th class="dt-center">No</th>
-                                <th class="dt-center">Nama</th>
-                                <th class="dt-center">Email</th>
-                                <th class="dt-center">Nomor Telepon</th>
-                                <th class="dt-center">Aksi</th>
+                            <tr class="text-xs uppercase tracking-widest text-slate-500 bg-slate-50 border-b border-slate-200">
+                                <th class="dt-center px-4 py-3 font-semibold">No</th>
+                                <th class="dt-center px-4 py-3 font-semibold">Nama</th>
+                                <th class="dt-center px-4 py-3 font-semibold">Email</th>
+                                <th class="dt-center px-4 py-3 font-semibold">No. Telepon</th>
+                                <th class="dt-center px-4 py-3 font-semibold">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="table-border-bottom-0" id="user-tbody">
+                        <tbody class="divide-y divide-slate-100" id="user-tbody">
                             @foreach ($user as $item)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $item->name }}</td>
-                                    <td>{{ $item->email }}</td>
-                                    <td>{{ $item->phone_number ?? '-' }}</td>
-                                    <td class="h-full">
-                                        <div class="flex items-center justify-center gap-2 h-full">
-                                            <a href="{{ route('user.edit', $item->id) }}" class="h-100">
-                                                <i class="fa fa-pen text-yellow-500"></i>
+                                <tr class="hover:bg-slate-50/70 transition-colors">
+                                    <td class="px-4 py-3 text-center text-slate-500 font-medium">{{ $loop->iteration }}</td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                                                {{ strtoupper(substr($item->name, 0, 1)) }}
+                                            </div>
+                                            <span class="font-semibold text-slate-800">{{ $item->name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-slate-600">{{ $item->email }}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="font-mono text-sm text-slate-700">{{ $item->phone_number ?? '-' }}</span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <a href="{{ route('user.edit', $item->id) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 transition hover:bg-amber-200">
+                                                <i class="fa fa-pen text-sm"></i>
                                             </a>
-                                            <form action="{{ route('user.destroy', $item->id) }}" method="POST"
-                                                class="delete-form" data-nama="{{ $item->name }}">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit">
-                                                    <i class="fa fa-trash text-danger"></i>
+                                            <form action="{{ route('user.destroy', $item->id) }}" method="POST" class="delete-form" data-nama="{{ $item->name }}">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-600 transition hover:bg-rose-200">
+                                                    <i class="fa fa-trash text-sm"></i>
                                                 </button>
                                             </form>
                                         </div>
@@ -61,92 +79,15 @@
     </div>
     @push('scripts')
         <script>
-            // Get current timestamp for filename
-            const timestamp = () => {
-                const now = new Date();
-                const date = now.getDate().toString().padStart(2, '0');
-                const month = (now.getMonth() + 1).toString().padStart(2, '0');
-                const year = now.getFullYear();
-                const hours = now.getHours().toString().padStart(2, '0');
-                const minutes = now.getMinutes().toString().padStart(2, '0');
-                const seconds = now.getSeconds().toString().padStart(2, '0');
-
-                return `${year}${month}${date}_${hours}${minutes}${seconds}`;
-            }
-
+            const timestamp = () => { const n = new Date(); return `${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}_${String(n.getHours()).padStart(2,'0')}${String(n.getMinutes()).padStart(2,'0')}${String(n.getSeconds()).padStart(2,'0')}`; }
             window.addEventListener('load', function() {
-                // DataTable (using jQuery)
-                let table;
                 $(document).ready(function() {
-                    table = $('#user-table').DataTable({
-                        responsive: true,
-                        ordering: false,
-                        dom: '<"dt-toolbar flex justify-between items-center px-4 py-2 mb-2"Bf>rtp',
-                        buttons: [{
-                            extend: 'excel',
-                            text: 'Export Excel',
-                            title: 'Data User',
-                            className: 'bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600',
-                            filename: function() {
-                                return `data_user_${timestamp()}`;
-                            },
-                            exportOptions: {
-                                columns: [0, 1, 2, 3]
-                            }
-                        }],
-                        columnDefs: [{
-                            className: "dt-center",
-                            targets: "_all"
-                        }],
-                        language: {
-                            emptyTable: "Tidak ada data user yang tersedia",
-                            paginate: {
-                                previous: "<",
-                                next: ">"
-                            },
-                            zeroRecords: "Data user tidak ditemukan.",
-                            search: "" // kosongkan label "Search:"
-                        }
-                    });
-
+                    $('#user-table').DataTable({ responsive: true, ordering: false, dom: '<"dt-toolbar flex justify-between items-center px-4 py-2 mb-2"Bf>rtp', buttons: [{ extend: 'excel', text: 'Export Excel', title: 'Data User', className: 'bg-green-500 text-white px-3 py-1 rounded', filename: () => `data_user_${timestamp()}`, exportOptions: { columns: [0,1,2,3] } }], columnDefs: [{ className: "dt-center", targets: "_all" }], language: { emptyTable: "Tidak ada data user", paginate: { previous: "<", next: ">" }, zeroRecords: "Data tidak ditemukan.", search: "" } });
                     $('input.dt-input').attr('placeholder', 'Cari User...');
                 });
-
-                // Alert berhasil
-                @if (session('success'))
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-end',
-                        icon: 'success',
-                        title: '{{ session('success') }}',
-                        showConfirmButton: false,
-                        timer: 2500,
-                        timerProgressBar: true,
-                        customClass: {
-                            popup: 'toast-success'
-                        }
-                    });
-                @endif
-
-                // Alert confirm delete
+                @if (session('success')) Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: '{{ session('success') }}', showConfirmButton: false, timer: 2500, timerProgressBar: true }); @endif
                 document.querySelectorAll('.delete-form').forEach(form => {
-                    form.addEventListener('submit', function(event) {
-                        event.preventDefault();
-
-                        const userName = this.getAttribute('data-nama');
-                        Swal.fire({
-                            title: 'Konfirmasi',
-                            text: `Apakah Anda yakin ingin menghapus data user bernama ${userName}?`,
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonText: 'Ya, Hapus!',
-                            cancelButtonText: 'Batal'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                this.submit();
-                            }
-                        });
-                    })
+                    form.addEventListener('submit', function(e) { e.preventDefault(); Swal.fire({ title: 'Konfirmasi', text: `Hapus user "${this.dataset.nama}"?`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, Hapus!', cancelButtonText: 'Batal' }).then(r => { if (r.isConfirmed) this.submit(); }); });
                 });
             });
         </script>
