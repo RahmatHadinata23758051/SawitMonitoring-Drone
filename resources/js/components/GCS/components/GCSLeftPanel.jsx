@@ -26,8 +26,17 @@ const GCSLeftPanel = ({
 }) => {
   const hlsVideoRef = useRef(null);
   const [hlsStatus, setHlsStatus] = useState('WAITING');
-  const [camMinimized, setCamMinimized] = useState(false);
-  const [cockpitMinimized, setCockpitMinimized] = useState(false);
+
+  // 5.3.2 — Persist panel state ke localStorage
+  const [camMinimized,     setCamMinimized]     = useState(() => localStorage.getItem('gcs_cam_minimized')     === 'true');
+  const [cockpitMinimized, setCockpitMinimized] = useState(() => localStorage.getItem('gcs_cockpit_minimized') === 'true');
+
+  const toggleCam = () => setCamMinimized(v => {
+    const next = !v; localStorage.setItem('gcs_cam_minimized', next); return next;
+  });
+  const toggleCockpit = () => setCockpitMinimized(v => {
+    const next = !v; localStorage.setItem('gcs_cockpit_minimized', next); return next;
+  });
 
   const isFlying = droneFlightState === 'FLYING';
   const isDisarmed = droneFlightState === 'DISARMED';
@@ -95,7 +104,7 @@ const GCSLeftPanel = ({
       <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden shadow-lg flex flex-col shrink-0">
         <PanelHeader
           icon={Camera} title="LIVE CAMERA" color="text-rose-300"
-          minimized={camMinimized} onToggle={() => setCamMinimized(v => !v)}
+          minimized={camMinimized} onToggle={toggleCam}
           extraAction={
             setIsPipVisible ? (
               <button
@@ -183,7 +192,7 @@ const GCSLeftPanel = ({
       <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden shadow-lg flex flex-col">
         <PanelHeader
           icon={GaugeCircle} title="GAUGE COCKPIT" color="text-emerald-400"
-          minimized={cockpitMinimized} onToggle={() => setCockpitMinimized(v => !v)}
+          minimized={cockpitMinimized} onToggle={toggleCockpit}
         />
 
         {/* Warning banner */}
