@@ -593,6 +593,8 @@ const AppGCS = () => {
             objectDetected: Math.random() > 0.8 ? 'Pelepah / Area Daun' : 'Menyusuri Koridor...'
           }));
         }
+      } else if (status === 'MANUAL' || status === 'TAKEOFF_MANUAL') {
+        setLiveAiVision(prev => ({ ...prev, active: true, objectDetected: status === 'TAKEOFF_MANUAL' ? '🚀 Takeoff Manual...' : '🕹️ Mode Manual — Kontrol Aktif' }));
       } else if (status !== 'STANDBY') {
         setLiveAiVision(prev => ({ ...prev, active: true, objectDetected: status === 'TAKEOFF' ? 'Sistem Vision Siap...' : 'Manuver RTH...' }));
       } else {

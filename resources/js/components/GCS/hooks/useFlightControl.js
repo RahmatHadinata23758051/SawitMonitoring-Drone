@@ -52,6 +52,9 @@ export function useFlightControl({
   const aiCallCountRef = useRef(0);       // jumlah scan yang berhasil diprediksi AI
   const pendingScanEventRef = useRef(null); // 'trad' | 'qlv' | null — trigger async fetch
 
+  // ✅ Manual control input (simulasi mode) — diisi oleh handleDroneCommand di AppGCS
+  const manualInputRef = useRef(null); // 'throttle_up' | 'pitch_forward' | 'roll_left' | dll
+
   // --- FLIGHT STATUS UI STATE ---
   const [flightStatusUI, setFlightStatusUI] = useState('STANDBY');
   const [cockpitWarning, setCockpitWarningLocal] = useState('');
@@ -188,7 +191,10 @@ export function useFlightControl({
   useEffect(() => {
     const interval = setInterval(() => {
       tickCountRef.current += 1;
-      if (!droneMode || (!isTelemConnected && !isVideoConnected)) return;
+      // Simulasi: physics jalan tanpa perlu koneksi hardware
+      // Real: butuh setidaknya 1 koneksi aktif
+      const isSimulasi = droneMode === 'simulasi';
+      if (!droneMode || (!isSimulasi && !isTelemConnected && !isVideoConnected)) return;
       const status = flightStatusRef.current;
       const subState = autoSubStateRef.current;
 
@@ -232,6 +238,54 @@ export function useFlightControl({
         else if (curMode === 'TAKEOFF') {
           newAlt = prev.alt + 1.5; newSpeed = 0;
           if (newAlt >= targetAltitude) { flightStatusRef.current = 'AUTO'; curMode = 'AUTO'; setFlightStatusUI('AUTO'); }
+        }
+        // ✅ TAKEOFF_MANUAL: naik ke 5m lalu masuk hover MANUAL
+        else if (curMode === 'TAKEOFF_MANUAL') {
+          const hoverAlt = 5.0;
+          newAlt = Math.min(hoverAlt, prev.alt + 0.8);
+          newSpeed = 0;
+          if (newAlt >= hoverAlt) {
+            flightStatusRef.current = 'MANUAL';
+            curMode = 'MANUAL';
+            setFlightStatusUI('MANUAL');
+          }
+        }
+        // ✅ MANUAL: gerak sesuai input user dari manualInputRef
+        else if (curMode === 'MANUAL') {
+          const cmd = manualInputRef.current;
+          const step = 3.0;   // meter/tick
+          const turn = 12;    // derajat/tick
+          manualInputRef.current = null; // consume
+          if (cmd === 'throttle_up')        { newAlt = Math.min(prev.alt + 1.5, 80); }
+          else if (cmd === 'throttle_down') { newAlt = Math.max(0, prev.alt - 1.5); }
+          else if (cmd === 'pitch_forward') {
+            const rad = (prev.yaw - 90) * Math.PI / 180;
+            newX += step * Math.cos(rad); newY += step * Math.sin(rad);
+            newPitch = 14; newSpeed = step * 5;
+          }
+          else if (cmd === 'pitch_backward') {
+            const rad = (prev.yaw - 90) * Math.PI / 180;
+            newX -= step * Math.cos(rad); newY -= step * Math.sin(rad);
+            newPitch = -14; newSpeed = step * 5;
+          }
+          else if (cmd === 'roll_left') {
+            const rad = (prev.yaw - 180) * Math.PI / 180;
+            newX += step * Math.cos(rad); newY += step * Math.sin(rad);
+            newRoll = -14; newSpeed = step * 5;
+          }
+          else if (cmd === 'roll_right') {
+            const rad = prev.yaw * Math.PI / 180;
+            newX += step * Math.cos(rad); newY += step * Math.sin(rad);
+            newRoll = 14; newSpeed = step * 5;
+          }
+          else if (cmd === 'yaw_left')  { newYaw = (prev.yaw - turn + 360) % 360; }
+          else if (cmd === 'yaw_right') { newYaw = (prev.yaw + turn) % 360; }
+          else if (cmd === 'reset_attitude') { newPitch = 0; newRoll = 0; newSpeed = 0; }
+          else { // hover: decelerate perlahan
+            newSpeed = Math.max(0, prev.speed * 0.6);
+            newPitch = prev.pitch * 0.5;
+            newRoll  = prev.roll  * 0.5;
+          }
         }
         else if (curMode === 'AUTO') {
           if (activePathRef.current.length > 0) {
@@ -391,6 +445,7 @@ export function useFlightControl({
   return {
     // Refs
     flightStatusRef,
+    manualInputRef,     // ✅ digunakan oleh handleDroneCommand di AppGCS
     // UI States
     flightStatusUI, setFlightStatusUI,
     cockpitWarning, setCockpitWarning,
