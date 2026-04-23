@@ -273,6 +273,31 @@ const AppGCS = () => {
       else { setCockpitWarning('Pilih Mode Sistem Dahulu!'); setTimeout(() => setCockpitWarning(''), 3000); }
     }
   };
+  const [droneFlightState, setDroneFlightState] = useState('DISARMED'); // DISARMED | FLYING
+  const handleDroneCommand = async (command) => {
+    if (droneMode !== 'real') {
+      setCockpitWarning('Mode Real diperlukan untuk kontrol drone!');
+      setTimeout(() => setCockpitWarning(''), 3000);
+      return;
+    }
+    try {
+      const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      const csrf = csrfMeta ? csrfMeta.getAttribute('content') : '';
+      const res = await fetch('/drone/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+        body: JSON.stringify({ command }),
+      });
+      await res.json();
+      // update state lokal
+      if (command === 'arm') setDroneFlightState('FLYING');
+      if (['land', 'disarm', 'emergency'].includes(command)) setDroneFlightState('DISARMED');
+    } catch (err) {
+      setCockpitWarning('Gagal kirim perintah ke drone!');
+      setTimeout(() => setCockpitWarning(''), 3000);
+      console.error('Drone control error:', err);
+    }
+  };
   const formatTime = formatFlightTime;
 
   // --- GEMINI AI ASSISTANT ---
@@ -878,6 +903,8 @@ const AppGCS = () => {
               formatTime={formatTime}
               handleStartFlight={handleStartFlight}
               handleRTH={handleRTH}
+              handleDroneCommand={handleDroneCommand}
+              droneFlightState={droneFlightState}
               t={t}
             />
           }
