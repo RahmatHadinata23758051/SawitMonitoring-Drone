@@ -304,22 +304,20 @@ const GCSSettingsModal = ({
                   <div className="overflow-y-auto flex-1">
                     <table className="w-full text-[10px]">
                       <thead className="sticky top-0 border-b bg-slate-100 text-slate-600 border-slate-200">
-                        <tr><th className="p-2">Waktu</th><th className="p-2">Lat, Lon</th><th className="p-2">Alt</th><th className="p-2">Spd</th><th className="p-2">P/R/Y</th><th className="p-2">Mode</th><th className="p-2">Bat%</th></tr>
+                        <tr><th className="p-2 text-left">Waktu</th><th className="p-2 text-left">Mode</th><th className="p-2 text-left">GPS (Lat, Lon, Alt)</th><th className="p-2 text-left">Accel (ax, ay, az)</th><th className="p-2 text-left">Gyro (gx, gy, gz)</th></tr>
                       </thead>
                       <tbody className="text-slate-700">
                         {!droneMode
-                          ? <tr><td colSpan="7" className="text-center p-4 italic text-slate-400">Pilih Mode Sistem terlebih dahulu.</td></tr>
+                          ? <tr><td colSpan="5" className="text-center p-4 italic text-slate-400">Pilih Mode Sistem terlebih dahulu.</td></tr>
                           : telemetryHistory.length === 0
-                            ? <tr><td colSpan="7" className="text-center p-4 italic text-slate-400">Menunggu data telemetri...</td></tr>
+                            ? <tr><td colSpan="5" className="text-center p-4 italic text-slate-400">Menunggu data telemetri...</td></tr>
                             : telemetryHistory.map((d, i) => (
                               <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
                                 <td className="p-2 text-blue-600">{d.timestamp}</td>
-                                <td className="p-2">{d.lat.toFixed(5)}, {d.lon.toFixed(5)}</td>
-                                <td className="p-2 text-orange-600">{d.alt.toFixed(1)}</td>
-                                <td className="p-2">{d.speed.toFixed(1)}</td>
-                                <td className="p-2 text-slate-400">{d.pitch.toFixed(1)}/{d.roll.toFixed(1)}/{d.yaw.toFixed(0)}</td>
                                 <td className="p-2 font-bold text-slate-800">{d.mode}</td>
-                                <td className="p-2 text-blue-600">{d.bat.toFixed(1)}</td>
+                                <td className="p-2">{d.lat?.toFixed(5) || 0}, {d.lon?.toFixed(5) || 0}, {d.alt?.toFixed(1) || 0}m</td>
+                                <td className="p-2 font-mono text-[9px] text-slate-500">{d.ax?.toFixed(2) || 0} / {d.ay?.toFixed(2) || 0} / {d.az?.toFixed(2) || 0}</td>
+                                <td className="p-2 font-mono text-[9px] text-orange-600">{d.gx?.toFixed(2) || 0} / {d.gy?.toFixed(2) || 0} / {d.gz?.toFixed(2) || 0}</td>
                               </tr>
                             ))
                         }

@@ -1,238 +1,172 @@
 const dgram = require("dgram");
 const express = require("express");
+const { MavLinkPacket, MavLinkPacketSplitter, MavLinkPacketParser } = require('node-mavlink');
 
-const HOST = "192.168.1.1";
-const PORT = 7099;
-const INTERVAL = 20; // 50Hz
+// Konfigurasi Pixhawk Telemetry (SITL / Real Radio Telemetry)
+const HOST = "192.168.1.1"; // IP Telemetry
+const PORT = 14550; // Standar port MAVLink UDP (Pixhawk)
+const INTERVAL = 50; // 20Hz untuk pengiriman manual control
 
 const app = express();
 app.use(express.json());
 
 const client = dgram.createSocket("udp4");
 
+// ==========================
+// STATE DRONE MAVLINK
+// ==========================
+// MAVLink SET_POSITION_TARGET_LOCAL_NED atau MANUAL_CONTROL menggunakan range -1000 s/d 1000
+let x = 0; // pitch (maju/mundur)
+let y = 0; // roll (kiri/kanan)
+let z = 500; // throttle (naik/turun) -> 500 = hover
+let r = 0; // yaw (rotasi)
+let buttons = 0; // bitmask tombol
+
 let connectedAt = Date.now();
 
 // ==========================
-// STATE (SINGLE SOURCE OF TRUTH)
+// SIMULASI MAVLINK GENERATOR
 // ==========================
-let roll = 128;
-let pitch = 128;
-let yaw = 128;
-let throttle = 128;
-let flags = 0;
-
-// ==========================
-// FLAGS (dari hasil reverse engineering + analisis pcap)
-// Setiap flag hanya aktif ~1 detik (pulse/trigger), lalu kembali ke 0
-// ==========================
-const FLAG_ARM = 1; // arm / disarm
-const FLAG_TAKEOFF_LANDING = 2; // auto takeoff & auto landing (konteks tergantung kondisi drone)
-const FLAG_EMERGENCY = 4; // emergency stop
-
-const b = (v) => v & 0xff;
-
-// ==========================
-// PACKET
-// ==========================
-function buildPacket() {
-  const checksum = b(roll ^ pitch ^ yaw ^ throttle ^ flags);
-  return Buffer.from([
-    0x03,
-    0x66,
-    roll,
-    pitch,
-    throttle,
-    yaw,
-    flags,
-    checksum,
-    0x99,
-  ]);
+// Fungsi ini mengonversi command kita menjadi struktur MAVLink mentah (Buffer)
+// (Dalam implementasi full, kita akan menggunakan class bawaan node-mavlink)
+function buildMavlinkManualControl(pitch, roll, throttle, yaw, btnMask) {
+  // Struktur pseudo MAVLink: MANUAL_CONTROL (Message ID: 69)
+  // Ini hanya kerangka logis untuk menunjukkan perubahan format ke Pixhawk
+  // Format aslinya akan di-encode oleh node-mavlink menjadi packet biner
+  return {
+    target: 1, // Target System ID (Pixhawk)
+    message_id: 69, // MANUAL_CONTROL
+    payload: {
+      x: pitch,      // -1000 to 1000
+      y: roll,       // -1000 to 1000
+      z: throttle,   // 0 to 1000
+      r: yaw,        // -1000 to 1000
+      buttons: btnMask
+    }
+  };
 }
 
-function sendPacket() {
-  client.send(buildPacket(), PORT, HOST);
+function buildMavlinkCommandLong(command_id, param1=0, param2=0, param3=0, param4=0, param5=0, param6=0, param7=0) {
+  // Struktur MAVLink COMMAND_LONG (Message ID: 76)
+  return {
+    target_system: 1,
+    target_component: 1,
+    message_id: 76, // COMMAND_LONG
+    command: command_id,
+    confirmation: 0,
+    param1, param2, param3, param4, param5, param6, param7
+  };
 }
 
 // ==========================
-// FLAG PULSE HELPER
-// Kirim flag selama ~1 detik lalu reset ke 0 (sesuai behavior RC UFO asli)
-// ==========================
-let flagTimer = null;
-
-function pulseFlag(flagValue, durationMs = 1000) {
-  // Batalkan timer sebelumnya jika ada
-  if (flagTimer) {
-    clearTimeout(flagTimer);
-    flagTimer = null;
-  }
-
-  flags = flagValue;
-
-  flagTimer = setTimeout(() => {
-    flags = 0;
-    flagTimer = null;
-  }, durationMs);
-}
-
-// ==========================
-// WATCHDOG
-// Jika tidak ada command selama 3 detik saat drone aktif (throttle > 128),
-// otomatis reset attitude sebagai keamanan
-// ==========================
-let lastCommandAt = Date.now();
-
-setInterval(() => {
-  const idle = Date.now() - lastCommandAt > 3000;
-  const droneActive = throttle > 128;
-
-  if (idle && droneActive) {
-    console.warn("[WATCHDOG] Tidak ada command 3 detik, reset attitude");
-    roll = pitch = yaw = 128;
-  }
-}, 500);
-
-// ==========================
-// HEARTBEAT (ALWAYS ON)
-// ==========================
-setInterval(sendPacket, INTERVAL);
-
-// ==========================
-// COMMAND HANDLER
+// COMMAND HANDLER (JSON to MAVLink)
 // ==========================
 app.post("/command", (req, res) => {
   const cmd = req.body.command;
-  lastCommandAt = Date.now();
+  let mavlinkMessage = null;
 
   switch (cmd) {
-    // --- ARM ---
-    // Hanya menyalakan motor (idle), TIDAK langsung takeoff
-    // Throttle tetap di 128 (netral/idle)
     case "arm":
-      if (Date.now() - connectedAt < 3000) {
-        return res.json({ status: "wait_stabilize" });
-      }
-      roll = pitch = yaw = 128;
-      throttle = 128;
-      pulseFlag(FLAG_ARM);
+      // MAV_CMD_COMPONENT_ARM_DISARM (400)
+      // param1: 1 = arm, 0 = disarm
+      mavlinkMessage = buildMavlinkCommandLong(400, 1);
       break;
 
-    // --- TAKEOFF ---
-    // Auto takeoff — aktifkan setelah arm
-    case "takeoff":
-      pulseFlag(FLAG_TAKEOFF_LANDING);
-      break;
-
-    // --- LANDING ---
-    // Auto landing — drone turun otomatis
-    case "land":
-      roll = pitch = yaw = 128; // reset attitude sebelum landing
-      pulseFlag(FLAG_TAKEOFF_LANDING);
-      break;
-
-    // --- DISARM ---
-    // Matikan motor sepenuhnya
     case "disarm":
-      roll = pitch = yaw = 128;
-      throttle = 128;
-      pulseFlag(FLAG_ARM);
+      // param1: 0 = disarm
+      mavlinkMessage = buildMavlinkCommandLong(400, 0);
       break;
 
-    // --- EMERGENCY STOP ---
-    // Kirim flag emergency (flag 4), drone akan stop mendadak
+    case "takeoff":
+      // MAV_CMD_NAV_TAKEOFF (22)
+      // param7 = Ketinggian takeoff (meter)
+      mavlinkMessage = buildMavlinkCommandLong(22, 0, 0, 0, 0, 0, 0, 2.5);
+      break;
+
+    case "land":
+      // MAV_CMD_NAV_LAND (21)
+      mavlinkMessage = buildMavlinkCommandLong(21);
+      break;
+
     case "emergency":
-      roll = pitch = yaw = 128;
-      throttle = 128;
-      pulseFlag(FLAG_EMERGENCY);
+      // Flight Termination (185) atau KILL_SWITCH
+      mavlinkMessage = buildMavlinkCommandLong(185, 1); // 1 = terminate
       break;
 
-    // --- JOYSTICK (continuous dari frontend, 10Hz) ---
-    // Menerima nilai roll, pitch, yaw, throttle langsung dari nipplejs
     case "joystick": {
+      // Mengonversi input GCS (0-255) ke MAVLink (-1000 s/d 1000)
       const jRoll = parseInt(req.body.roll) || 128;
       const jPitch = parseInt(req.body.pitch) || 128;
       const jYaw = parseInt(req.body.yaw) || 128;
       const jThrottle = parseInt(req.body.throttle) || 128;
 
-      roll = Math.max(0, Math.min(255, jRoll));
-      pitch = Math.max(0, Math.min(255, jPitch));
-      yaw = Math.max(0, Math.min(255, jYaw));
-      throttle = Math.max(128, Math.min(200, jThrottle)); // min 128 (idle), max 200
+      y = Math.round(((jRoll - 128) / 128) * 1000);   // Roll
+      x = Math.round(((jPitch - 128) / 128) * 1000);  // Pitch
+      r = Math.round(((jYaw - 128) / 128) * 1000);    // Yaw
+      z = Math.round((jThrottle / 255) * 1000);       // Throttle (0-1000)
 
-      return res.json({
-        status: "ok",
-        command: cmd,
-        roll,
-        pitch,
-        yaw,
-        throttle,
-      });
+      mavlinkMessage = buildMavlinkManualControl(x, y, z, r, buttons);
+      break;
     }
 
-    // --- THROTTLE ---
-    case "throttle_up":
-      throttle = Math.min(throttle + 5, 200);
+    // --- NAVIGASI WAYPOINT/ACTION SESUAI DATASET IMU ---
+    case "maju":
+      x = 500; // Pitch forward (+500)
+      y = 0; r = 0; z = 500;
+      mavlinkMessage = buildMavlinkManualControl(x, y, z, r, buttons);
       break;
 
-    case "throttle_down":
-      throttle = Math.max(throttle - 5, 128);
+    case "mundur":
+      x = -500; // Pitch backward (-500)
+      y = 0; r = 0; z = 500;
+      mavlinkMessage = buildMavlinkManualControl(x, y, z, r, buttons);
       break;
 
-    // --- ROLL ---
-    case "roll_left":
-      roll = Math.max(roll - 5, 0);
+    case "roll_kanan":
+      y = 500; // Roll right (+500)
+      x = 0; r = 0; z = 500;
+      mavlinkMessage = buildMavlinkManualControl(x, y, z, r, buttons);
       break;
 
-    case "roll_right":
-      roll = Math.min(roll + 5, 255);
+    case "rotasi_kiri":
+      r = -500; // Yaw left (-500)
+      x = 0; y = 0; z = 500;
+      mavlinkMessage = buildMavlinkManualControl(x, y, z, r, buttons);
       break;
 
-    // --- PITCH ---
-    case "pitch_forward":
-      pitch = Math.min(pitch + 5, 255);
-      break;
-
-    case "pitch_backward":
-      pitch = Math.max(pitch - 5, 0);
-      break;
-
-    // --- YAW ---
-    case "yaw_left":
-      yaw = Math.max(yaw - 5, 0);
-      break;
-
-    case "yaw_right":
-      yaw = Math.min(yaw + 5, 255);
-      break;
-
-    // --- RESET ATTITUDE ---
     case "reset_attitude":
-      roll = pitch = yaw = 128;
+    case "diam_terbang":
+      // Hover stabil
+      x = 0; y = 0; r = 0; z = 500; 
+      mavlinkMessage = buildMavlinkManualControl(x, y, z, r, buttons);
       break;
 
     default:
       return res.status(400).json({ status: "unknown_command", command: cmd });
   }
 
-  console.log("CMD     :", cmd);
-  console.log("Throttle:", throttle);
-  console.log("Flags   :", flags);
-  console.log("Roll    :", roll, "| Pitch:", pitch, "| Yaw:", yaw);
-  console.log("--------------------");
+  console.log("CMD DITERIMA :", cmd);
+  console.log("MAVLINK OUT  :", JSON.stringify(mavlinkMessage, null, 2));
+  console.log("-----------------------------------------");
+
+  // TODO: Encode mavlinkMessage ke buffer byte array menggunakan library node-mavlink
+  // client.send(mavlinkBuffer, PORT, HOST);
 
   res.json({
     status: "ok",
     command: cmd,
-    throttle,
-    flags,
-    roll,
-    pitch,
-    yaw,
+    format: "mavlink",
+    packet: mavlinkMessage
   });
 });
 
 // ==========================
+// SERVER INIT
+// ==========================
 app.listen(3001, () => {
-  console.log("Drone UDP Service running on port 3001");
-  console.log(`Target: ${HOST}:${PORT}`);
-  console.log("Heartbeat: 50Hz (20ms)");
+  console.log("=========================================");
+  console.log("🛰️  Drone GCS to MAVLink Server Running");
+  console.log("PORT    : 3001 (HTTP JSON Command)");
+  console.log(`TARGET  : ${HOST}:${PORT} (Pixhawk UDP)`);
+  console.log("=========================================");
 });
