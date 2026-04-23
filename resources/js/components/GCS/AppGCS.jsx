@@ -167,6 +167,9 @@ const AppGCS = () => {
   const aiCallCountRef = useRef(0);
   const pendingScanEventRef = useRef(null); // 'trad' | 'qlv' | null
 
+  // ✅ Manual drone control input (simulasi mode)
+  const manualInputRef = useRef(null); // throttle_up | pitch_forward | roll_left | yaw_left | etc.
+
   // Flight UI State
   const [flightStatusUI, setFlightStatusUI] = useState('STANDBY');
   const [cockpitWarning, setCockpitWarning] = useState('');
@@ -330,9 +333,70 @@ const AppGCS = () => {
     }
   };
   const [droneFlightState, setDroneFlightState] = useState('DISARMED'); // DISARMED | FLYING
+
   const handleDroneCommand = async (command) => {
+    // ============================================================
+    // SIMULASI MODE: handle semua command secara lokal
+    // ============================================================
+    if (droneMode === 'simulasi') {
+      if (command === 'arm') {
+        if (droneFlightState === 'DISARMED') {
+          setDroneFlightState('FLYING');
+          // Jika drone belum terbang, arm → mode MANUAL (hover manual)
+          if (flightStatusRef.current === 'STANDBY') {
+            flightStatusRef.current = 'MANUAL';
+            setFlightStatusUI('MANUAL');
+            flightTimeRef.current = 0;
+            setFlightTime(0);
+            setCockpitWarning('⚡ ARM → Manual Control Aktif!');
+            setTimeout(() => setCockpitWarning(''), 2500);
+          }
+        }
+        return;
+      }
+      if (command === 'takeoff') {
+        if (flightStatusRef.current === 'MANUAL' || flightStatusRef.current === 'STANDBY') {
+          flightStatusRef.current = 'TAKEOFF_MANUAL';
+          setFlightStatusUI('TAKEOFF');
+          setCockpitWarning('🚀 Takeoff...');
+          setTimeout(() => setCockpitWarning(''), 2000);
+        }
+        return;
+      }
+      if (command === 'land') {
+        if (flightStatusRef.current !== 'STANDBY') {
+          flightStatusRef.current = 'LANDING';
+          setFlightStatusUI('LANDING');
+          setCockpitWarning('🛬 Landing...');
+          setTimeout(() => setCockpitWarning(''), 2000);
+        }
+        return;
+      }
+      if (command === 'disarm' || command === 'emergency') {
+        flightStatusRef.current = 'STANDBY';
+        setFlightStatusUI('STANDBY');
+        setDroneFlightState('DISARMED');
+        manualInputRef.current = null;
+        setCockpitWarning(command === 'emergency' ? '🚨 EMERGENCY STOP!' : 'DISARMED');
+        setTimeout(() => setCockpitWarning(''), 2500);
+        return;
+      }
+      // Manual movement commands — hanya aktif saat MANUAL/TAKEOFF_MANUAL
+      const manualModes = ['MANUAL', 'TAKEOFF_MANUAL'];
+      if (manualModes.includes(flightStatusRef.current)) {
+        manualInputRef.current = command;
+      } else {
+        setCockpitWarning('ARM drone dulu untuk manual control!');
+        setTimeout(() => setCockpitWarning(''), 2000);
+      }
+      return;
+    }
+
+    // ============================================================
+    // REAL MODE: kirim ke hardware via /drone/control API
+    // ============================================================
     if (droneMode !== 'real') {
-      setCockpitWarning('Mode Real diperlukan untuk kontrol drone!');
+      setCockpitWarning('Pilih Mode Sistem Dahulu!');
       setTimeout(() => setCockpitWarning(''), 3000);
       return;
     }
@@ -345,7 +409,6 @@ const AppGCS = () => {
         body: JSON.stringify({ command }),
       });
       await res.json();
-      // update state lokal
       if (command === 'arm') setDroneFlightState('FLYING');
       if (['land', 'disarm', 'emergency'].includes(command)) setDroneFlightState('DISARMED');
     } catch (err) {
@@ -531,6 +594,54 @@ const AppGCS = () => {
         else if (curMode === 'TAKEOFF') {
           newAlt = prev.alt + 1.5; newSpeed = 0;
           if (newAlt >= targetAltitude) { flightStatusRef.current = 'AUTO'; curMode = 'AUTO'; setFlightStatusUI('AUTO'); }
+        }
+        // ✅ TAKEOFF_MANUAL: naik ke ketinggian 5m lalu masuk MANUAL hover
+        else if (curMode === 'TAKEOFF_MANUAL') {
+          const manualHoverAlt = 5.0;
+          newAlt = Math.min(manualHoverAlt, prev.alt + 0.8);
+          newSpeed = 0;
+          if (newAlt >= manualHoverAlt) {
+            flightStatusRef.current = 'MANUAL';
+            curMode = 'MANUAL';
+            setFlightStatusUI('MANUAL');
+          }
+        }
+        // ✅ MANUAL: user-controlled movement via manualInputRef
+        else if (curMode === 'MANUAL') {
+          const cmd = manualInputRef.current;
+          const step = 3.0; // meter per tick
+          const turnStep = 12; // derajat per tick
+          manualInputRef.current = null; // consume command
+          if (cmd === 'throttle_up')        { newAlt = Math.min(prev.alt + 1.5, 80); newPitch = 0; newRoll = 0; newSpeed = 0; }
+          else if (cmd === 'throttle_down') { newAlt = Math.max(0, prev.alt - 1.5); newPitch = 0; newRoll = 0; newSpeed = 0; }
+          else if (cmd === 'pitch_forward') { 
+            const rad = (prev.yaw - 90) * Math.PI / 180;
+            newX += step * Math.cos(rad); newY += step * Math.sin(rad);
+            newPitch = 14; newSpeed = step * 5;
+          }
+          else if (cmd === 'pitch_backward') {
+            const rad = (prev.yaw - 90) * Math.PI / 180;
+            newX -= step * Math.cos(rad); newY -= step * Math.sin(rad);
+            newPitch = -14; newSpeed = step * 5;
+          }
+          else if (cmd === 'roll_left') {
+            const rad = (prev.yaw - 180) * Math.PI / 180;
+            newX += step * Math.cos(rad); newY += step * Math.sin(rad);
+            newRoll = -14; newSpeed = step * 5;
+          }
+          else if (cmd === 'roll_right') {
+            const rad = prev.yaw * Math.PI / 180;
+            newX += step * Math.cos(rad); newY += step * Math.sin(rad);
+            newRoll = 14; newSpeed = step * 5;
+          }
+          else if (cmd === 'yaw_left')  { newYaw = (prev.yaw - turnStep + 360) % 360; newSpeed = 0; }
+          else if (cmd === 'yaw_right') { newYaw = (prev.yaw + turnStep) % 360; newSpeed = 0; }
+          else if (cmd === 'reset_attitude') { newPitch = 0; newRoll = 0; newSpeed = 0; }
+          else { // hover: decelerate
+            newSpeed = Math.max(0, prev.speed * 0.6);
+            newPitch = prev.pitch * 0.5;
+            newRoll  = prev.roll  * 0.5;
+          }
         }
         else if (curMode === 'AUTO') {
           if (activePathRef.current.length > 0) {
