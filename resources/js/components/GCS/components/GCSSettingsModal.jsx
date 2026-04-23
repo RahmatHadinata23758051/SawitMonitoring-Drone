@@ -183,6 +183,7 @@ const GCSSettingsModal = ({
                         disabled={isVideoConnected}
                         className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900"
                       >
+                        <option value="dummy">Dummy (Webcam Laptop)</option>
                         <option value="mjpeg">HTTP MJPEG (ESP32-CAM)</option>
                         <option value="hls">HLS Proxy (.m3u8)</option>
                       </select>
@@ -193,11 +194,15 @@ const GCSSettingsModal = ({
                           <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">IP DRONE (Mode Real)</label>
                           <input type="text" value={videoIp} onChange={(e) => setVideoIp(e.target.value)} disabled={isVideoConnected} className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900" />
                         </>
-                      ) : (
+                      ) : videoProtocol === 'hls' ? (
                         <>
                           <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">URL HLS (.m3u8)</label>
                           <input type="text" value={hlsUrl} onChange={(e) => setHlsUrl(e.target.value)} disabled={isVideoConnected} className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900" />
                         </>
+                      ) : (
+                        <div className="flex items-center h-full pt-4">
+                          <span className="text-xs text-slate-400 italic">Menggunakan kamera bawaan perangkat.</span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -213,7 +218,7 @@ const GCSSettingsModal = ({
                     className={`w-full py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 text-white transition ${isVideoConnected ? 'bg-rose-500 hover:bg-rose-400' : 'bg-orange-500 hover:bg-orange-400'}`}
                   >
                     <Power className="w-4 h-4" />
-                    {isVideoConnected ? 'STOP STREAM' : (droneMode === 'simulasi' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : 'CONNECT MJPEG STREAM'))}
+                    {isVideoConnected ? 'STOP STREAM' : (droneMode === 'simulasi' || videoProtocol === 'dummy' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : 'CONNECT MJPEG STREAM'))}
                   </button>
                 </div>
               </div>

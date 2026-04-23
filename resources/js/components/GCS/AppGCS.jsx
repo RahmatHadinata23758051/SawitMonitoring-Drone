@@ -212,13 +212,13 @@ const AppGCS = () => {
   useEffect(() => { if (videoRef.current && webcamStream) videoRef.current.srcObject = webcamStream; }, [webcamStream, isSettingsOpen]);
   useEffect(() => { if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' }); }, [aiHistory]);
   useEffect(() => {
-    if (droneMode === 'simulasi' && isVideoConnected) {
+    if (isVideoConnected && (droneMode === 'simulasi' || videoProtocol === 'dummy')) {
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(s => setWebcamStream(s))
-        .catch(() => { setAlertPopup({ title: 'Webcam Tidak Terdeteksi', message: 'Gagal mengakses webcam.' }); setIsVideoConnected(false); });
+        .catch(() => { setAlertPopup({ title: 'Webcam Tidak Terdeteksi', message: 'Gagal mengakses webcam laptop. Pastikan izin kamera diizinkan di browser.' }); setIsVideoConnected(false); });
     }
     if (!isVideoConnected && webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); }
-  }, [droneMode, isVideoConnected]);
+  }, [droneMode, isVideoConnected, videoProtocol]);
 
   useEffect(() => {
     if (!autoSavePending) return;
@@ -260,18 +260,31 @@ const AppGCS = () => {
     }
   };
   const handleConnectVideo = () => {
-    if (isVideoConnected) { setIsVideoConnected(false); setLiveStreamUrl(''); if (webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); } }
-    else {
-      if (droneMode === 'simulasi') setIsVideoConnected(true);
-      else if (droneMode === 'real') { 
+    if (isVideoConnected) {
+      setIsVideoConnected(false);
+      setLiveStreamUrl('');
+      if (webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); }
+    } else {
+      // Dummy mode: aktifkan webcam laptop tanpa perlu droneMode
+      if (videoProtocol === 'dummy') {
+        setIsVideoConnected(true);
+        setCockpitWarning('Webcam Laptop (Dummy) Aktif!');
+        setTimeout(() => setCockpitWarning(''), 3000);
+        return;
+      }
+      if (droneMode === 'simulasi') {
+        setIsVideoConnected(true);
+      } else if (droneMode === 'real') {
         if (videoProtocol === 'mjpeg') {
           setLiveStreamUrl(`http://${videoIp}:81/stream`);
         } else {
           setLiveStreamUrl(hlsUrl);
         }
-        setIsVideoConnected(true); 
+        setIsVideoConnected(true);
+      } else {
+        setCockpitWarning('Pilih Mode Sistem Dahulu!');
+        setTimeout(() => setCockpitWarning(''), 3000);
       }
-      else { setCockpitWarning('Pilih Mode Sistem Dahulu!'); setTimeout(() => setCockpitWarning(''), 3000); }
     }
   };
   const [droneFlightState, setDroneFlightState] = useState('DISARMED'); // DISARMED | FLYING
