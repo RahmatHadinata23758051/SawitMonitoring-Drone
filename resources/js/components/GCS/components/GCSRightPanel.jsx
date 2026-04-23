@@ -240,7 +240,7 @@ const GCSRightPanel = ({
       </div>
 
       {/* ===== AREA KANAN: SIDEBAR 3 TABS ===== */}
-      <div className="w-[340px] shrink-0 flex flex-col border-l border-slate-200 bg-white">
+      <div className="w-[380px] shrink-0 flex flex-col border-l border-slate-200 bg-white">
 
         {/* TAB NAVIGATION */}
         <div className="h-10 border-b border-slate-200 bg-slate-50 flex shrink-0">

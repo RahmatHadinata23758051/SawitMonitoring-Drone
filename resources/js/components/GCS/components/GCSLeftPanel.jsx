@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Camera, GaugeCircle, Minimize2, Maximize2, ExternalLink,
   Battery, Clock, Play, Home, AlertTriangle, Navigation, Compass,
-  Crosshair
+  Crosshair, MonitorPlay
 } from 'lucide-react';
 import Hls from 'hls.js';
 
@@ -14,6 +14,8 @@ const GCSLeftPanel = ({
   // Camera props
   droneMode, isVideoConnected, webcamStream, videoRef,
   liveStreamUrl, setIsVideoConnected, setAlertPopup,
+  // PiP controls
+  isPipVisible, setIsPipVisible,
   // Cockpit props
   telemetry, flightTime, cockpitWarning, formatTime,
   handleStartFlight, handleRTH, handleDroneCommand, droneFlightState,
@@ -66,13 +68,14 @@ const GCSLeftPanel = ({
   }, [droneMode, isVideoConnected, liveStreamUrl]);
 
   // Reusable panel header
-  const PanelHeader = ({ icon: Icon, title, color, minimized, onToggle, onPopout }) => (
+  const PanelHeader = ({ icon: Icon, title, color, minimized, onToggle, onPopout, extraAction }) => (
     <div className="h-8 bg-slate-800 border-b border-slate-700 px-3 flex items-center justify-between shrink-0 select-none">
       <span className={`flex items-center gap-1.5 text-[11px] font-bold ${color ?? 'text-slate-300'}`}>
         <Icon className="w-3.5 h-3.5" />
         {title}
       </span>
       <div className="flex items-center gap-1">
+        {extraAction}
         {onPopout && (
           <button onClick={onPopout} className="p-0.5 text-slate-500 hover:text-slate-200 transition" title="Popout">
             <ExternalLink className="w-3 h-3" />
@@ -93,6 +96,17 @@ const GCSLeftPanel = ({
         <PanelHeader
           icon={Camera} title="LIVE CAMERA" color="text-rose-300"
           minimized={camMinimized} onToggle={() => setCamMinimized(v => !v)}
+          extraAction={
+            setIsPipVisible ? (
+              <button
+                onClick={() => setIsPipVisible(v => !v)}
+                title="Toggle PiP (Picture-in-Picture)"
+                className={`p-0.5 transition ${isPipVisible ? 'text-sky-400' : 'text-slate-500 hover:text-slate-200'}`}
+              >
+                <MonitorPlay className="w-3 h-3" />
+              </button>
+            ) : null
+          }
         />
 
         {!camMinimized && (

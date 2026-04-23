@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Battery, Signal, Wifi, Navigation, Activity,
   Crosshair, Map as MapIcon, Power, Play, Square,
   Home, Settings, Camera, BarChart3, Trash2, Send, MapPin,
   CheckCircle2, AlertCircle, Save, TreeDeciduous, Lock, Unlock,
-  MousePointerClick, TableProperties, Minus, Maximize2, Minimize2, X, Clock, Compass, GaugeCircle, Archive, Database, Edit, ChevronDown, Radio, Video, Bot, SendHorizontal, Loader2, ListTree, CheckSquare, Download, Plane, Cpu, MonitorPlay, Moon, Sun, Palette, FileText, ClipboardList, TrendingUp, PieChart, LayoutDashboard
+  MousePointerClick, TableProperties, Minus, Maximize2, Minimize2, X, Clock, Compass, GaugeCircle, Archive, Database, Edit, ChevronDown, Radio, Video, Bot, SendHorizontal, Loader2, ListTree, CheckSquare, Download, Plane, Cpu, MonitorPlay, Moon, Sun, Palette, FileText, ClipboardList, TrendingUp, PieChart, LayoutDashboard, AlertTriangle
 } from 'lucide-react';
 
 import { homeWP, BASE_LAT, BASE_LON, METER_TO_DEG } from './utils/gcsConstants';
@@ -33,6 +33,21 @@ const AppGCS = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const t = (darkClass, lightClass) => lightClass; // always light mode
   const toggleFullScreen = () => setIsFullscreen(!isFullscreen);
+
+  // PiP Camera floating state
+  const [isPipVisible, setIsPipVisible] = useState(false);
+  const [pipPos, setPipPos] = useState({ x: 16, y: 16 });
+  const pipDragRef = useRef(null);
+  const pipRef = useRef(null);
+  const handlePipMouseDown = useCallback((e) => {
+    e.preventDefault();
+    const startX = e.clientX - pipPos.x;
+    const startY = e.clientY - pipPos.y;
+    const onMove = (me) => setPipPos({ x: me.clientX - startX, y: me.clientY - startY });
+    const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [pipPos]);
 
   // Popup notifikasi error
   const [alertPopup, setAlertPopup] = useState(null);
@@ -882,7 +897,40 @@ const AppGCS = () => {
       />
 
       {/* ======== MAIN CONTENT — 3-COLUMN LAYOUT ======== */}
-      <main className="flex-1 flex overflow-hidden p-2 gap-2 bg-slate-100">
+      <main className="flex-1 flex overflow-hidden p-2 gap-2 bg-slate-100 relative">
+
+        {/* PiP FLOATING CAMERA WINDOW (5.2.5) */}
+        {isPipVisible && isVideoConnected && (
+          <div
+            ref={pipRef}
+            className="absolute z-30 rounded-xl overflow-hidden shadow-2xl border border-slate-600 bg-black"
+            style={{ left: pipPos.x, top: pipPos.y, width: '240px' }}
+          >
+            <div
+              onMouseDown={handlePipMouseDown}
+              className="h-7 bg-slate-800 flex items-center justify-between px-2 cursor-grab active:cursor-grabbing select-none"
+            >
+              <span className="text-[9px] font-bold text-slate-300 flex items-center gap-1.5">
+                <Camera className="w-3 h-3 text-rose-400" /> PiP — LIVE CAM
+              </span>
+              <button onClick={() => setIsPipVisible(false)} className="text-slate-500 hover:text-white transition">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="relative bg-black" style={{ aspectRatio: '16/9' }}>
+              <div className="absolute top-1 left-1 bg-black/70 px-1 rounded text-[7px] text-rose-400 font-bold z-10 flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" /> REC
+              </div>
+              {droneMode === 'simulasi' && webcamStream ? (
+                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover opacity-90" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-slate-500 text-[9px] font-mono">NO SIGNAL</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* LEFT SIDEBAR */}
         <GCSLeftPanel
@@ -906,6 +954,8 @@ const AppGCS = () => {
           targetAltitude={targetAltitude}
           radarLeft={radarLeft}
           radarTop={radarTop}
+          isPipVisible={isPipVisible}
+          setIsPipVisible={setIsPipVisible}
           t={t}
         />
 
@@ -978,6 +1028,62 @@ const AppGCS = () => {
           topCockpitPanel={null}
         />
       </main>
+
+      {/* ======== BOTTOM STATUS BAR (5.2.7) ======== */}
+      <div className="h-8 shrink-0 bg-slate-900 border-t border-slate-700 flex items-center px-4 gap-6 text-[10px] font-mono text-slate-400">
+        {/* Left: Flight data */}
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3 h-3 text-amber-400" />
+            <span className="text-slate-500">FLIGHT TIME</span>
+            <span className={`font-bold ${flightStatusUI !== 'STANDBY' ? 'text-amber-400' : 'text-slate-500'}`}>
+              {formatTime ? formatTime(flightTime) : '0m 0s'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Activity className="w-3 h-3 text-sky-400" />
+            <span className="text-slate-500">SCANNED</span>
+            <span className={`font-bold ${scannedTrees > 0 ? 'text-sky-400' : 'text-slate-500'}`}>
+              {scannedTrees} / {baseTotalSample}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Navigation className="w-3 h-3 text-emerald-400" />
+            <span className="text-slate-500">MODE</span>
+            <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${
+              flightStatusUI === 'STANDBY'  ? 'text-slate-400' :
+              flightStatusUI === 'TAKEOFF'  ? 'text-sky-400 animate-pulse' :
+              flightStatusUI === 'AUTO'     ? 'text-emerald-400 animate-pulse' :
+              flightStatusUI === 'RTL'      ? 'text-amber-400 animate-pulse' :
+              flightStatusUI === 'LANDING'  ? 'text-rose-400 animate-pulse' : 'text-slate-400'
+            }`}>
+              {flightStatusUI}
+            </span>
+          </div>
+        </div>
+        {/* Separator */}
+        <div className="h-4 w-px bg-slate-700" />
+        {/* Telemetry */}
+        <div className="flex items-center gap-4 text-[9px]">
+          <span>ALT <span className="text-emerald-400 font-bold">{telemetry.alt?.toFixed(1) ?? '--'}m</span></span>
+          <span>SPD <span className="text-sky-400 font-bold">{telemetry.speed?.toFixed(1) ?? '--'}m/s</span></span>
+          <span>BAT <span className={`font-bold ${(telemetry.bat ?? 100) > 30 ? 'text-emerald-400' : 'text-rose-400'}`}>{Math.floor(telemetry.bat ?? 0)}%</span></span>
+          <span>YAW <span className="text-slate-300 font-bold">{Math.floor(telemetry.yaw ?? 0)}°</span></span>
+        </div>
+        {/* Separator */}
+        <div className="h-4 w-px bg-slate-700" />
+        {/* Right: System status */}
+        <div className="ml-auto flex items-center gap-4 text-[9px]">
+          {cockpitWarning && (
+            <span className="text-amber-400 font-bold animate-pulse flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> {cockpitWarning}
+            </span>
+          )}
+          <span className="text-slate-600">LAT <span className="text-slate-400">{(telemetry.lat ?? 0).toFixed(5)}</span></span>
+          <span className="text-slate-600">LON <span className="text-slate-400">{(telemetry.lon ?? 0).toFixed(5)}</span></span>
+          <span className="text-slate-700 tracking-wider">// AGRISENSE GROUND CONTROL</span>
+        </div>
+      </div>
 
       {/* ======== MODAL SETTINGS ======== */}
       <GCSSettingsModal
