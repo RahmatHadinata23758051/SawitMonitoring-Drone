@@ -27,30 +27,10 @@
                     ['key' => 'gz', 'label' => 'gz', 'numeric' => true],
                 ],
             ],
-            [
-                'title' => 'Velocity',
-                'header_class' => 'bg-violet-100 text-violet-700 border-violet-200',
-                'columns' => [
-                    ['key' => 'vx', 'label' => 'vx', 'numeric' => true],
-                    ['key' => 'vy', 'label' => 'vy', 'numeric' => true],
-                    ['key' => 'vz', 'label' => 'vz', 'numeric' => true],
-                ],
-            ],
-            [
-                'title' => 'Distance',
-                'header_class' => 'bg-amber-100 text-amber-700 border-amber-200',
-                'columns' => [
-                    ['key' => 'dist_front', 'label' => 'front', 'numeric' => true],
-                    ['key' => 'dist_left', 'label' => 'left', 'numeric' => true],
-                    ['key' => 'dist_right', 'label' => 'right', 'numeric' => true],
-                    ['key' => 'dist_back', 'label' => 'back', 'numeric' => true],
-                ],
-            ],
+
         ];
 
-        $tailColumns = [
-            ['key' => 'obstacle_status', 'label' => 'obstacle_status'],
-        ];
+        $tailColumns = [];
 
         $columns = $primaryColumns;
         foreach ($groupedColumns as $group) {
@@ -88,47 +68,51 @@
         </h2>
     </x-slot>
 
-    <div class="pt-2 pb-12">
-        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex flex-col gap-4">
-            <a href="{{ route('drone-dataset.create') }}"
-                class="bg-primary text-white w-auto ms-auto rounded-lg py-2 px-3 flex justify-between items-center gap-2">
-                <i class="fa-solid fa-circle-plus"></i>
-                Tambah Dataset
-            </a>
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-slate-200">
-                <div class="px-4 pt-4 pb-2 border-b border-slate-100">
-                    <p class="text-sm text-slate-500">
-                        Payload ditampilkan per grup sensor agar kolom lebih mudah dibaca saat data makin panjang.
-                    </p>
+    <div class="pt-4 pb-12">
+        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-10 flex flex-col gap-5">
+
+            {{-- Header Row --}}
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800">Dataset Drone</h1>
+                    <p class="text-sm text-slate-500 mt-0.5">Data sensor IMU drone (Accelerometer & Gyroscope)</p>
                 </div>
+                <a href="{{ route('drone-dataset.create') }}"
+                    class="bg-primary text-white rounded-xl py-2.5 px-5 flex items-center gap-2 text-sm font-semibold shadow hover:opacity-90 transition">
+                    <i class="fa-solid fa-circle-plus"></i>
+                    Tambah Dataset
+                </a>
+            </div>
+            {{-- Table Card --}}
+            <div class="bg-white overflow-hidden shadow-md rounded-2xl border border-slate-200">
                 <div class="overflow-x-auto">
-                    <table class="w-full min-w-[1650px] align-middle table mb-0 text-sm whitespace-nowrap" id="drone-dataset-table">
+                    <table class="w-full align-middle table mb-0 text-sm" id="drone-dataset-table">
                         <thead>
-                            <tr class="text-[11px] uppercase tracking-[0.18em]">
-                                <th rowspan="2" class="dt-center bg-slate-800 text-white border border-slate-700">No</th>
+                            <tr class="text-xs uppercase tracking-widest">
+                                <th rowspan="2" class="dt-center bg-slate-800 text-white border border-slate-700 px-4 py-3">No</th>
                                 @foreach ($primaryColumns as $column)
-                                    <th rowspan="2" class="dt-center bg-slate-800 text-white border border-slate-700">
-                                        {{ $column['label'] }}
+                                    <th rowspan="2" class="dt-center bg-slate-800 text-white border border-slate-700 px-4 py-3">
+                                        {{ strtoupper($column['label']) }}
                                     </th>
                                 @endforeach
                                 @foreach ($groupedColumns as $group)
                                     <th colspan="{{ count($group['columns']) }}"
-                                        class="dt-center border font-semibold {{ $group['header_class'] }}">
+                                        class="dt-center border font-bold text-sm py-3 {{ $group['header_class'] }}">
                                         {{ $group['title'] }}
                                     </th>
                                 @endforeach
                                 @foreach ($tailColumns as $column)
-                                    <th rowspan="2" class="dt-center bg-slate-800 text-white border border-slate-700">
-                                        {{ $column['label'] }}
+                                    <th rowspan="2" class="dt-center bg-slate-800 text-white border border-slate-700 px-4 py-3">
+                                        {{ strtoupper($column['label']) }}
                                     </th>
                                 @endforeach
-                                <th rowspan="2" class="dt-center bg-slate-800 text-white border border-slate-700">Aksi</th>
+                                <th rowspan="2" class="dt-center bg-slate-800 text-white border border-slate-700 px-4 py-3">AKSI</th>
                             </tr>
-                            <tr class="text-[11px] uppercase tracking-[0.18em]">
+                            <tr class="text-xs uppercase tracking-widest">
                                 @foreach ($groupedColumns as $group)
                                     @foreach ($group['columns'] as $column)
-                                        <th class="dt-center bg-slate-50 text-slate-600 border border-slate-200">
-                                            {{ $column['label'] }}
+                                        <th class="dt-center bg-slate-50 text-slate-600 border border-slate-200 px-3 py-2">
+                                            {{ strtoupper($column['label']) }}
                                         </th>
                                     @endforeach
                                 @endforeach
@@ -136,7 +120,7 @@
                         </thead>
                         <tbody class="table-border-bottom-0" id="kebun-tbody">
                             @foreach ($dataset as $item)
-                                <tr class="even:bg-slate-50/70 hover:bg-sky-50/50 transition-colors">
+                                <tr class="even:bg-slate-50/70 hover:bg-sky-50/50 transition-colors text-sm">
                                     <td class="font-medium text-slate-500">{{ $loop->iteration }}</td>
                                     @foreach ($columns as $column)
                                         @php
