@@ -609,8 +609,32 @@ const AppGCS = () => {
 
         const newLat = BASE_LAT - (newY * METER_TO_DEG); const newLon = BASE_LON + (newX * METER_TO_DEG);
         const timestamp = new Date().toLocaleTimeString();
-        const newTelem = { x: newX, y: newY, alt: newAlt, speed: newSpeed, pitch: newPitch, roll: newRoll, yaw: newYaw, bat: newBat, lat: newLat, lon: newLon, mode: curMode, subState: autoSubStateRef.current, timestamp };
-        if (tickCountRef.current % 5 === 0) setTelemetryHistory(h => [newTelem, ...h].slice(0, 100));
+        
+        // Pseudo IMU Generation untuk keperluan visual log (sebelum data asli masuk dari HW)
+        const ax = newPitch * 1.5; 
+        const ay = newRoll * 1.5; 
+        const az = 9.81 + ((newAlt - prev.alt) * 5);
+        const gx = (newPitch - prev.pitch) * 2; 
+        const gy = (newRoll - prev.roll) * 2; 
+        const gz = (newYaw - prev.yaw) * 2;
+
+        const newTelem = { 
+          x: newX, y: newY, alt: newAlt, speed: newSpeed, pitch: newPitch, roll: newRoll, yaw: newYaw, bat: newBat, lat: newLat, lon: newLon, mode: curMode, subState: autoSubStateRef.current, timestamp,
+          ax, ay, az, gx, gy, gz
+        };
+        
+        // TASK 4.2: Temporary Logger - Hanya catat jika ada perpindahan >1 meter atau ganti mode
+        setTelemetryHistory(h => {
+          if (flightStatusRef.current === 'STANDBY') return h; // Jangan rekam terus menerus saat standby
+          if (h.length === 0) return [newTelem];
+          const last = h[0];
+          const distMoved = Math.sqrt(Math.pow(newX - last.x, 2) + Math.pow(newY - last.y, 2));
+          if (curMode !== last.mode || distMoved > 1.0) {
+            return [newTelem, ...h].slice(0, 300); // Batasi max 300 record per penerbangan
+          }
+          return h;
+        });
+
         return newTelem;
       });
 
