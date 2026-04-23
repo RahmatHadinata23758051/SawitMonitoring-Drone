@@ -408,8 +408,21 @@ const AppGCS = () => {
         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
         body: JSON.stringify({ command }),
       });
-      await res.json();
+      const data = await res.json();
+      // Drone server offline → status: 'offline'
+      if (data?.status === 'offline') {
+        setCockpitWarning('⚠️ Drone server offline! Perintah tidak terkirim.');
+        setTimeout(() => setCockpitWarning(''), 4000);
+        return;
+      }
+      if (data?.status === 'error') {
+        setCockpitWarning('⚠️ ' + (data.message ?? 'Drone error'));
+        setTimeout(() => setCockpitWarning(''), 4000);
+        return;
+      }
+      // Success
       if (command === 'arm') setDroneFlightState('FLYING');
+
       if (['land', 'disarm', 'emergency'].includes(command)) setDroneFlightState('DISARMED');
     } catch (err) {
       setCockpitWarning('Gagal kirim perintah ke drone!');
