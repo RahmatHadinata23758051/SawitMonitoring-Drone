@@ -329,15 +329,18 @@
     </div>
 
     {{-- ===== MODAL DETAIL ===== --}}
-    <div id="modal-detail" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+    <div id="modal-detail" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
             {{-- Modal Header --}}
-            <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-                        <i class="fa-solid fa-info-circle text-emerald-600"></i>
+                        <i class="fa-solid fa-plane text-emerald-600"></i>
                     </div>
-                    <h3 class="font-bold text-slate-800 text-base">Detail Log Penerbangan</h3>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base">Detail Log Penerbangan</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Ringkasan misi & raw telemetry sensor IMU + GPS</p>
+                    </div>
                 </div>
                 <button onclick="closeModal()"
                     class="w-8 h-8 rounded-lg bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition flex items-center justify-center">
@@ -345,11 +348,11 @@
                 </button>
             </div>
             {{-- Modal Body --}}
-            <div class="px-6 py-5" id="modal-body">
+            <div class="px-6 py-5 overflow-y-auto flex-1" id="modal-body">
                 {{-- filled by JS --}}
             </div>
             {{-- Modal Footer --}}
-            <div class="px-6 py-4 border-t border-slate-100 flex justify-end">
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end shrink-0">
                 <button onclick="closeModal()"
                     class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl transition font-semibold">
                     Tutup
@@ -363,6 +366,9 @@
             function fmtTime(s) {
                 return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
             }
+            function fmt(val, dec = 3) {
+                return val !== null && val !== undefined ? parseFloat(val).toFixed(dec) : '-';
+            }
 
             async function showDetail(logCode, name, algo, scan, samples, matang, belum, flightSec, acc, date) {
                 const algoLabel = {
@@ -371,60 +377,65 @@
                     hybrid: 'Hybrid'
                 }[algo] || algo;
                 const scanLabel = scan === 'qlv' ? 'QLV (Quick Look Vision)' : 'Traditional Scan';
-                const accColor = acc >= 95 ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50';
+                const accColor = acc >= 95 ? 'text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200' : 'text-amber-700 bg-amber-50 ring-1 ring-amber-200';
 
-                // Tampilkan info umum dulu + area loading telemetri
                 document.getElementById('modal-body').innerHTML = `
-                    <div class="grid grid-cols-2 gap-4 text-sm mb-6">
-                        <div class="col-span-2">
-                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Kode Log</div>
-                            <div class="font-mono font-bold text-slate-800 bg-slate-100 rounded-xl px-3 py-2 text-sm">${logCode}</div>
+                    {{-- Ringkasan 4 kolom --}}
+                    <div class="grid grid-cols-4 gap-3 mb-5">
+                        <div class="col-span-4 bg-slate-50 rounded-xl px-4 py-3 flex items-center justify-between">
+                            <div>
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Kode Log</div>
+                                <div class="font-mono font-bold text-slate-800 text-sm">${logCode}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Tanggal Dicatat</div>
+                                <div class="text-slate-700 font-medium text-sm">${date}</div>
+                            </div>
                         </div>
                         <div class="col-span-2">
-                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Nama Misi</div>
-                            <div class="font-bold text-slate-800 text-base">${name}</div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nama Misi</div>
+                            <div class="font-bold text-slate-800">${name}</div>
                         </div>
                         <div>
-                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Algoritma</div>
-                            <div class="font-semibold text-slate-700">${algoLabel}</div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Algoritma</div>
+                            <div class="font-semibold text-slate-700 text-sm">${algoLabel}</div>
                         </div>
                         <div>
-                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Mode Scan</div>
-                            <div class="font-semibold text-slate-700">${scanLabel}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Waktu Terbang</div>
-                            <div class="font-bold text-sky-700 text-lg">${fmtTime(flightSec)}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Sampel</div>
-                            <div class="font-black text-slate-800 text-2xl">${samples} <span class="text-sm font-normal text-slate-400">pohon</span></div>
-                        </div>
-                        <div class="bg-orange-50 rounded-xl p-3">
-                            <div class="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-1">🟠 Matang</div>
-                            <div class="font-black text-orange-600 text-2xl">${matang} <span class="text-sm font-normal text-orange-300">pohon</span></div>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3">
-                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">⚫ Mentah</div>
-                            <div class="font-black text-slate-600 text-2xl">${belum} <span class="text-sm font-normal text-slate-300">pohon</span></div>
-                        </div>
-                        <div class="col-span-2">
-                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Akurasi AI</div>
-                            <div class="font-black text-3xl px-3 py-1 rounded-xl inline-block ${accColor}">${parseFloat(acc).toFixed(1)}%</div>
-                        </div>
-                        <div class="col-span-2">
-                            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Tanggal Dicatat</div>
-                            <div class="text-slate-700 font-medium">${date}</div>
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Mode Scan</div>
+                            <div class="font-semibold text-slate-700 text-sm">${scanLabel}</div>
                         </div>
                     </div>
-                    
-                    <div class="border-t border-slate-100 pt-4">
-                        <div class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-satellite-dish text-emerald-500"></i> Detail Raw Telemetry (IMU & GPS)
+
+                    {{-- Stats bar --}}
+                    <div class="grid grid-cols-4 gap-3 mb-5">
+                        <div class="bg-sky-50 rounded-xl p-3 text-center border border-sky-100">
+                            <div class="text-[10px] font-bold text-sky-500 uppercase tracking-wider mb-1">Waktu Terbang</div>
+                            <div class="font-black text-sky-700 text-xl">${fmtTime(flightSec)}</div>
                         </div>
-                        <div id="telemetry-container" class="bg-slate-50 rounded-xl p-4 text-center">
+                        <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Sampel</div>
+                            <div class="font-black text-slate-800 text-xl">${samples} <span class="text-xs font-normal text-slate-400">pohon</span></div>
+                        </div>
+                        <div class="bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
+                            <div class="text-[10px] font-bold text-orange-400 uppercase tracking-wider mb-1">🟠 Matang</div>
+                            <div class="font-black text-orange-600 text-xl">${matang} <span class="text-xs font-normal text-orange-300">pohon</span></div>
+                        </div>
+                        <div class="rounded-xl p-3 text-center border ${accColor}">
+                            <div class="text-[10px] font-bold uppercase tracking-wider mb-1">Akurasi AI</div>
+                            <div class="font-black text-2xl">${parseFloat(acc).toFixed(1)}%</div>
+                        </div>
+                    </div>
+
+                    {{-- Telemetry table --}}
+                    <div class="border-t border-slate-100 pt-4">
+                        <div class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <i class="fa-solid fa-satellite-dish text-emerald-500"></i>
+                            Raw Telemetry — IMU &amp; GPS
+                            <span class="ml-auto text-[10px] font-normal text-slate-400 normal-case tracking-normal">ax/ay/az = Accelerometer (m/s²) &nbsp;|&nbsp; gx/gy/gz = Gyroscope (deg/s)</span>
+                        </div>
+                        <div id="telemetry-container" class="bg-slate-50 rounded-xl p-6 text-center">
                             <i class="fa-solid fa-spinner fa-spin text-slate-400 text-2xl mb-2"></i>
-                            <p class="text-xs text-slate-500">Memuat data sensor penerbangan...</p>
+                            <p class="text-xs text-slate-500 mt-2">Memuat data sensor penerbangan...</p>
                         </div>
                     </div>
                 `;
@@ -434,53 +445,91 @@
                 try {
                     const response = await fetch('/api/flight-logs/' + logCode + '/details');
                     const json = await response.json();
-                    
+
                     if (json.status && json.data.length > 0) {
-                        let rows = json.data.map(d => {
-                            const lat = d.lat ? parseFloat(d.lat).toFixed(6) : '-';
-                            const lon = d.lon ? parseFloat(d.lon).toFixed(6) : '-';
-                            const alt = d.alt ? parseFloat(d.alt).toFixed(1) + 'm' : '-';
+                        let rows = json.data.map((d, i) => {
+                            const lat = fmt(d.lat, 6);
+                            const lon = fmt(d.lon, 6);
+                            const alt = d.alt ? fmt(d.alt, 1) + 'm' : '-';
+                            const ax  = fmt(d.ax);
+                            const ay  = fmt(d.ay);
+                            const az  = fmt(d.az);
+                            const gx  = fmt(d.gx);
+                            const gy  = fmt(d.gy);
+                            const gz  = fmt(d.gz);
+                            const rowBg = i % 2 === 0 ? 'bg-white' : 'bg-slate-50/60';
                             return `
-                                <tr class="hover:bg-slate-50 transition">
-                                    <td class="px-3 py-2 text-xs font-mono text-slate-500 whitespace-nowrap">${d.timestamp || '-'}</td>
-                                    <td class="px-3 py-2 text-xs font-semibold text-slate-700">${d.mode || '-'} <span class="text-slate-400 font-normal">/ ${d.sub_state || '-'}</span></td>
-                                    <td class="px-3 py-2 text-xs font-mono text-slate-600 text-right">${lat}, ${lon}</td>
-                                    <td class="px-3 py-2 text-xs font-mono text-slate-600 text-right">${alt}</td>
+                                <tr class="${rowBg} hover:bg-emerald-50/40 transition">
+                                    <td class="px-3 py-2 text-[11px] font-mono text-slate-400 whitespace-nowrap">${d.timestamp || '-'}</td>
+                                    <td class="px-3 py-2 text-center">
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${d.mode === 'AUTO' ? 'bg-emerald-100 text-emerald-700' : d.mode === 'RTL' ? 'bg-amber-100 text-amber-700' : d.mode === 'LANDING' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}">${d.mode || '-'}</span>
+                                        <div class="text-[9px] text-slate-400 mt-0.5">${d.sub_state || '-'}</div>
+                                    </td>
+                                    <td class="px-3 py-2 text-[11px] font-mono text-blue-700 text-right whitespace-nowrap">${lat}</td>
+                                    <td class="px-3 py-2 text-[11px] font-mono text-blue-700 text-right whitespace-nowrap">${lon}</td>
+                                    <td class="px-3 py-2 text-[11px] font-mono text-sky-700 font-bold text-right">${alt}</td>
+                                    <td class="px-3 py-2 text-[11px] font-mono text-indigo-600 text-right">${ax}</td>
+                                    <td class="px-3 py-2 text-[11px] font-mono text-indigo-600 text-right">${ay}</td>
+                                    <td class="px-3 py-2 text-[11px] font-mono text-indigo-600 text-right">${az}</td>
+                                    <td class="px-3 py-2 text-[11px] font-mono text-violet-600 text-right">${gx}</td>
+                                    <td class="px-3 py-2 text-[11px] font-mono text-violet-600 text-right">${gy}</td>
+                                    <td class="px-3 py-2 text-[11px] font-mono text-violet-600 text-right">${gz}</td>
                                 </tr>
                             `;
                         }).join('');
 
                         document.getElementById('telemetry-container').outerHTML = `
-                            <div class="border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
-                                <table class="w-full text-left">
-                                    <thead class="bg-slate-100 text-[10px] uppercase font-bold text-slate-500 sticky top-0">
-                                        <tr>
-                                            <th class="px-3 py-2">Waktu</th>
-                                            <th class="px-3 py-2">State</th>
-                                            <th class="px-3 py-2 text-right">GPS (Lat, Lon)</th>
-                                            <th class="px-3 py-2 text-right">Alt</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-100 bg-white">
-                                        ${rows}
-                                    </tbody>
-                                </table>
+                            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                                <div class="overflow-x-auto overflow-y-auto max-h-56">
+                                    <table class="w-full text-left min-w-[860px]">
+                                        <thead class="bg-slate-800 text-white text-[10px] uppercase font-bold sticky top-0 z-10">
+                                            <tr>
+                                                <th class="px-3 py-2.5 whitespace-nowrap">Waktu</th>
+                                                <th class="px-3 py-2.5 text-center">State / Mode</th>
+                                                <th class="px-3 py-2.5 text-right text-blue-300">Lat</th>
+                                                <th class="px-3 py-2.5 text-right text-blue-300">Lon</th>
+                                                <th class="px-3 py-2.5 text-right text-sky-300">Alt</th>
+                                                <th class="px-3 py-2.5 text-right text-indigo-300">ax</th>
+                                                <th class="px-3 py-2.5 text-right text-indigo-300">ay</th>
+                                                <th class="px-3 py-2.5 text-right text-indigo-300">az</th>
+                                                <th class="px-3 py-2.5 text-right text-violet-300">gx</th>
+                                                <th class="px-3 py-2.5 text-right text-violet-300">gy</th>
+                                                <th class="px-3 py-2.5 text-right text-violet-300">gz</th>
+                                            </tr>
+                                            <tr class="bg-slate-700 text-[9px] text-slate-400 font-normal">
+                                                <td colspan="2"></td>
+                                                <td class="px-3 py-1 text-right text-blue-400" colspan="3">GPS Position</td>
+                                                <td class="px-3 py-1 text-right text-indigo-400" colspan="3">Accelerometer (m/s²)</td>
+                                                <td class="px-3 py-1 text-right text-violet-400" colspan="3">Gyroscope (°/s)</td>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            ${rows}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="bg-slate-50 px-4 py-2 border-t border-slate-100 text-[10px] text-slate-400 flex items-center justify-between">
+                                    <span><i class="fa-solid fa-circle-info mr-1"></i>${json.data.length} data point tercatat selama penerbangan ini</span>
+                                    <span class="text-slate-300">Scroll horizontal untuk lihat semua kolom →</span>
+                                </div>
                             </div>
                         `;
                     } else {
                         document.getElementById('telemetry-container').innerHTML = `
-                            <div class="flex flex-col items-center gap-2 py-4">
-                                <i class="fa-solid fa-box-open text-slate-300 text-2xl"></i>
-                                <p class="text-xs text-slate-400">Log penerbangan ini tidak memiliki data raw telemetri.</p>
+                            <div class="flex flex-col items-center gap-2 py-6">
+                                <i class="fa-solid fa-box-open text-slate-300 text-3xl"></i>
+                                <p class="text-sm font-semibold text-slate-500 mt-1">Tidak ada data raw telemetri</p>
+                                <p class="text-xs text-slate-400">Log penerbangan ini dibuat sebelum fitur telemetri diaktifkan.</p>
                             </div>
                         `;
                     }
                 } catch (error) {
                     console.error('Error fetching telemetry details:', error);
                     document.getElementById('telemetry-container').innerHTML = `
-                        <div class="flex flex-col items-center gap-2 py-4 text-red-500">
-                            <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
-                            <p class="text-xs">Gagal memuat data telemetri. Coba lagi nanti.</p>
+                        <div class="flex flex-col items-center gap-2 py-6 text-red-500">
+                            <i class="fa-solid fa-triangle-exclamation text-3xl"></i>
+                            <p class="text-sm font-semibold mt-1">Gagal memuat data telemetri</p>
+                            <p class="text-xs text-red-400">Coba tutup dan buka kembali detail ini.</p>
                         </div>
                     `;
                 }

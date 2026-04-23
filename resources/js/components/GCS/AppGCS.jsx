@@ -213,9 +213,35 @@ const AppGCS = () => {
   useEffect(() => { if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' }); }, [aiHistory]);
   useEffect(() => {
     if (isVideoConnected && (droneMode === 'simulasi' || videoProtocol === 'dummy')) {
+      // getUserMedia hanya bisa berjalan di HTTPS atau localhost
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const isHttps = window.location.protocol === 'https:';
+        if (!isLocalhost && !isHttps) {
+          setAlertPopup({
+            title: 'Akses Kamera Diblokir Browser',
+            message: `Fitur webcam memerlukan koneksi HTTPS atau localhost. Saat ini Anda mengakses via: ${window.location.origin}. Gunakan http://localhost:8000 atau aktifkan HTTPS.`,
+          });
+        } else {
+          setAlertPopup({ title: 'Webcam Tidak Didukung', message: 'Browser ini tidak mendukung akses kamera (getUserMedia).' });
+        }
+        setIsVideoConnected(false);
+        return;
+      }
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(s => setWebcamStream(s))
-        .catch(() => { setAlertPopup({ title: 'Webcam Tidak Terdeteksi', message: 'Gagal mengakses webcam laptop. Pastikan izin kamera diizinkan di browser.' }); setIsVideoConnected(false); });
+        .catch((err) => {
+          let msg = 'Gagal mengakses kamera laptop.';
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            msg = 'Izin kamera ditolak. Klik ikon kunci/kamera di address bar browser, lalu izinkan akses kamera.';
+          } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+            msg = 'Tidak ada kamera yang terdeteksi di perangkat ini.';
+          } else if (err.name === 'NotReadableError') {
+            msg = 'Kamera sedang digunakan oleh aplikasi lain.';
+          }
+          setAlertPopup({ title: 'Webcam Gagal Aktif', message: msg });
+          setIsVideoConnected(false);
+        });
     }
     if (!isVideoConnected && webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); }
   }, [droneMode, isVideoConnected, videoProtocol]);
