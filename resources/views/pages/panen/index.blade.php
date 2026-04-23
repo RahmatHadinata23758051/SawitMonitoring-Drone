@@ -8,72 +8,81 @@
         </h2>
     </x-slot>
 
-    <div class="pt-4 pb-12">
-        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-10 flex flex-col gap-5">
-            <div class="flex items-center justify-between">
+    <div class="pt-6 pb-12">
+        <div class="max-w-full mx-auto px-6 lg:px-10 flex flex-col gap-6">
+
+            <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-basket-shopping text-primary"></i> Manajemen Panen
-                    </h1>
-                    <p class="text-sm text-slate-500 mt-0.5">Riwayat dan target panen perkebunan sawit</p>
+                    <h1 class="text-2xl font-black text-slate-800">Manajemen Panen</h1>
+                    <p class="text-sm text-slate-500 mt-1">Riwayat dan target panen perkebunan sawit</p>
                 </div>
-                <a href="{{ route('panen.create') }}" class="bg-primary text-white rounded-xl py-2.5 px-5 flex items-center gap-2 text-sm font-semibold shadow hover:opacity-90 transition">
-                    <i class="fa-solid fa-circle-plus"></i> Tambah Panen
-                </a>
+                <div class="flex items-center gap-3 shrink-0">
+                    <div class="relative">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="search-panen" placeholder="Cari panen..."
+                            class="pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-56 transition">
+                    </div>
+                    <a href="{{ route('panen.create') }}"
+                        class="inline-flex items-center gap-2 bg-primary text-white rounded-xl py-2 px-4 text-sm font-semibold hover:opacity-90 transition shadow-sm">
+                        <i class="fa-solid fa-plus"></i> Tambah Panen
+                    </a>
+                </div>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-slate-100">
-                <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <i class="fa-solid fa-clipboard-list text-primary text-sm"></i>
-                    </div>
-                    <h3 class="font-bold text-slate-800">Daftar Panen</h3>
-                </div>
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                 <div class="overflow-x-auto">
-                    <table class="w-full align-middle table mb-0 text-sm" id="panen-table">
+                    <table class="w-full text-sm" id="panen-table">
                         <thead>
-                            <tr class="text-xs uppercase tracking-widest text-slate-500 bg-slate-50 border-b border-slate-200">
-                                <th class="dt-center px-4 py-3 font-semibold">No</th>
-                                <th class="dt-center px-4 py-3 font-semibold">Tanggal Panen</th>
-                                <th class="dt-center px-4 py-3 font-semibold">Kebun</th>
-                                <th class="dt-center px-4 py-3 font-semibold">Target (kg)</th>
-                                <th class="dt-center px-4 py-3 font-semibold">Hasil (kg)</th>
-                                <th class="dt-center px-4 py-3 font-semibold">Aksi</th>
+                            <tr class="border-b border-slate-200 bg-slate-50/80">
+                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Tanggal Panen</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Kebun</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Target (kg)</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Hasil (kg)</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Pencapaian</th>
+                                <th class="text-right px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100" id="panen-tbody">
-                            @foreach ($panen as $item)
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse ($panen as $item)
                                 @php $pct = $item->target_panen > 0 ? round(($item->hasil_panen / $item->target_panen) * 100) : 0; @endphp
-                                <tr class="hover:bg-slate-50/70 transition-colors">
-                                    <td class="px-4 py-3 text-center text-slate-500 font-medium">{{ $loop->iteration }}</td>
-                                    <td class="px-4 py-3 text-center whitespace-nowrap font-semibold text-slate-700">
+                                <tr class="hover:bg-slate-50/60 transition-colors">
+                                    <td class="px-5 py-4 font-semibold text-slate-800">
                                         {{ Carbon\Carbon::parse($item->tanggal_panen)->translatedFormat('d F Y') }}
                                     </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-lg font-semibold">{{ $item->kebun->nama }}</span>
+                                    <td class="px-5 py-4">
+                                        <span class="text-xs border border-emerald-300 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">{{ $item->kebun->nama }}</span>
                                     </td>
-                                    <td class="px-4 py-3 text-center font-mono font-bold text-slate-700">{{ number_format($item->target_panen) }}</td>
-                                    <td class="px-4 py-3 text-center">
-                                        <span class="font-mono font-bold {{ $pct >= 100 ? 'text-emerald-700' : ($pct >= 70 ? 'text-amber-700' : 'text-rose-700') }}">
-                                            {{ number_format($item->hasil_panen) }}
-                                        </span>
-                                        <div class="text-[10px] {{ $pct >= 100 ? 'text-emerald-500' : ($pct >= 70 ? 'text-amber-500' : 'text-rose-500') }}">{{ $pct }}%</div>
+                                    <td class="px-5 py-4 font-mono font-bold text-slate-700">{{ number_format($item->target_panen) }}</td>
+                                    <td class="px-5 py-4 font-mono font-bold {{ $pct >= 100 ? 'text-emerald-600' : ($pct >= 70 ? 'text-amber-600' : 'text-rose-600') }}">
+                                        {{ number_format($item->hasil_panen) }}
                                     </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex items-center justify-center gap-2">
-                                            <a href="{{ route('panen.edit', $item->id) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 transition hover:bg-amber-200">
-                                                <i class="fa fa-pen text-sm"></i>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="flex-1 max-w-[100px] bg-slate-100 rounded-full h-1.5">
+                                                <div class="h-1.5 rounded-full {{ $pct >= 100 ? 'bg-emerald-500' : ($pct >= 70 ? 'bg-amber-500' : 'bg-rose-500') }}" style="width: {{ min($pct, 100) }}%"></div>
+                                            </div>
+                                            <span class="text-xs font-bold {{ $pct >= 100 ? 'text-emerald-600' : ($pct >= 70 ? 'text-amber-600' : 'text-rose-600') }}">{{ $pct }}%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <a href="{{ route('panen.edit', $item->id) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500 text-white transition hover:bg-sky-600 shadow-sm">
+                                                <i class="fa fa-pen text-xs"></i>
                                             </a>
                                             <form action="{{ route('panen.destroy', $item->id) }}" method="POST" class="delete-form" data-tanggal="{{ $item->tanggal_panen }}">
                                                 @csrf @method('DELETE')
-                                                <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-600 transition hover:bg-rose-200">
-                                                    <i class="fa fa-trash text-sm"></i>
+                                                <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500 text-white transition hover:bg-rose-600 shadow-sm">
+                                                    <i class="fa fa-trash text-xs"></i>
                                                 </button>
                                             </form>
                                         </div>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr><td colspan="6" class="px-5 py-16 text-center text-slate-400">
+                                    <i class="fa-solid fa-basket-shopping text-4xl opacity-20 block mb-3"></i>Belum ada data panen
+                                </td></tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -82,11 +91,10 @@
     </div>
     @push('scripts')
         <script>
-            const timestamp = () => { const n = new Date(); return `${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}_${String(n.getHours()).padStart(2,'0')}${String(n.getMinutes()).padStart(2,'0')}${String(n.getSeconds()).padStart(2,'0')}`; }
             window.addEventListener('load', function() {
-                $(document).ready(function() {
-                    $('#panen-table').DataTable({ responsive: true, ordering: false, dom: '<"dt-toolbar flex justify-between items-center px-4 py-2 mb-2"Bf>rtp', buttons: [{ extend: 'excel', text: 'Export Excel', title: 'Data Panen', className: 'bg-green-500 text-white px-3 py-1 rounded', filename: () => `data_panen_${timestamp()}`, exportOptions: { columns: [0,1,2,3,4] } }], columnDefs: [{ className: "dt-center", targets: "_all" }], language: { emptyTable: "Tidak ada data panen", paginate: { previous: "<", next: ">" }, zeroRecords: "Data tidak ditemukan.", search: "" } });
-                    $('input.dt-input').attr('placeholder', 'Cari Panen...');
+                document.getElementById('search-panen').addEventListener('input', function() {
+                    const q = this.value.toLowerCase();
+                    document.querySelectorAll('#panen-table tbody tr').forEach(row => { row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none'; });
                 });
                 @if (session('success')) Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: '{{ session('success') }}', showConfirmButton: false, timer: 2500, timerProgressBar: true }); @endif
                 document.querySelectorAll('.delete-form').forEach(form => {

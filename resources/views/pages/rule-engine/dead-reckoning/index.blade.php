@@ -8,66 +8,68 @@
         </h2>
     </x-slot>
 
-    <div class="pt-4 pb-12">
-        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-10 flex flex-col gap-5">
-            <div class="flex items-center justify-between">
+    <div class="pt-6 pb-12">
+        <div class="max-w-full mx-auto px-6 lg:px-10 flex flex-col gap-6">
+            <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-route text-primary"></i> Rule Engine — Dead-Reckoning
-                    </h1>
-                    <p class="text-sm text-slate-500 mt-0.5">Aturan durasi navigasi otomatis drone berbasis waktu</p>
+                    <h1 class="text-2xl font-black text-slate-800">Rule Engine — Dead-Reckoning</h1>
+                    <p class="text-sm text-slate-500 mt-1">Aturan durasi navigasi otomatis drone berbasis waktu</p>
                 </div>
-                <a href="{{ route('dead-reckoning.create') }}" class="bg-primary text-white rounded-xl py-2.5 px-5 flex items-center gap-2 text-sm font-semibold shadow hover:opacity-90 transition">
-                    <i class="fa-solid fa-circle-plus"></i> Tambah Rule
-                </a>
+                <div class="flex items-center gap-3 shrink-0">
+                    <div class="relative">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="search-rule" placeholder="Cari rule..."
+                            class="pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-56 transition">
+                    </div>
+                    <a href="{{ route('dead-reckoning.create') }}"
+                        class="inline-flex items-center gap-2 bg-primary text-white rounded-xl py-2 px-4 text-sm font-semibold hover:opacity-90 transition shadow-sm">
+                        <i class="fa-solid fa-plus"></i> Tambah Rule
+                    </a>
+                </div>
             </div>
 
-            <div class="bg-white overflow-hidden shadow-sm rounded-2xl border border-slate-100">
-                <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <i class="fa-solid fa-gears text-primary text-sm"></i>
-                    </div>
-                    <h3 class="font-bold text-slate-800">Daftar Rule Dead-Reckoning</h3>
-                </div>
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                 <div class="overflow-x-auto">
-                    <table class="w-full align-middle table mb-0 text-sm" id="dead-reckoning-table">
+                    <table class="w-full text-sm" id="rule-table">
                         <thead>
-                            <tr class="text-xs uppercase tracking-widest text-slate-500 bg-slate-50 border-b border-slate-200">
-                                <th class="dt-center px-4 py-3 font-semibold">No</th>
-                                <th class="dt-center px-4 py-3 font-semibold">Aksi Drone</th>
-                                <th class="dt-center px-4 py-3 font-semibold">Durasi</th>
-                                <th class="dt-center px-4 py-3 font-semibold">Satuan Waktu</th>
-                                <th class="dt-center px-4 py-3 font-semibold">Aksi</th>
+                            <tr class="border-b border-slate-200 bg-slate-50/80">
+                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Aksi Drone</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Durasi</th>
+                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Satuan Waktu</th>
+                                <th class="text-right px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            @foreach ($rules as $rule)
-                                <tr class="hover:bg-slate-50/70 transition-colors">
-                                    <td class="px-4 py-3 text-center text-slate-500 font-medium">{{ $loop->iteration }}</td>
-                                    <td class="px-4 py-3 text-center">
-                                        <span class="text-xs bg-sky-50 text-sky-700 px-2.5 py-1 rounded-lg font-semibold ring-1 ring-sky-200">{{ $rule->drone_dataset->label }}</span>
+                            @forelse ($rules as $rule)
+                                <tr class="hover:bg-slate-50/60 transition-colors">
+                                    <td class="px-5 py-4">
+                                        <span class="font-mono font-bold text-primary text-sm">{{ $rule->drone_dataset->label }}</span>
                                     </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <span class="font-mono font-bold text-slate-800 text-base">{{ $rule->durasi }}</span>
+                                    <td class="px-5 py-4">
+                                        <span class="font-mono font-black text-slate-800 text-xl">{{ $rule->durasi }}</span>
                                     </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <span class="text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg font-medium">{{ $rule->satuan_waktu }}</span>
+                                    <td class="px-5 py-4">
+                                        <span class="text-xs border border-slate-300 text-slate-600 bg-slate-50 px-2.5 py-1 rounded-full font-medium">{{ $rule->satuan_waktu }}</span>
                                     </td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex items-center justify-center gap-2">
-                                            <a href="{{ route('dead-reckoning.edit', $rule->id) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600 transition hover:bg-amber-200">
-                                                <i class="fa fa-pen text-sm"></i>
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <a href="{{ route('dead-reckoning.edit', $rule->id) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500 text-white transition hover:bg-sky-600 shadow-sm">
+                                                <i class="fa fa-pen text-xs"></i>
                                             </a>
                                             <form action="{{ route('dead-reckoning.destroy', $rule->id) }}" method="POST" class="delete-form" data-id="{{ $rule->id }}">
                                                 @csrf @method('DELETE')
-                                                <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-600 transition hover:bg-rose-200">
-                                                    <i class="fa fa-trash text-sm"></i>
+                                                <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500 text-white transition hover:bg-rose-600 shadow-sm">
+                                                    <i class="fa fa-trash text-xs"></i>
                                                 </button>
                                             </form>
                                         </div>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr><td colspan="4" class="px-5 py-16 text-center text-slate-400">
+                                    <i class="fa-solid fa-gears text-4xl opacity-20 block mb-3"></i>Belum ada rule dead-reckoning
+                                </td></tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -76,11 +78,10 @@
     </div>
     @push('scripts')
         <script>
-            const timestamp = () => { const n = new Date(); return `${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}_${String(n.getHours()).padStart(2,'0')}${String(n.getMinutes()).padStart(2,'0')}${String(n.getSeconds()).padStart(2,'0')}`; }
             window.addEventListener('load', function() {
-                $(document).ready(function() {
-                    $('#dead-reckoning-table').DataTable({ responsive: true, ordering: false, dom: '<"dt-toolbar flex justify-between items-center px-4 py-2 mb-2"Bf>rtp', buttons: [{ extend: 'excel', text: 'Export Excel', title: 'Rule Engine Dead-Reckoning', className: 'bg-green-500 text-white px-3 py-1 rounded', filename: () => `dead_reckoning_${timestamp()}`, exportOptions: { columns: [0,1,2,3] } }], columnDefs: [{ className: "dt-center", targets: "_all" }], language: { emptyTable: "Tidak ada rule", paginate: { previous: "<", next: ">" }, zeroRecords: "Rule tidak ditemukan.", search: "" } });
-                    $('input.dt-input').attr('placeholder', 'Cari rule...');
+                document.getElementById('search-rule').addEventListener('input', function() {
+                    const q = this.value.toLowerCase();
+                    document.querySelectorAll('#rule-table tbody tr').forEach(row => { row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none'; });
                 });
                 @if (session('success')) Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: '{{ session('success') }}', showConfirmButton: false, timer: 2500, timerProgressBar: true }); @endif
                 document.querySelectorAll('.delete-form').forEach(form => {
