@@ -128,6 +128,8 @@ const AppGCS = () => {
   const serialPortRef = useRef(null);
   const serialReaderRef = useRef(null);
   const [videoIp, setVideoIp] = useState('192.168.1.100');
+  const [videoProtocol, setVideoProtocol] = useState('mjpeg');
+  const [hlsUrl, setHlsUrl] = useState('/streams/drone.m3u8');
   const [isVideoConnected, setIsVideoConnected] = useState(false);
   const [liveStreamUrl, setLiveStreamUrl] = useState('');
 
@@ -260,7 +262,14 @@ const AppGCS = () => {
     if (isVideoConnected) { setIsVideoConnected(false); setLiveStreamUrl(''); if (webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); } }
     else {
       if (droneMode === 'simulasi') setIsVideoConnected(true);
-      else if (droneMode === 'real') { setLiveStreamUrl(`http://${videoIp}:81/stream`); setIsVideoConnected(true); }
+      else if (droneMode === 'real') { 
+        if (videoProtocol === 'mjpeg') {
+          setLiveStreamUrl(`http://${videoIp}:81/stream`);
+        } else {
+          setLiveStreamUrl(hlsUrl);
+        }
+        setIsVideoConnected(true); 
+      }
       else { setCockpitWarning('Pilih Mode Sistem Dahulu!'); setTimeout(() => setCockpitWarning(''), 3000); }
     }
   };
@@ -891,6 +900,10 @@ const AppGCS = () => {
         handleConnectTelemetry={handleConnectTelemetry}
         videoIp={videoIp}
         setVideoIp={setVideoIp}
+        videoProtocol={videoProtocol}
+        setVideoProtocol={setVideoProtocol}
+        hlsUrl={hlsUrl}
+        setHlsUrl={setHlsUrl}
         isVideoConnected={isVideoConnected}
         handleConnectVideo={handleConnectVideo}
         drones={drones}

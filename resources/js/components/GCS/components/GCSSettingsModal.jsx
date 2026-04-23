@@ -14,7 +14,7 @@ const GCSSettingsModal = ({
   droneMode, setDroneMode,
   theme, setTheme,
   telemBaud, setTelemBaud, isTelemConnected, handleConnectTelemetry,
-  videoIp, setVideoIp, isVideoConnected, handleConnectVideo,
+  videoIp, setVideoIp, videoProtocol, setVideoProtocol, hlsUrl, setHlsUrl, isVideoConnected, handleConnectVideo,
   drones, setDrones, droneForm, setDroneForm, isEditingDrone, setIsEditingDrone,
   telemetryHistory, setTelemetryHistory, handleExportTelemetry,
   aiInput, setAiInput, aiHistory, isAiLoading, handleAskGemini, chatEndRef,
@@ -174,16 +174,33 @@ const GCSSettingsModal = ({
                   <h2 className="text-base font-extrabold flex items-center gap-2 mb-1 text-slate-900"><Video className="w-4 h-4 text-orange-500" /> Setting Video Stream</h2>
                   <p className="text-xs text-slate-500">Mode Simulasi: Webcam laptop. Mode Real: MJPEG IP Camera dari drone.</p>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">IP DRONE (Mode Real)</label>
-                  <input
-                    type="text"
-                    value={videoIp}
-                    onChange={(e) => setVideoIp(e.target.value)}
-                    disabled={isVideoConnected}
-                    className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900"
-                  />
-                </div>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">PROTOKOL VIDEO</label>
+                      <select
+                        value={videoProtocol}
+                        onChange={(e) => setVideoProtocol(e.target.value)}
+                        disabled={isVideoConnected}
+                        className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900"
+                      >
+                        <option value="mjpeg">HTTP MJPEG (ESP32-CAM)</option>
+                        <option value="hls">HLS Proxy (.m3u8)</option>
+                      </select>
+                    </div>
+                    <div>
+                      {videoProtocol === 'mjpeg' ? (
+                        <>
+                          <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">IP DRONE (Mode Real)</label>
+                          <input type="text" value={videoIp} onChange={(e) => setVideoIp(e.target.value)} disabled={isVideoConnected} className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900" />
+                        </>
+                      ) : (
+                        <>
+                          <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">URL HLS (.m3u8)</label>
+                          <input type="text" value={hlsUrl} onChange={(e) => setHlsUrl(e.target.value)} disabled={isVideoConnected} className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900" />
+                        </>
+                      )}
+                    </div>
+                  </div>
                 <div className="pt-4 border-t border-slate-100">
                   <div className="flex justify-between items-center mb-3 p-3 border border-slate-200 rounded-lg bg-slate-50">
                     <span className="text-xs text-slate-500">Status:</span>
@@ -196,7 +213,7 @@ const GCSSettingsModal = ({
                     className={`w-full py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 text-white transition ${isVideoConnected ? 'bg-rose-500 hover:bg-rose-400' : 'bg-orange-500 hover:bg-orange-400'}`}
                   >
                     <Power className="w-4 h-4" />
-                    {isVideoConnected ? 'STOP STREAM' : (droneMode === 'simulasi' ? 'AKTIFKAN WEBCAM' : 'CONNECT MJPEG STREAM')}
+                    {isVideoConnected ? 'STOP STREAM' : (droneMode === 'simulasi' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : 'CONNECT MJPEG STREAM'))}
                   </button>
                 </div>
               </div>

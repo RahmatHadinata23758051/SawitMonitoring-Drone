@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Crosshair, Navigation, Compass, Activity } from 'lucide-react';
 import { homeWP } from '../utils/gcsConstants';
+import Hls from 'hls.js';
 
 /**
  * GCSMapPanel — Panel Kamera FPV + Radar Posisi Drone (2 panel kiri atas)
@@ -27,6 +28,57 @@ const GCSMapPanel = ({
   liveAiVision,
   t,
 }) => {
+  const hlsVideoRef = useRef(null);
+  const [hlsStatus, setHlsStatus] = React.useState('WAITING');
+
+  useEffect(() => {
+    let hls;
+    if (droneMode === 'real' && isVideoConnected && liveStreamUrl && liveStreamUrl.endsWith('.m3u8')) {
+      if (Hls.isSupported() && hlsVideoRef.current) {
+        setHlsStatus('INITIALIZING HLS...');
+        hls = new Hls({
+          lowLatencyMode: true,
+          manifestLoadingMaxRetry: 999,
+          manifestLoadingRetryDelay: 2000,
+        });
+        hls.loadSource(liveStreamUrl);
+        hls.attachMedia(hlsVideoRef.current);
+        
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          setHlsStatus('MANIFEST LOADED, PLAYING...');
+          hlsVideoRef.current.play().catch(e => setHlsStatus('PLAY BLOCKED (AUTOPLAY)'));
+        });
+
+        hls.on(Hls.Events.ERROR, function(event, data) {
+          if (data.fatal) {
+            setHlsStatus('FATAL ERROR: ' + data.type);
+            console.log("HLS Stream error, retrying...");
+            setTimeout(() => {
+              if (hls) {
+                hls.destroy();
+                hls = new Hls({
+                  lowLatencyMode: true,
+                  manifestLoadingMaxRetry: 999,
+                  manifestLoadingRetryDelay: 2000,
+                });
+                hls.loadSource(liveStreamUrl);
+                hls.attachMedia(hlsVideoRef.current);
+              }
+            }, 2000);
+          } else {
+            setHlsStatus('WARN: ' + data.details);
+          }
+        });
+      } else if (hlsVideoRef.current && hlsVideoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+        setHlsStatus('USING NATIVE HLS...');
+        hlsVideoRef.current.src = liveStreamUrl;
+      }
+    }
+    return () => {
+      if (hls) hls.destroy();
+    };
+  }, [droneMode, isVideoConnected, liveStreamUrl]);
+
   return (
     <>
       {/* Panel 1: DUAL FPV CAMERA */}
@@ -42,10 +94,13 @@ const GCSMapPanel = ({
           <div className={`flex-1 relative border-r flex items-center justify-center overflow-hidden ${t('border-slate-700 bg-black', 'border-slate-300 bg-slate-800')}`}>
             <div className="absolute top-1 left-1 bg-black/60 px-1 rounded text-[8px] text-white z-10 font-bold">CAM 1: RGB</div>
             {droneMode === 'simulasi' && isVideoConnected && webcamStream ? (
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover opacity-80" />
+              <video ref={videoRef} autoPlay playsInline muted controls crossOrigin="anonymous" className="w-full h-full object-cover opacity-80" />
             ) : droneMode === 'real' && isVideoConnected ? (
-              <img src={liveStreamUrl} alt="Live FPV" className="w-full h-full object-cover opacity-80"
-                onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat stream. Pastikan IP benar.' }); }} />
+              liveStreamUrl.endsWith('.m3u8') ? (
+                <video ref={hlsVideoRef} autoPlay playsInline muted controls crossOrigin="anonymous" className="w-full h-full object-cover opacity-80" onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat HLS stream.' }); }} />
+              ) : (
+                <img src={liveStreamUrl} alt="Live FPV" className="w-full h-full object-cover opacity-80" onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat stream. Pastikan IP benar.' }); }} />
+              )
             ) : (
               <div className="text-slate-500 text-[10px] font-mono border border-slate-500 p-2 border-dashed rounded">NO SIGNAL</div>
             )}
