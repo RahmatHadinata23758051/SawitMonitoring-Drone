@@ -191,7 +191,7 @@ const AppGCS = () => {
     fetch('/api/flight-logs')
       .then(r => r.ok ? r.json() : [])
       .then(data => { if (Array.isArray(data) && data.length > 0) setFlightLogs(data); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Telemetry
@@ -224,7 +224,7 @@ const AppGCS = () => {
           setSavedMissions(mapped);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // useEffects: webcam, chat scroll, auto-save, serial, video handlers
@@ -270,18 +270,18 @@ const AppGCS = () => {
     const payload = autoSavePending;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
     fetch('/missions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf }, body: JSON.stringify(payload) })
-    .then(res => {
-      if (res.ok) return res.json().then(result => {
-        const dbId = result?.data?.id;
-        const newId = dbId ? `MSN-${String(dbId).padStart(4,'0')}` : `MSN-${Date.now()}`;
-        setSavedMissions(prev => [{ id: newId, _dbId: dbId, name: payload.mission_name, wpCount: payload.scan_mode === 'qlv' ? '1 Koridor' : '2 Lajur', algorithm: payload.nav_algorithm, scan: payload.scan_mode, date: new Date().toLocaleTimeString(), status: 'Completed' }, ...prev]);
-        setCockpitWarning(`âœ… Misi "${payload.mission_name}" tercatat otomatis! ID: ${newId}`);
-        setTimeout(() => setCockpitWarning(''), 4000);
-      });
-      else { setCockpitWarning('âš ï¸ Gagal tersimpan ke server!'); setTimeout(() => setCockpitWarning(''), 4000); }
-    })
-    .catch(() => { setCockpitWarning('âš ï¸ Tidak dapat terhubung ke server!'); setTimeout(() => setCockpitWarning(''), 4000); })
-    .finally(() => setAutoSavePending(null));
+      .then(res => {
+        if (res.ok) return res.json().then(result => {
+          const dbId = result?.data?.id;
+          const newId = dbId ? `MSN-${String(dbId).padStart(4, '0')}` : `MSN-${Date.now()}`;
+          setSavedMissions(prev => [{ id: newId, _dbId: dbId, name: payload.mission_name, wpCount: payload.scan_mode === 'qlv' ? '1 Koridor' : '2 Lajur', algorithm: payload.nav_algorithm, scan: payload.scan_mode, date: new Date().toLocaleTimeString(), status: 'Completed' }, ...prev]);
+          setCockpitWarning(`âœ… Misi "${payload.mission_name}" tercatat otomatis! ID: ${newId}`);
+          setTimeout(() => setCockpitWarning(''), 4000);
+        });
+        else { setCockpitWarning('âš ï¸ Gagal tersimpan ke server!'); setTimeout(() => setCockpitWarning(''), 4000); }
+      })
+      .catch(() => { setCockpitWarning('âš ï¸ Tidak dapat terhubung ke server!'); setTimeout(() => setCockpitWarning(''), 4000); })
+      .finally(() => setAutoSavePending(null));
   }, [autoSavePending]);
 
   const handleConnectTelemetry = async () => {
@@ -523,7 +523,7 @@ const AppGCS = () => {
       .then(data => {
         if (data.left?.prediction === 'Matang') matangCountRef.current += 1;
         if (data.right?.prediction === 'Matang') matangCountRef.current += 1;
-        const leftConf  = parseFloat(data.left?.confidence  || 0) * 100;
+        const leftConf = parseFloat(data.left?.confidence || 0) * 100;
         const rightConf = parseFloat(data.right?.confidence || 0) * 100;
         accuracyAccumRef.current += (leftConf + rightConf) / 2;
         aiCallCountRef.current += 1;
@@ -533,7 +533,7 @@ const AppGCS = () => {
           confidence: Math.max(leftConf, rightConf).toFixed(1),
           boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
           mode: 'dual', image_base64: null,
-          left:  { prediction: data.left?.prediction,  confidence_pct: leftConf.toFixed(1),  image_base64: data.left?.image_base64  || null },
+          left: { prediction: data.left?.prediction, confidence_pct: leftConf.toFixed(1), image_base64: data.left?.image_base64 || null },
           right: { prediction: data.right?.prediction, confidence_pct: rightConf.toFixed(1), image_base64: data.right?.image_base64 || null },
         });
       })
@@ -550,7 +550,7 @@ const AppGCS = () => {
           confidence: fakeConf,
           boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
           mode: 'dual', image_base64: null,
-          left:  { prediction: l ? 'Matang' : 'Mentah', confidence_pct: fakeConf, image_base64: null },
+          left: { prediction: l ? 'Matang' : 'Mentah', confidence_pct: fakeConf, image_base64: null },
           right: { prediction: r ? 'Matang' : 'Mentah', confidence_pct: fakeConf, image_base64: null },
         });
       });
@@ -631,9 +631,9 @@ const AppGCS = () => {
           const step = 3.0; // meter per tick
           const turnStep = 12; // derajat per tick
           manualInputRef.current = null; // consume command
-          if (cmd === 'throttle_up')        { newAlt = Math.min(prev.alt + 1.5, 80); newPitch = 0; newRoll = 0; newSpeed = 0; }
+          if (cmd === 'throttle_up') { newAlt = Math.min(prev.alt + 1.5, 80); newPitch = 0; newRoll = 0; newSpeed = 0; }
           else if (cmd === 'throttle_down') { newAlt = Math.max(0, prev.alt - 1.5); newPitch = 0; newRoll = 0; newSpeed = 0; }
-          else if (cmd === 'pitch_forward') { 
+          else if (cmd === 'pitch_forward') {
             const rad = (prev.yaw - 90) * Math.PI / 180;
             newX += step * Math.cos(rad); newY += step * Math.sin(rad);
             newPitch = 14; newSpeed = step * 5;
@@ -653,13 +653,13 @@ const AppGCS = () => {
             newX += step * Math.cos(rad); newY += step * Math.sin(rad);
             newRoll = 14; newSpeed = step * 5;
           }
-          else if (cmd === 'yaw_left')  { newYaw = (prev.yaw - turnStep + 360) % 360; newSpeed = 0; }
+          else if (cmd === 'yaw_left') { newYaw = (prev.yaw - turnStep + 360) % 360; newSpeed = 0; }
           else if (cmd === 'yaw_right') { newYaw = (prev.yaw + turnStep) % 360; newSpeed = 0; }
           else if (cmd === 'reset_attitude') { newPitch = 0; newRoll = 0; newSpeed = 0; }
           else { // hover: decelerate
             newSpeed = Math.max(0, prev.speed * 0.6);
             newPitch = prev.pitch * 0.5;
-            newRoll  = prev.roll  * 0.5;
+            newRoll = prev.roll * 0.5;
           }
         }
         else if (curMode === 'AUTO') {
@@ -723,12 +723,12 @@ const AppGCS = () => {
               const finalMatang = aiCallCountRef.current > 0
                 ? matangCountRef.current
                 : Math.floor(finalCount * 0.65);
-              const finalBelum  = finalCount - finalMatang;
+              const finalBelum = finalCount - finalMatang;
               const acc = aiCallCountRef.current > 0
                 ? Math.round(accuracyAccumRef.current / aiCallCountRef.current)
                 : (fInfo.scan === 'qlv' ? Math.floor(Math.random() * 6) + 89 : Math.floor(Math.random() * 4) + 96);
-              const flightSecs  = flightTimeRef.current;
-              const battUsed    = parseFloat((flightSecs * 0.01).toFixed(2));
+              const flightSecs = flightTimeRef.current;
+              const battUsed = parseFloat((flightSecs * 0.01).toFixed(2));
 
               // 1. Update UI state langsung (optimistic)
               const tempLog = {
@@ -747,33 +747,33 @@ const AppGCS = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
                 body: JSON.stringify({
-                  mission_name:        fInfo.name,
-                  mission_id:          fInfo.dbMissionId || null,
-                  nav_algorithm:       fInfo.nav,
-                  scan_mode:           fInfo.scan,
+                  mission_name: fInfo.name,
+                  mission_id: fInfo.dbMissionId || null,
+                  nav_algorithm: fInfo.nav,
+                  scan_mode: fInfo.scan,
                   flight_time_seconds: flightSecs,
-                  battery_used:        battUsed,
-                  samples_count:       finalCount,
-                  matang:              finalMatang,
-                  belum_matang:        finalBelum,
-                  accuracy:            acc,
-                  config_data:         fInfo.configData || {},
-                  telemetry_data:      telemetryHistoryRef.current,
+                  battery_used: battUsed,
+                  samples_count: finalCount,
+                  matang: finalMatang,
+                  belum_matang: finalBelum,
+                  accuracy: acc,
+                  config_data: fInfo.configData || {},
+                  telemetry_data: telemetryHistoryRef.current,
                 }),
               })
-              .then(res => res.ok ? res.json() : Promise.reject(res.status))
-              .then(result => {
-                // Update ID log dari DB (ganti ID sementara)
-                setFlightLogs(prev => prev.map(l =>
-                  l.id === tempLog.id ? { ...l, id: result?.data?.id ?? tempLog.id } : l
-                ));
-                setCockpitWarning(`✅ Log "${fInfo.name}" tersimpan ke DB!`);
-                setTimeout(() => setCockpitWarning(''), 4000);
-              })
-              .catch(() => {
-                setCockpitWarning('⚠️ Log disimpan lokal, gagal ke server!');
-                setTimeout(() => setCockpitWarning(''), 4000);
-              });
+                .then(res => res.ok ? res.json() : Promise.reject(res.status))
+                .then(result => {
+                  // Update ID log dari DB (ganti ID sementara)
+                  setFlightLogs(prev => prev.map(l =>
+                    l.id === tempLog.id ? { ...l, id: result?.data?.id ?? tempLog.id } : l
+                  ));
+                  setCockpitWarning(`✅ Log "${fInfo.name}" tersimpan ke DB!`);
+                  setTimeout(() => setCockpitWarning(''), 4000);
+                })
+                .catch(() => {
+                  setCockpitWarning('⚠️ Log disimpan lokal, gagal ke server!');
+                  setTimeout(() => setCockpitWarning(''), 4000);
+                });
 
               // 3. Tetap auto-save misi ke /missions jika belum tersimpan
               if (!fInfo.dbMissionId) {
@@ -796,26 +796,26 @@ const AppGCS = () => {
 
         const newLat = BASE_LAT - (newY * METER_TO_DEG); const newLon = BASE_LON + (newX * METER_TO_DEG);
         const timestamp = new Date().toLocaleTimeString();
-        
+
         // Pseudo IMU Generation untuk keperluan visual log (sebelum data asli masuk dari HW)
-        const ax = newPitch * 1.5; 
-        const ay = newRoll * 1.5; 
+        const ax = newPitch * 1.5;
+        const ay = newRoll * 1.5;
         const az = 9.81 + ((newAlt - prev.alt) * 5);
-        const gx = (newPitch - prev.pitch) * 2; 
-        const gy = (newRoll - prev.roll) * 2; 
+        const gx = (newPitch - prev.pitch) * 2;
+        const gy = (newRoll - prev.roll) * 2;
         const gz = (newYaw - prev.yaw) * 2;
 
-        const newTelem = { 
+        const newTelem = {
           x: newX, y: newY, alt: newAlt, speed: newSpeed, pitch: newPitch, roll: newRoll, yaw: newYaw, bat: newBat, lat: newLat, lon: newLon, mode: curMode, subState: autoSubStateRef.current, timestamp,
           ax, ay, az, gx, gy, gz
         };
-        
+
         // TASK 4.2: Temporary Logger - Hanya catat jika ada perpindahan >1 meter atau ganti mode
         setTelemetryHistory(h => {
           if (flightStatusRef.current === 'STANDBY') return h; // Jangan rekam terus menerus saat standby
           if (h.length === 0) {
-              telemetryHistoryRef.current = [newTelem];
-              return telemetryHistoryRef.current;
+            telemetryHistoryRef.current = [newTelem];
+            return telemetryHistoryRef.current;
           }
           const last = h[0];
           const distMoved = Math.sqrt(Math.pow(newX - last.x, 2) + Math.pow(newY - last.y, 2));
@@ -948,7 +948,7 @@ const AppGCS = () => {
           setSelectedMissionId(nm.id);
         } else {
           const result = await res.json();
-          const newId = result?.data?.id ? `MSN-${String(result.data.id).padStart(4,'0')}` : `MSN-${Date.now()}`;
+          const newId = result?.data?.id ? `MSN-${String(result.data.id).padStart(4, '0')}` : `MSN-${Date.now()}`;
           const nm = { id: newId, _dbId: result?.data?.id, ...localData };
           setSavedMissions(prev => [nm, ...prev]);
           setSelectedMissionId(nm.id);
@@ -1180,13 +1180,12 @@ const AppGCS = () => {
           <div className="flex items-center gap-1.5">
             <Navigation className="w-3 h-3 text-emerald-400" />
             <span className="text-slate-500">MODE</span>
-            <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${
-              flightStatusUI === 'STANDBY'  ? 'text-slate-400' :
-              flightStatusUI === 'TAKEOFF'  ? 'text-sky-400 animate-pulse' :
-              flightStatusUI === 'AUTO'     ? 'text-emerald-400 animate-pulse' :
-              flightStatusUI === 'RTL'      ? 'text-amber-400 animate-pulse' :
-              flightStatusUI === 'LANDING'  ? 'text-rose-400 animate-pulse' : 'text-slate-400'
-            }`}>
+            <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${flightStatusUI === 'STANDBY' ? 'text-slate-400' :
+                flightStatusUI === 'TAKEOFF' ? 'text-sky-400 animate-pulse' :
+                  flightStatusUI === 'AUTO' ? 'text-emerald-400 animate-pulse' :
+                    flightStatusUI === 'RTL' ? 'text-amber-400 animate-pulse' :
+                      flightStatusUI === 'LANDING' ? 'text-rose-400 animate-pulse' : 'text-slate-400'
+              }`}>
               {flightStatusUI}
             </span>
           </div>
