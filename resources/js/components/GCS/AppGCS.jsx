@@ -559,7 +559,10 @@ const AppGCS = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       tickCountRef.current += 1;
-      if (!droneMode || (!isTelemConnected && !isVideoConnected)) return;
+      // Simulasi: physics berjalan tanpa perlu koneksi hardware
+      // Real: butuh setidaknya satu koneksi aktif
+      const isSimulasi = droneMode === 'simulasi';
+      if (!droneMode || (!isSimulasi && !isTelemConnected && !isVideoConnected)) return;
       const status = flightStatusRef.current; const subState = autoSubStateRef.current;
 
       // ✅ Process pending AI scan event (fire-and-forget)
