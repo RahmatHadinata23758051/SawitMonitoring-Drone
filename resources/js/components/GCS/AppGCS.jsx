@@ -1024,6 +1024,12 @@ const AppGCS = () => {
         toggleFullScreen={toggleFullScreen}
         setIsSettingsOpen={setIsSettingsOpen}
         setIsReportsOpen={setIsReportsOpen}
+        telemetry={telemetry}
+        flightTime={flightTime}
+        formatTime={formatTime}
+        scannedTrees={scannedTrees}
+        baseTotalSample={baseTotalSample}
+        cockpitWarning={cockpitWarning}
       />
 
       {/* ======== MAIN CONTENT — 3-COLUMN LAYOUT ======== */}
@@ -1159,60 +1165,7 @@ const AppGCS = () => {
         />
       </main>
 
-      {/* ======== BOTTOM STATUS BAR (5.2.7) ======== */}
-      <div className="h-8 shrink-0 bg-slate-900 border-t border-slate-700 flex items-center px-4 gap-6 text-[10px] font-mono text-slate-400">
-        {/* Left: Flight data */}
-        <div className="flex items-center gap-5">
-          <div className="flex items-center gap-1.5">
-            <Clock className="w-3 h-3 text-amber-400" />
-            <span className="text-slate-500">FLIGHT TIME</span>
-            <span className={`font-bold ${flightStatusUI !== 'STANDBY' ? 'text-amber-400' : 'text-slate-500'}`}>
-              {formatTime ? formatTime(flightTime) : '0m 0s'}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Activity className="w-3 h-3 text-sky-400" />
-            <span className="text-slate-500">SCANNED</span>
-            <span className={`font-bold ${scannedTrees > 0 ? 'text-sky-400' : 'text-slate-500'}`}>
-              {scannedTrees} / {baseTotalSample}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Navigation className="w-3 h-3 text-emerald-400" />
-            <span className="text-slate-500">MODE</span>
-            <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${flightStatusUI === 'STANDBY' ? 'text-slate-400' :
-                flightStatusUI === 'TAKEOFF' ? 'text-sky-400 animate-pulse' :
-                  flightStatusUI === 'AUTO' ? 'text-emerald-400 animate-pulse' :
-                    flightStatusUI === 'RTL' ? 'text-amber-400 animate-pulse' :
-                      flightStatusUI === 'LANDING' ? 'text-rose-400 animate-pulse' : 'text-slate-400'
-              }`}>
-              {flightStatusUI}
-            </span>
-          </div>
-        </div>
-        {/* Separator */}
-        <div className="h-4 w-px bg-slate-700" />
-        {/* Telemetry */}
-        <div className="flex items-center gap-4 text-[9px]">
-          <span>ALT <span className="text-emerald-400 font-bold">{telemetry.alt?.toFixed(1) ?? '--'}m</span></span>
-          <span>SPD <span className="text-sky-400 font-bold">{telemetry.speed?.toFixed(1) ?? '--'}m/s</span></span>
-          <span>BAT <span className={`font-bold ${(telemetry.bat ?? 100) > 30 ? 'text-emerald-400' : 'text-rose-400'}`}>{Math.floor(telemetry.bat ?? 0)}%</span></span>
-          <span>YAW <span className="text-slate-300 font-bold">{Math.floor(telemetry.yaw ?? 0)}°</span></span>
-        </div>
-        {/* Separator */}
-        <div className="h-4 w-px bg-slate-700" />
-        {/* Right: System status */}
-        <div className="ml-auto flex items-center gap-4 text-[9px]">
-          {cockpitWarning && (
-            <span className="text-amber-400 font-bold animate-pulse flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" /> {cockpitWarning}
-            </span>
-          )}
-          <span className="text-slate-600">LAT <span className="text-slate-400">{(telemetry.lat ?? 0).toFixed(5)}</span></span>
-          <span className="text-slate-600">LON <span className="text-slate-400">{(telemetry.lon ?? 0).toFixed(5)}</span></span>
-          <span className="text-slate-700 tracking-wider">// AGRISENSE GROUND CONTROL</span>
-        </div>
-      </div>
+
 
       {/* ======== MODAL SETTINGS ======== */}
       <GCSSettingsModal

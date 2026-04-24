@@ -11,6 +11,8 @@ const GCSHeader = ({
   flightStatusUI,
   isFullscreen, toggleFullScreen,
   setIsSettingsOpen, setIsReportsOpen,
+  telemetry = {}, flightTime = 0, formatTime,
+  scannedTrees = 0, baseTotalSample = 0, cockpitWarning
 }) => {
   return (
     <header className={`h-12 border-b flex items-center justify-between px-3 shadow-md z-10 shrink-0 ${t('bg-slate-900 border-slate-800', 'bg-white border-slate-200')}`}>
@@ -57,24 +59,34 @@ const GCSHeader = ({
       {/* Right side: telemetry readouts + controls */}
       <div className="flex items-center gap-4 text-xs font-mono">
 
-        {/* LINK — placeholder sampai data MAVLink RADIO_STATUS masuk */}
-        <div
-          className={`flex items-center gap-1 ${t('text-slate-500', 'text-slate-400')}`}
-          title="Kualitas sinyal radio — menunggu data MAVLink RADIO_STATUS dari hardware"
-        >
-          <Signal className="w-3 h-3" />
-          <span className="line-through opacity-50">LINK</span>
-          <span className="text-amber-400 font-bold">: --</span>
-        </div>
-
-        {/* GPS — placeholder sampai data MAVLink GPS_RAW_INT masuk */}
-        <div
-          className={`flex items-center gap-1 ${t('text-slate-500', 'text-slate-400')}`}
-          title="Status GPS — menunggu data MAVLink GPS_RAW_INT dari hardware"
-        >
-          <Navigation className="w-3 h-3" />
-          <span className="line-through opacity-50">GPS</span>
-          <span className="text-amber-400 font-bold">: --</span>
+        {/* TELEMETRY DATA DARI FOOTER */}
+        <div className={`flex items-center gap-4 text-[9px] font-mono mr-2 ${t('text-slate-400', 'text-slate-500')}`}>
+          {cockpitWarning && (
+            <span className="text-rose-500 font-bold animate-pulse">
+              {cockpitWarning}
+            </span>
+          )}
+          <span className="flex items-center gap-1">
+            <span className="opacity-70">FLIGHT TIME</span>
+            <span className={`font-bold ${flightStatusUI !== 'STANDBY' ? 'text-blue-600' : ''}`}>
+              {formatTime ? formatTime(flightTime) : '0m 0s'}
+            </span>
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="opacity-70">SCANNED</span>
+            <span className={`font-bold ${scannedTrees > 0 ? 'text-blue-600' : ''}`}>
+              {scannedTrees}/{baseTotalSample}
+            </span>
+          </span>
+          
+          <div className={`h-4 w-px mx-1 ${t('bg-slate-700', 'bg-slate-300')}`}></div>
+          
+          <span>ALT <span className="font-bold text-emerald-600">{telemetry.alt?.toFixed(1) ?? '--'}m</span></span>
+          <span>SPD <span className="font-bold text-blue-600">{telemetry.speed?.toFixed(1) ?? '--'}m/s</span></span>
+          <span>BAT <span className={`font-bold ${(telemetry.bat ?? 100) > 30 ? 'text-emerald-600' : 'text-rose-500'}`}>{Math.floor(telemetry.bat ?? 0)}%</span></span>
+          <span>YAW <span className="font-bold text-slate-700">{Math.floor(telemetry.yaw ?? 0)}°</span></span>
+          <span>LAT <span className="font-bold text-slate-700">{(telemetry.lat ?? 0).toFixed(5)}</span></span>
+          <span>LON <span className="font-bold text-slate-700">{(telemetry.lon ?? 0).toFixed(5)}</span></span>
         </div>
 
         <div className={`flex items-center gap-2 ml-4 pl-4 border-l ${t('border-slate-700', 'border-slate-300')}`}>
