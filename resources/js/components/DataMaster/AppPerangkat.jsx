@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, PenLine, Trash2, Cpu, Activity, Clock } from 'lucide-react';
+import ConfirmModal from '../UI/ConfirmModal';
 
 const AppPerangkat = ({ perangkat = [], routes = {}, csrfToken, flashSuccess }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [confirmState, setConfirmState] = useState({ open: false, item: null, formEl: null });
 
-    useEffect(() => {
-        if (flashSuccess && window.Swal) {
-            window.Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: flashSuccess, showConfirmButton: false, timer: 2500, timerProgressBar: true });
-        }
-    }, [flashSuccess]);
+    useEffect(() => {}, [flashSuccess]);
 
     const filtered = perangkat.filter(item => {
         if (!searchTerm) return true;
@@ -18,14 +16,15 @@ const AppPerangkat = ({ perangkat = [], routes = {}, csrfToken, flashSuccess }) 
 
     const handleDelete = (e, item) => {
         e.preventDefault();
-        const form = e.target;
-        if (window.Swal) {
-            window.Swal.fire({ title: 'Konfirmasi', text: `Hapus perangkat ID "${item.id_drone}"?`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, Hapus!', cancelButtonText: 'Batal' })
-                .then(r => { if (r.isConfirmed) form.submit(); });
-        } else {
-            if (window.confirm(`Hapus perangkat ID "${item.id_drone}"?`)) form.submit();
-        }
+        setConfirmState({ open: true, item, formEl: e.target });
     };
+
+    const handleConfirm = () => {
+        confirmState.formEl?.submit();
+        setConfirmState({ open: false, item: null, formEl: null });
+    };
+
+    const handleCancel = () => setConfirmState({ open: false, item: null, formEl: null });
 
     const formatDate = (dateStr) => {
         if (!dateStr) return '-';
@@ -40,6 +39,7 @@ const AppPerangkat = ({ perangkat = [], routes = {}, csrfToken, flashSuccess }) 
     };
 
     return (
+        <>
         <div className="pt-6 pb-12 w-full">
             <div className="max-w-full mx-auto px-6 lg:px-10 flex flex-col gap-6">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -136,6 +136,14 @@ const AppPerangkat = ({ perangkat = [], routes = {}, csrfToken, flashSuccess }) 
                 </div>
             </div>
         </div>
+        <ConfirmModal
+            isOpen={confirmState.open}
+            title="Hapus Perangkat"
+            message={confirmState.item ? `Apakah Anda yakin ingin menghapus drone ID "${confirmState.item.id_drone}"?` : ''}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+        />
+        </>
     );
 };
 

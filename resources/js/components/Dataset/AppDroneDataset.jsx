@@ -10,24 +10,13 @@ import {
     Activity,
     Compass
 } from 'lucide-react';
+import ConfirmModal from '../UI/ConfirmModal';
 
 const AppDroneDataset = ({ dataset = [], routes = {}, csrfToken, flashSuccess }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [confirmState, setConfirmState] = useState({ open: false, item: null, formEl: null });
 
-    // Trigger sweet alert if success message is present
-    useEffect(() => {
-        if (flashSuccess && window.Swal) {
-            window.Swal.fire({ 
-                toast: true, 
-                position: 'top-end', 
-                icon: 'success', 
-                title: flashSuccess, 
-                showConfirmButton: false, 
-                timer: 2500, 
-                timerProgressBar: true 
-            });
-        }
-    }, [flashSuccess]);
+    useEffect(() => {}, [flashSuccess]);
 
     // Filter dataset based on search term
     const filteredDataset = dataset.filter(item => {
@@ -41,27 +30,18 @@ const AppDroneDataset = ({ dataset = [], routes = {}, csrfToken, flashSuccess })
 
     const handleDelete = (e, item) => {
         e.preventDefault();
-        if (window.Swal) {
-            window.Swal.fire({ 
-                title: 'Konfirmasi', 
-                text: `Hapus dataset drone "${item.kode}"?`, 
-                icon: 'warning', 
-                showCancelButton: true, 
-                confirmButtonText: 'Ya, Hapus!', 
-                cancelButtonText: 'Batal' 
-            }).then(r => { 
-                if (r.isConfirmed) {
-                    e.target.submit();
-                } 
-            });
-        } else {
-            if (window.confirm(`Hapus dataset drone "${item.kode}"?`)) {
-                e.target.submit();
-            }
-        }
+        setConfirmState({ open: true, item, formEl: e.target });
     };
 
+    const handleConfirm = () => {
+        confirmState.formEl?.submit();
+        setConfirmState({ open: false, item: null, formEl: null });
+    };
+
+    const handleCancel = () => setConfirmState({ open: false, item: null, formEl: null });
+
     return (
+        <>
         <div className="pt-6 pb-12 w-full">
             <div className="max-w-full mx-auto px-6 lg:px-10 flex flex-col gap-6">
                 
@@ -228,6 +208,14 @@ const AppDroneDataset = ({ dataset = [], routes = {}, csrfToken, flashSuccess })
 
             </div>
         </div>
+        <ConfirmModal
+            isOpen={confirmState.open}
+            title="Hapus Dataset Drone"
+            message={confirmState.item ? `Apakah Anda yakin ingin menghapus dataset "${confirmState.item.kode} - ${confirmState.item.label}"?` : ''}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+        />
+        </>
     );
 };
 
