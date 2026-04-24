@@ -2,70 +2,26 @@
     <x-slot name="header">
         <h2 class="leading-tight">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="{{ route('panen.index') }}">Manajemen Panen</a>
-                </li>
-                <li class="breadcrumb-item breadcrumb-active">
-                    {{ __('Ubah Data') }}
-                </li>
+                <li class="breadcrumb-item"><a href="{{ route('panen.index') }}">Manajemen Panen</a></li>
+                <li class="breadcrumb-item breadcrumb-active">{{ __('Ubah Data') }}</li>
             </ol>
         </h2>
     </x-slot>
 
-    <div class="pt-2 pb-12">
-        <div class="max-w-8xl mx-auto px-3 sm:px-6 lg:px-8 flex flex-col gap-4">
-            <div class="flex justify-center items-center w-full">
-                <div class="bg-white shadow-sm w-full md:w-5/6 lg:w-3/4 h-auto px-6 py-4 rounded-lg">
-                    <div class="mb-5">
-                        <h3 class="text-lg font-semibold">Ubah Data Panen</h3>
-                        <p class="text-sm text-slate-500">Silakan isi semua informasi yang dibutuhkan</p>
-                    </div>
-                    <form action="{{ route('panen.update', $panen->id) }}" method="post">
-                        @csrf
-                        @method('PUT')
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <x-input-label for="tanggal_panen">{{ __('Tanggal Panen') }}</x-input-label>
-                                <x-text-input id="tanggal_panen" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="date" name="tanggal_panen" :value="old('tanggal_panen', $panen->tanggal_panen)" required autofocus
-                                    autocomplete="tanggal_panen" />
-                                <x-input-error :messages="$errors->get('tanggal_panen')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="kebun">{{ __('Lokasi Kebun') }}</x-input-label>
-                                <select name="kebun" id="kebun" class="block mt-1 w-full rounded-xl bg-gray-100">
-                                    <option value="">--- Pilih Kebun ---</option>
-                                    @foreach ($kebun as $item)
-                                        <option value="{{ $item->id }}" @selected($panen->kebun_id == $item->id)>
-                                            {{ $item->nama }}</option>
-                                    @endforeach
-                                </select>
-                                <x-input-error :messages="$errors->get('kebun')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="target_panen">{{ __('Target Panen (kg)') }}</x-input-label>
-                                <x-text-input id="target_panen" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="number" name="target_panen" :value="old('target_panen', $panen->target_panen)" min="0" step="0.01"
-                                    required autofocus autocomplete="target_panen" placeholder="0.00" />
-                                <x-input-error :messages="$errors->get('target_panen')" class="mt-2" />
-                            </div>
-                            <div>
-                                <x-input-label for="hasil_panen">{{ __('Hasil Panen (kg)') }}</x-input-label>
-                                <x-text-input id="hasil_panen" class="block mt-1 w-full rounded-xl bg-gray-100"
-                                    type="number" name="hasil_panen" :value="old('hasil_panen', $panen->hasil_panen)" min="0" step="0.01"
-                                    required autofocus autocomplete="hasil_panen" placeholder="0.00" />
-                                <x-input-error :messages="$errors->get('hasil_panen')" class="mt-2" />
-                            </div>
-                            <div class="flex items-center justify-end gap-3 col-span-2">
-                                <a href="{{ route('panen.index') }}"
-                                    class="bg-gray-200 text-slate-500 px-5 py-1.5 rounded-lg">Batal</a>
-                                <button type="submit"
-                                    class="bg-primary text-white px-5 py-1.5 rounded-lg">Simpan</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div id="react-panen-form-root" data-props="{{ json_encode([
+        'panen' => $panen,
+        'kebun' => $kebun,
+        'old' => old(),
+        'errors' => $errors->toArray(),
+        'csrfToken' => csrf_token(),
+        'routes' => [
+            'update' => route('panen.update', $panen->id),
+            'index' => route('panen.index')
+        ]
+    ]) }}"></div>
+
+    @push('scripts')
+        @viteReactRefresh
+        @vite('resources/js/panen-react.jsx')
+    @endpush
 </x-app-layout>
