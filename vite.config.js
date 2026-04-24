@@ -13,7 +13,11 @@ export default defineConfig({
                 'resources/js/laporan-ai-react.jsx',
                 'resources/js/log-penerbangan-react.jsx',
                 'resources/js/navbar-react.jsx',
-                'resources/js/drone-dataset-react.jsx'
+                'resources/js/drone-dataset-react.jsx',
+                'resources/js/kebun-dataset-react.jsx',
+                'resources/js/sawit-dataset-react.jsx',
+                'resources/js/user-react.jsx',
+                'resources/js/log-aktivitas-react.jsx'
             ],
             refresh: true,
         }),
