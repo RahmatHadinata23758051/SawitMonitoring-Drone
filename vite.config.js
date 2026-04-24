@@ -12,7 +12,8 @@ export default defineConfig({
                 'resources/js/dashboard-react.jsx',
                 'resources/js/laporan-ai-react.jsx',
                 'resources/js/log-penerbangan-react.jsx',
-                'resources/js/navbar-react.jsx'
+                'resources/js/navbar-react.jsx',
+                'resources/js/drone-dataset-react.jsx'
             ],
             refresh: true,
         }),
