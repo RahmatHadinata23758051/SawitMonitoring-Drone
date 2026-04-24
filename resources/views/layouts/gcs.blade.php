@@ -25,10 +25,49 @@
 <body class="font-sans antialiased bg-slate-950">
 
     <!-- React GCS Root — Full Screen SPA -->
-    <div id="react-gcs-root" class="w-screen min-h-screen"></div>
+    <div id="react-gcs-root" class="w-screen min-h-screen page-transition-enter"></div>
 
     @viteReactRefresh
     @vite('resources/js/gcs-react.jsx')
+
+    <script>
+        // Page Transition Script
+        document.addEventListener("DOMContentLoaded", () => {
+            const container = document.getElementById('react-gcs-root');
+            if(container) {
+                container.classList.add('page-transition-enter');
+            }
+
+            document.querySelectorAll('a').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    if (
+                        this.hasAttribute('target') && this.getAttribute('target') === '_blank' ||
+                        this.href.includes('#') ||
+                        this.href.startsWith('javascript:') ||
+                        this.hasAttribute('download') ||
+                        !this.href ||
+                        e.ctrlKey || e.metaKey || e.shiftKey
+                    ) {
+                        return;
+                    }
+
+                    if (this.hostname === window.location.hostname) {
+                        e.preventDefault();
+                        const href = this.href;
+
+                        if (container) {
+                            container.classList.remove('page-transition-enter');
+                            container.classList.add('page-transition-exit');
+                        }
+
+                        setTimeout(() => {
+                            window.location.href = href;
+                        }, 200);
+                    }
+                });
+            });
+        });
+    </script>
 
 </body>
 </html>

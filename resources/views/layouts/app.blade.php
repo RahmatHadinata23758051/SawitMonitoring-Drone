@@ -28,7 +28,7 @@
 </head>
 
 <body class="font-sans antialiased">
-    <div x-data="{}" class="min-h-screen w-full flex flex-col bg-gray-100">
+    <div x-data="{}" class="min-h-screen w-full flex flex-col bg-gray-100 page-transition-enter" id="main-layout-container">
         @include('layouts.navigation')
 
         <!-- Page Heading -->
@@ -114,6 +114,47 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             getApplicationSettings()
+        });
+    </script>
+    <script>
+        // Page Transition Script
+        document.addEventListener("DOMContentLoaded", () => {
+            const container = document.getElementById('main-layout-container');
+            if(container) {
+                container.classList.add('page-transition-enter');
+            }
+
+            document.querySelectorAll('a').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    // Prevent transition on specific conditions
+                    if (
+                        this.hasAttribute('target') && this.getAttribute('target') === '_blank' ||
+                        this.href.includes('#') ||
+                        this.href.startsWith('javascript:') ||
+                        this.hasAttribute('download') ||
+                        !this.href ||
+                        e.ctrlKey || e.metaKey || e.shiftKey
+                    ) {
+                        return;
+                    }
+
+                    // Hanya untuk URL internal (satu domain)
+                    if (this.hostname === window.location.hostname) {
+                        e.preventDefault();
+                        const href = this.href;
+
+                        if (container) {
+                            container.classList.remove('page-transition-enter');
+                            container.classList.add('page-transition-exit');
+                        }
+
+                        // Tunggu durasi animasi (0.25s) sebelum pindah
+                        setTimeout(() => {
+                            window.location.href = href;
+                        }, 200);
+                    }
+                });
+            });
         });
     </script>
     @stack('scripts')
