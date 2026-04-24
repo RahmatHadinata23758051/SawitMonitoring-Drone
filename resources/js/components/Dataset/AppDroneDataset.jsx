@@ -124,10 +124,21 @@ const AppDroneDataset = ({ dataset = [], routes = {}, csrfToken, flashSuccess })
                                             <div className="font-bold text-slate-700 text-xs">{item.label}</div>
                                         </td>
                                         <td className="px-5 py-4">
-                                            <div className="font-mono text-xs font-semibold text-slate-500 flex flex-col gap-0.5">
-                                                <div className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md inline-block w-max">{parseFloat(item.lat).toFixed(7)}</div>
-                                                <div className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md inline-block w-max">{parseFloat(item.lon).toFixed(7)}</div>
-                                                <div className="text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md inline-block w-max">{parseFloat(item.alt).toFixed(1)}m asl</div>
+                                            <div className="font-mono text-xs font-semibold flex flex-col gap-1.5 w-max">
+                                                <div className="flex gap-2">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">LAT</span>
+                                                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{parseFloat(item.lat).toFixed(7)}</span>
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">LON</span>
+                                                        <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{parseFloat(item.lon).toFixed(7)}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">ALT</span>
+                                                    <span className="text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{parseFloat(item.alt).toFixed(1)}m asl</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-5 py-4">
