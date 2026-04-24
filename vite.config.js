@@ -19,7 +19,9 @@ export default defineConfig({
                 'resources/js/user-react.jsx',
                 'resources/js/log-aktivitas-react.jsx',
                 'resources/js/lahan-react.jsx',
-                'resources/js/kebun-react.jsx'
+                'resources/js/kebun-react.jsx',
+                'resources/js/perangkat-react.jsx',
+                'resources/js/pengaturan-aplikasi-react.jsx'
             ],
             refresh: true,
         }),
