@@ -9,7 +9,8 @@ export default defineConfig({
                 'resources/css/app.css', 
                 'resources/js/app.js',
                 'resources/js/gcs-react.jsx',
-                'resources/js/dashboard-react.jsx'
+                'resources/js/dashboard-react.jsx',
+                'resources/js/laporan-ai-react.jsx'
             ],
             refresh: true,
         }),
