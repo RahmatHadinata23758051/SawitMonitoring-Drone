@@ -82,6 +82,13 @@ const GCSRightPanel = ({
           </div>
         </div>
 
+        {/* CAMERAS - INTEGRATED ABOVE MAP */}
+        {activeMapTab === 'map' && topMapPanel && (
+          <div className="w-full bg-slate-100 p-3 flex justify-center border-b border-slate-200 shrink-0">
+            {topMapPanel}
+          </div>
+        )}
+
         {/* MAP CONTENT — FULL HEIGHT */}
         <div className="flex-1 relative overflow-hidden flex flex-col bg-slate-100">
           {activeMapTab === 'map' ? (
@@ -183,10 +190,7 @@ const GCSRightPanel = ({
                 <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-yellow-500 border border-yellow-300"></div>Sudah Terscan</div>
               </div>
 
-              {/* OVERLAYS: FPV Camera + Radar (Floating Widgets) */}
-              <div className="absolute top-3 left-3 z-20 w-[300px] pointer-events-auto">
-                {topMapPanel}
-              </div>
+
               <div className="absolute bottom-14 left-3 z-20 w-[230px] pointer-events-auto shadow-2xl">
                 {topCockpitPanel}
               </div>

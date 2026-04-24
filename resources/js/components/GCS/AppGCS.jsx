@@ -21,6 +21,7 @@ import GCSMapPanel from './components/GCSMapPanel';
 import GCSRightPanel from './components/GCSRightPanel';
 import GCSSettingsModal from './components/GCSSettingsModal';
 import GCSReportsModal from './components/GCSReportsModal';
+import GCSCameraPanel from './components/GCSCameraPanel';
 
 
 const AppGCS = () => {
@@ -1071,12 +1072,6 @@ const AppGCS = () => {
         {/* LEFT SIDEBAR */}
         <GCSLeftPanel
           droneMode={droneMode}
-          isVideoConnected={isVideoConnected}
-          webcamStream={webcamStream}
-          videoRef={videoRef}
-          liveStreamUrl={liveStreamUrl}
-          setIsVideoConnected={setIsVideoConnected}
-          setAlertPopup={setAlertPopup}
           telemetry={telemetry}
           flightTime={flightTime}
           cockpitWarning={cockpitWarning}
@@ -1085,13 +1080,7 @@ const AppGCS = () => {
           handleRTH={handleRTH}
           handleDroneCommand={handleDroneCommand}
           droneFlightState={droneFlightState}
-          liveAiVision={liveAiVision}
           flightStatusUI={flightStatusUI}
-          targetAltitude={targetAltitude}
-          radarLeft={radarLeft}
-          radarTop={radarTop}
-          isPipVisible={isPipVisible}
-          setIsPipVisible={setIsPipVisible}
           t={t}
         />
 
@@ -1146,11 +1135,11 @@ const AppGCS = () => {
           max_x={max_x}
           max_y={max_y}
           currentWpIndexRef={currentWpIndexRef}
+
           activeMapTab={activeMapTab}
           setActiveMapTab={setActiveMapTab}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          handleExportExcel={handleExportExcel}
 
           drones={drones}
           selectedUploadDrone={selectedUploadDrone}
@@ -1158,9 +1147,26 @@ const AppGCS = () => {
           setWarning={setWarning}
           isUploadReady={isUploadReady}
 
+          handleExportExcel={handleExportExcel}
+
           t={t}
 
-          topMapPanel={null}
+          topMapPanel={
+            <GCSCameraPanel
+              droneMode={droneMode}
+              isVideoConnected={isVideoConnected}
+              webcamStream={webcamStream}
+              videoRef={videoRef}
+              liveStreamUrl={liveStreamUrl}
+              setIsVideoConnected={setIsVideoConnected}
+              setAlertPopup={setAlertPopup}
+              liveAiVision={liveAiVision}
+              telemetry={telemetry}
+              targetAltitude={targetAltitude}
+              isPipVisible={isPipVisible}
+              setIsPipVisible={setIsPipVisible}
+            />
+          }
           topCockpitPanel={null}
         />
       </main>

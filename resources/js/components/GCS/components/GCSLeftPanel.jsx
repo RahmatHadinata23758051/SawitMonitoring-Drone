@@ -42,39 +42,7 @@ const GCSLeftPanel = ({
   const isDisarmed = droneFlightState === 'DISARMED';
   const btn = 'text-[10px] font-bold rounded px-2 py-1.5 transition disabled:opacity-30 disabled:cursor-not-allowed';
 
-  // HLS streaming logic (moved from GCSMapPanel)
-  useEffect(() => {
-    let hls;
-    if (droneMode === 'real' && isVideoConnected && liveStreamUrl?.endsWith('.m3u8')) {
-      if (Hls.isSupported() && hlsVideoRef.current) {
-        setHlsStatus('INIT');
-        hls = new Hls({ lowLatencyMode: true, manifestLoadingMaxRetry: 999, manifestLoadingRetryDelay: 2000 });
-        hls.loadSource(liveStreamUrl);
-        hls.attachMedia(hlsVideoRef.current);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          hlsVideoRef.current?.play().catch(() => setHlsStatus('BLOCKED'));
-          setHlsStatus('PLAYING');
-        });
-        hls.on(Hls.Events.ERROR, (_, data) => {
-          if (data.fatal) {
-            setHlsStatus('ERR: ' + data.type);
-            setTimeout(() => {
-              if (hls) {
-                hls.destroy();
-                hls = new Hls({ lowLatencyMode: true, manifestLoadingMaxRetry: 999, manifestLoadingRetryDelay: 2000 });
-                hls.loadSource(liveStreamUrl);
-                hls.attachMedia(hlsVideoRef.current);
-              }
-            }, 2000);
-          }
-        });
-      } else if (hlsVideoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
-        hlsVideoRef.current.src = liveStreamUrl;
-        setHlsStatus('NATIVE HLS');
-      }
-    }
-    return () => { if (hls) hls.destroy(); };
-  }, [droneMode, isVideoConnected, liveStreamUrl]);
+
 
   // Reusable panel header
   const PanelHeader = ({ icon: Icon, title, color, minimized, onToggle, onPopout, extraAction }) => (
@@ -100,93 +68,7 @@ const GCSLeftPanel = ({
   return (
     <aside className="w-80 shrink-0 flex flex-col gap-2 overflow-y-auto custom-scrollbar h-full pb-2">
 
-      {/* ============ CAMERA FEED PANEL ============ */}
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm flex flex-col shrink-0">
-        <PanelHeader
-          icon={Camera} title="LIVE CAMERA" color="text-rose-600"
-          minimized={camMinimized} onToggle={toggleCam}
-          extraAction={
-            setIsPipVisible ? (
-              <button
-                onClick={() => setIsPipVisible(v => !v)}
-                title="Toggle PiP (Picture-in-Picture)"
-                className={`p-0.5 transition ${isPipVisible ? 'text-sky-400' : 'text-slate-500 hover:text-slate-200'}`}
-              >
-                <MonitorPlay className="w-3 h-3" />
-              </button>
-            ) : null
-          }
-        />
 
-        {!camMinimized && (
-          <>
-            {/* REC indicator */}
-            <div className="px-3 py-1 bg-slate-50 border-b border-slate-200 flex items-center gap-2 text-[9px] font-mono shrink-0">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${droneMode && isVideoConnected ? 'bg-rose-500 animate-pulse' : 'bg-slate-300'}`} />
-              <span className="text-rose-400 font-bold">
-                REC {droneMode === 'simulasi' ? '(WEBCAM)' : droneMode === 'real' ? '(REAL)' : '(STANDBY)'}
-              </span>
-              {hlsStatus !== 'WAITING' && hlsStatus !== 'PLAYING' && (
-                <span className="text-amber-400 ml-auto text-[8px]">{hlsStatus}</span>
-              )}
-            </div>
-
-            {/* CAM 1: RGB */}
-            <div className="relative bg-black w-full" style={{ aspectRatio: '16/9' }}>
-              <div className="absolute top-1 left-1 bg-black/70 px-1.5 py-0.5 rounded text-[8px] text-white z-10 font-bold">CAM 1: RGB</div>
-              {droneMode === 'simulasi' && isVideoConnected && webcamStream ? (
-                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-              ) : droneMode === 'real' && isVideoConnected ? (
-                liveStreamUrl?.endsWith('.m3u8') ? (
-                  <video ref={hlsVideoRef} autoPlay playsInline muted className="w-full h-full object-cover"
-                    onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat HLS stream.' }); }} />
-                ) : (
-                  <img src={liveStreamUrl} alt="Live FPV" className="w-full h-full object-cover"
-                    onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat stream.' }); }} />
-                )
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-slate-500 text-[10px] font-mono border border-slate-600 border-dashed px-3 py-1.5 rounded">NO SIGNAL</span>
-                </div>
-              )}
-            </div>
-
-            {/* CAM 2: AI Multispectral */}
-            <div className="relative bg-[#0a101d] w-full" style={{ aspectRatio: '16/9' }}>
-              <div className="absolute top-1 left-1 bg-black/70 px-1.5 py-0.5 rounded text-[8px] text-emerald-400 z-10 font-bold">CAM 2: AI MULTISPECTRAL</div>
-              {droneMode && isVideoConnected ? (
-                <>
-                  <div className="absolute inset-0 opacity-20"
-                    style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(16,185,129,0.3) 1px, transparent 0)', backgroundSize: '15px 15px' }} />
-                  <Crosshair
-                    className={`absolute w-7 h-7 pointer-events-none transition-all duration-300 ${liveAiVision?.isPalmFruit ? 'text-rose-500 scale-125 opacity-80' : 'text-emerald-500 opacity-50'}`}
-                    style={{ top: `calc(${liveAiVision?.boxPos?.top ?? 30}% - 14px)`, left: `calc(${liveAiVision?.boxPos?.left ?? 40}% - 14px)` }}
-                  />
-                  {liveAiVision?.isPalmFruit && (
-                    <div className={`absolute w-10 h-14 border-2 ${liveAiVision.condition === 'Matang' ? 'border-orange-500 bg-orange-500/20' : 'border-slate-400 bg-slate-400/20'}`}
-                      style={{ top: `${liveAiVision.boxPos.top}%`, left: `${liveAiVision.boxPos.left}%` }}>
-                      <div className="absolute -top-3.5 bg-black/80 text-white text-[7px] px-1 font-bold w-full text-center border-b border-inherit whitespace-nowrap">
-                        {liveAiVision.condition} ({liveAiVision.confidence}%)
-                      </div>
-                    </div>
-                  )}
-                  {telemetry.subState === 'SCAN_QLV_CAPTURE' && <div className="absolute inset-0 bg-white/40 z-30 pointer-events-none" />}
-                  {telemetry.subState === 'SCAN_TRAD' && <div className="absolute inset-0 bg-white/10 z-30 pointer-events-none animate-pulse" />}
-                </>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-slate-500 text-[10px] font-mono border border-slate-600 border-dashed px-3 py-1.5 rounded">NO SIGNAL</span>
-                </div>
-              )}
-            </div>
-
-            <div className="h-5 bg-slate-50 flex items-center justify-between px-3 text-[9px] font-mono text-slate-500 shrink-0 border-t border-slate-200">
-              <span>DUAL STREAM</span>
-              <span className="text-blue-600 font-bold">TARGET ALT: {targetAltitude?.toFixed(1) ?? '--'}m</span>
-            </div>
-          </>
-        )}
-      </div>
 
       {/* ============ GAUGE / COCKPIT PANEL ============ */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm flex flex-col">
