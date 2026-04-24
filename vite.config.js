@@ -21,7 +21,9 @@ export default defineConfig({
                 'resources/js/lahan-react.jsx',
                 'resources/js/kebun-react.jsx',
                 'resources/js/perangkat-react.jsx',
-                'resources/js/pengaturan-aplikasi-react.jsx'
+                'resources/js/pengaturan-aplikasi-react.jsx',
+                'resources/js/panen-react.jsx',
+                'resources/js/cuaca-react.jsx'
             ],
             refresh: true,
         }),
