@@ -16,8 +16,8 @@
             'flashSuccess' => session('success'),
             'routes' => [
                 'create' => route('drone-dataset.create'),
-                'edit' => route('drone-dataset.edit', ['drone_dataset' => '__ID__']),
-                'destroy' => route('drone-dataset.destroy', ['drone_dataset' => '__ID__'])
+                'editBase' => url('dataset/drone'),
+                'destroyBase' => url('dataset/drone')
             ]
         ]) }}">
     </div>

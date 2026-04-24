@@ -169,14 +169,14 @@ const AppDroneDataset = ({ dataset = [], routes = {}, csrfToken, flashSuccess })
                                         <td className="px-5 py-4">
                                             <div className="flex items-center justify-end gap-2">
                                                 <a 
-                                                    href={routes.edit?.replace('__ID__', item.id)} 
+                                                    href={`${routes.editBase}/${item.id}/edit`} 
                                                     className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-sky-500 hover:text-white transition-all shadow-sm"
                                                     title="Edit Dataset"
                                                 >
                                                     <PenLine size={16} />
                                                 </a>
                                                 <form 
-                                                    action={routes.destroy?.replace('__ID__', item.id)} 
+                                                    action={`${routes.destroyBase}/${item.id}`} 
                                                     method="POST" 
                                                     onSubmit={(e) => handleDelete(e, item)}
                                                 >
