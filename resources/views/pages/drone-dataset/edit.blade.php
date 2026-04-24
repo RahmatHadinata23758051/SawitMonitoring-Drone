@@ -10,12 +10,12 @@
     </x-slot>
 
     <div id="react-drone-dataset-form-root" data-props="{{ json_encode([
-        'dataset' => $dataset,
+        'dataset' => $droneDataset,
         'old' => old(),
         'errors' => $errors->toArray(),
         'csrfToken' => csrf_token(),
         'routes' => [
-            'update' => route('drone-dataset.update', $dataset->id),
+            'update' => route('drone-dataset.update', $droneDataset->id),
             'index' => route('drone-dataset.index')
         ]
     ]) }}"></div>
