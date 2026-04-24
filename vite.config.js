@@ -8,7 +8,8 @@ export default defineConfig({
             input: [
                 'resources/css/app.css', 
                 'resources/js/app.js',
-                'resources/js/gcs-react.jsx'
+                'resources/js/gcs-react.jsx',
+                'resources/js/dashboard-react.jsx'
             ],
             refresh: true,
         }),
