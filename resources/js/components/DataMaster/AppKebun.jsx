@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, PenLine, Trash2, Leaf, MapPin, TreePine, LayoutGrid } from 'lucide-react';
 import ConfirmModal from '../UI/ConfirmModal';
-
-const md5Abbrev = (id) => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    let n = id * 7654321 + 123456;
-    for (let i = 0; i < 6; i++) { result += chars[n % chars.length]; n = Math.floor(n / chars.length) + id * 17; }
-    return result;
-};
+import { generateIdAbbrev } from '../../utils/helpers';
 
 const AppKebun = ({ kebun = [], routes = {}, csrfToken, flashSuccess }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -85,7 +78,7 @@ const AppKebun = ({ kebun = [], routes = {}, csrfToken, flashSuccess }) => {
                                 {filtered.length > 0 ? filtered.map(item => (
                                     <tr key={item.id} className="hover:bg-emerald-50/30 transition-colors">
                                         <td className="px-5 py-4">
-                                            <span className="font-mono font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">KBN-{md5Abbrev(item.id)}</span>
+                                            <span className="font-mono font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg text-xs border border-emerald-100">KBN-{generateIdAbbrev(item.id)}</span>
                                         </td>
                                         <td className="px-5 py-4 font-bold text-slate-800">{item.nama}</td>
                                         <td className="px-5 py-4">

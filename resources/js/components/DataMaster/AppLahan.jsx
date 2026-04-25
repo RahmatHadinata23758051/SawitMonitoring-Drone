@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, PenLine, Trash2, Map, MapPin, TreePine, Hash } from 'lucide-react';
 import ConfirmModal from '../UI/ConfirmModal';
-
-const md5Abbrev = (id) => {
-    // Simple deterministic code from ID
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    let n = id * 1234567 + 987654;
-    for (let i = 0; i < 6; i++) { result += chars[n % chars.length]; n = Math.floor(n / chars.length) + id * 31; }
-    return result;
-};
+import { generateIdAbbrev } from '../../utils/helpers';
 
 const AppLahan = ({ lahan = [], routes = {}, csrfToken, flashSuccess }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -82,7 +74,7 @@ const AppLahan = ({ lahan = [], routes = {}, csrfToken, flashSuccess }) => {
                                 {filtered.length > 0 ? filtered.map(item => (
                                     <tr key={item.id} className="hover:bg-teal-50/30 transition-colors">
                                         <td className="px-5 py-4">
-                                            <span className="font-mono font-black text-teal-700 bg-teal-50 px-3 py-1 rounded-lg text-xs border border-teal-100">LHN-{md5Abbrev(item.id)}</span>
+                                            <span className="font-mono font-black text-teal-700 bg-teal-50 px-3 py-1 rounded-lg text-xs border border-teal-100">LHN-{generateIdAbbrev(item.id)}</span>
                                         </td>
                                         <td className="px-5 py-4">
                                             <div className="font-bold text-slate-800">{item.nama}</div>
