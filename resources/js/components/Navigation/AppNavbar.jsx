@@ -58,20 +58,20 @@ const AppNavbar = ({
     };
 
     const navLinkClass = (isActive) => 
-        `relative px-3 py-2 text-[13px] font-bold rounded-lg transition-all duration-200 flex items-center gap-1.5 
-        ${isActive ? 'text-blue-700 bg-blue-50/80 shadow-sm' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'}`;
+        `relative px-4 py-2.5 text-[13px] font-bold rounded-xl transition-all duration-300 flex items-center gap-2 overflow-hidden
+        ${isActive ? 'text-blue-700 bg-blue-50/90 shadow-[0_2px_10px_-3px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/10' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-100/60'}`;
 
     const dropdownItemClass = (isActive) => 
-        `flex items-center gap-3 px-4 py-2.5 text-[13px] font-semibold transition-colors 
-        ${isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'}`;
+        `flex items-center gap-3 px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 rounded-lg mx-2 mb-1 last:mb-0
+        ${isActive ? 'bg-blue-50/80 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600 hover:translate-x-1'}`;
 
     const mobileNavLinkClass = (isActive) => 
-        `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 
-        ${isActive ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600 shadow-sm' : 'text-slate-600 hover:bg-slate-50'}`;
+        `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 mx-4 mb-1 last:mb-0
+        ${isActive ? 'bg-blue-50/80 text-blue-700 shadow-sm ring-1 ring-blue-500/10' : 'text-slate-600 hover:bg-slate-50/80'}`;
 
     return (
-        <nav ref={navRef} className="w-full bg-white border-b border-slate-200 shadow-sm z-50 relative">
-            <div className="flex items-center justify-between h-20 px-4 lg:px-6">
+        <nav ref={navRef} className="w-full sticky top-0 z-[100] backdrop-blur-xl bg-white/80 border-b border-slate-200/60 shadow-sm">
+            <div className="flex items-center justify-between h-[72px] px-4 lg:px-6 max-w-[1920px] mx-auto">
                 
                 {/* BRAND LOGO */}
                 <a href={routes.dashboard || '/'} className="flex items-center gap-3 shrink-0 group">
@@ -106,7 +106,8 @@ const AppNavbar = ({
                             <ChevronDown size={14} className={`transition-transform duration-200 ${activeDropdown === 'master' ? 'rotate-180' : ''}`} />
                         </button>
                         {activeDropdown === 'master' && (
-                            <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 py-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-56 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 py-3 animate-in fade-in slide-in-from-top-4 duration-300">
+                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-slate-100 rotate-45 rounded-sm"></div>
                                 <a href={routes.lahan} className={dropdownItemClass(isRouteActive(['lahan']))}><Map size={16} className="text-blue-500" /> Data Lahan</a>
                                 <a href={routes.kebun} className={dropdownItemClass(isRouteActive(['kebun']))}><Leaf size={16} className="text-emerald-500" /> Data Kebun</a>
                                 <a href={routes.perangkat} className={dropdownItemClass(isRouteActive(['perangkat']))}><Plane size={16} className="text-sky-500" /> Data Perangkat</a>
@@ -116,9 +117,11 @@ const AppNavbar = ({
                     </div>
 
                     {/* GCS BUTTON */}
-                    <a href={routes.gcs} className={`mx-2 relative px-4 py-2 text-[13px] font-black rounded-xl transition-all duration-300 flex items-center gap-2 overflow-hidden shadow-sm hover:shadow-md ${isRouteActive(['gcs']) ? 'bg-blue-600 text-white shadow-blue-500/30 hover:bg-blue-700 hover:-translate-y-0.5' : 'bg-slate-800 text-white hover:bg-slate-700 hover:-translate-y-0.5'}`}>
-                        <Gamepad2 size={16} className={isRouteActive(['gcs']) ? 'animate-pulse' : ''} /> GCS
-                    </a>
+                    <div className="px-2">
+                        <a href={routes.gcs} className={`relative px-5 py-2.5 text-[13px] font-black rounded-xl transition-all duration-300 flex items-center gap-2 overflow-hidden shadow-sm hover:shadow-lg ${isRouteActive(['gcs']) ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/40 hover:-translate-y-0.5' : 'bg-slate-800 text-white hover:bg-slate-700 hover:-translate-y-0.5'}`}>
+                            <Gamepad2 size={16} className={isRouteActive(['gcs']) ? 'animate-pulse' : ''} /> GCS
+                        </a>
+                    </div>
 
                     {/* Dataset Dropdown */}
                     <div className="relative">
@@ -127,7 +130,8 @@ const AppNavbar = ({
                             <ChevronDown size={14} className={`transition-transform duration-200 ${activeDropdown === 'dataset' ? 'rotate-180' : ''}`} />
                         </button>
                         {activeDropdown === 'dataset' && (
-                            <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 py-3 animate-in fade-in slide-in-from-top-4 duration-300">
+                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-slate-100 rotate-45 rounded-sm"></div>
                                 <a href={routes.droneDataset} className={dropdownItemClass(isRouteActive(['drone-dataset']))}><Plane size={16} className="text-blue-500" /> Drone</a>
                                 <a href={routes.kebunDataset} className={dropdownItemClass(isRouteActive(['kebun-dataset']))}><Leaf size={16} className="text-emerald-500" /> Kebun</a>
                                 <a href={routes.sawitDataset} className={dropdownItemClass(isRouteActive(['sawit-dataset']))}><Database size={16} className="text-amber-500" /> Sawit</a>
@@ -142,13 +146,14 @@ const AppNavbar = ({
                             <ChevronDown size={14} className={`transition-transform duration-200 ${activeDropdown === 'rule' ? 'rotate-180' : ''}`} />
                         </button>
                         {activeDropdown === 'rule' && (
-                            <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 py-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 py-3 animate-in fade-in slide-in-from-top-4 duration-300">
+                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-slate-100 rotate-45 rounded-sm"></div>
                                 <a href={routes.deadReckoning} className={dropdownItemClass(isRouteActive(['dead-reckoning']))}><Route size={16} className="text-blue-500" /> Dead-Reckoning</a>
-                                <div className="flex items-center justify-between px-4 py-2.5 text-[13px] font-semibold text-slate-400 bg-slate-50/50 cursor-not-allowed">
+                                <div className="flex items-center justify-between px-4 py-2 text-[13px] font-semibold text-slate-400 bg-slate-50/50 cursor-not-allowed mx-2 mb-1 rounded-lg">
                                     <span className="flex items-center gap-3"><Wifi size={16} /> Live-Reckoning</span>
                                     <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold shadow-sm">SOON</span>
                                 </div>
-                                <div className="flex items-center justify-between px-4 py-2.5 text-[13px] font-semibold text-slate-400 bg-slate-50/50 cursor-not-allowed">
+                                <div className="flex items-center justify-between px-4 py-2 text-[13px] font-semibold text-slate-400 bg-slate-50/50 cursor-not-allowed mx-2 rounded-lg">
                                     <span className="flex items-center gap-3"><Eye size={16} /> Quick Look Vision</span>
                                     <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold shadow-sm">SOON</span>
                                 </div>
@@ -163,7 +168,8 @@ const AppNavbar = ({
                             <ChevronDown size={14} className={`transition-transform duration-200 ${activeDropdown === 'laporan' ? 'rotate-180' : ''}`} />
                         </button>
                         {activeDropdown === 'laporan' && (
-                            <div className="absolute top-full left-0 mt-2 w-60 bg-white rounded-xl shadow-xl border border-slate-100 py-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 py-3 animate-in fade-in slide-in-from-top-4 duration-300">
+                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-slate-100 rotate-45 rounded-sm"></div>
                                 <a href={routes.laporanAi} className={dropdownItemClass(currentRoute === 'laporan.index')}><Brain size={16} className="text-purple-500" /> Prediksi Kematangan</a>
                                 <a href={routes.laporanLog} className={dropdownItemClass(currentRoute === 'laporan.log-penerbangan')}><History size={16} className="text-blue-500" /> Log Penerbangan</a>
                             </div>
@@ -188,8 +194,8 @@ const AppNavbar = ({
 
                     {/* User Profile */}
                     <div className="relative">
-                        <button onClick={() => toggleDropdown('user')} className="flex items-center gap-3 bg-white border border-slate-200 hover:bg-slate-50 hover:border-blue-200 px-2 py-1.5 rounded-xl transition-all shadow-sm">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-black text-white shadow-inner">
+                        <button onClick={() => toggleDropdown('user')} className="flex items-center gap-3 bg-slate-50 hover:bg-blue-50/50 border border-slate-200/60 hover:border-blue-200 px-2 py-1.5 rounded-2xl transition-all shadow-sm">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-xs font-black text-white shadow-[0_2px_8px_-2px_rgba(79,70,229,0.4)]">
                                 {userInitial}
                             </div>
                             <div className="hidden lg:flex flex-col text-left leading-none pr-1">
@@ -200,22 +206,20 @@ const AppNavbar = ({
                         </button>
 
                         {activeDropdown === 'user' && (
-                            <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in zoom-in-95 fade-in duration-200">
-                                <div className="px-5 py-4 bg-gradient-to-br from-blue-50 to-indigo-50/50 border-b border-slate-100">
+                            <div className="absolute top-full right-0 mt-4 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+                                <div className="p-4 bg-slate-50/50 border-b border-slate-100">
                                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Login Sebagai</div>
                                     <div className="font-black text-slate-800 text-sm">{userName}</div>
                                     <div className="text-xs font-medium text-slate-500 mt-0.5">{userEmail}</div>
                                 </div>
-                                <div className="py-2">
-                                    <a href={routes.profile} className="flex items-center gap-3 px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors">
-                                        <User size={16} className="text-blue-500" /> Profil Saya
+                                <div className="p-2 flex flex-col">
+                                    <a href={routes.profile} className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg transition-colors">
+                                        <User size={16} /> Profil Saya
                                     </a>
-                                </div>
-                                <div className="p-2 border-t border-slate-100 bg-slate-50/50">
-                                    <form method="POST" action={routes.logout} className="w-full">
+                                    <form action={routes.logout} method="POST" className="w-full">
                                         <input type="hidden" name="_token" value={csrfToken} />
-                                        <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-red-200 text-red-600 rounded-xl hover:bg-red-50 hover:border-red-300 font-bold text-sm transition-all shadow-sm">
-                                            <LogOut size={16} /> Keluar Sistem
+                                        <button type="submit" className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                                            <LogOut size={16} /> Keluar
                                         </button>
                                     </form>
                                 </div>
@@ -232,13 +236,13 @@ const AppNavbar = ({
 
             {/* MOBILE MENU DROPDOWN */}
             {mobileOpen && (
-                <div className="xl:hidden bg-white border-t border-slate-200 shadow-xl overflow-y-auto max-h-[calc(100vh-80px)] animate-in slide-in-from-top-4 fade-in duration-200">
-                    <div className="px-4 py-6 space-y-1">
+                <div className="xl:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200/60 shadow-2xl overflow-y-auto max-h-[calc(100vh-[72px])] animate-in slide-in-from-top-4 fade-in duration-300 pb-8">
+                    <div className="py-6 space-y-1">
                         <a href={routes.dashboard} className={mobileNavLinkClass(isRouteActive(['dashboard']))}>
                             <LayoutDashboard size={18} className={isRouteActive(['dashboard']) ? 'text-blue-600' : 'text-slate-400'} /> Dashboard
                         </a>
 
-                        <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Master</div>
+                        <div className="pt-5 pb-2 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Master</div>
                         <a href={routes.lahan} className={mobileNavLinkClass(isRouteActive(['lahan']))}>
                             <Map size={18} className={isRouteActive(['lahan']) ? 'text-blue-600' : 'text-slate-400'} /> Data Lahan
                         </a>
@@ -252,7 +256,7 @@ const AppNavbar = ({
                             <Users size={18} className={isRouteActive(['user']) ? 'text-blue-600' : 'text-slate-400'} /> Data User
                         </a>
 
-                        <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Misi & Laporan</div>
+                        <div className="pt-5 pb-2 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Laporan</div>
                         <a href={routes.gcs} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black transition-all shadow-sm ${isRouteActive(['gcs']) ? 'bg-blue-600 text-white' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
                             <Gamepad2 size={18} /> Ground Control Station
                         </a>
@@ -263,7 +267,7 @@ const AppNavbar = ({
                             <History size={18} className={currentRoute === 'laporan.log-penerbangan' ? 'text-blue-600' : 'text-slate-400'} /> Log Penerbangan
                         </a>
 
-                        <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dataset & Rule Engine</div>
+                        <div className="pt-5 pb-2 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dataset & Rule Engine</div>
                         <a href={routes.droneDataset} className={mobileNavLinkClass(isRouteActive(['drone-dataset']))}>
                             <Layers size={18} className={isRouteActive(['drone-dataset']) ? 'text-blue-600' : 'text-slate-400'} /> Dataset Drone
                         </a>
