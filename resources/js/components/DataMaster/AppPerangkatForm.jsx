@@ -1,75 +1,145 @@
 import React from 'react';
-import { Cpu, Save, X, ArrowLeft } from 'lucide-react';
+import { Cpu, Save, X, ArrowLeft, Wifi, Server, Activity } from 'lucide-react';
 
 const AppPerangkatForm = ({ perangkat = null, old = {}, errors = {}, routes = {}, csrfToken }) => {
     const isEdit = !!perangkat;
     const actionUrl = isEdit ? routes.update : routes.store;
 
     return (
-        <div className="pt-6 pb-12 w-full">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-6">
+        <div className="pt-8 pb-16 w-full bg-slate-50 min-h-screen">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 
-                <div className="flex items-center gap-4">
-                    <a href={routes.index} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-500 hover:text-sky-600 hover:bg-sky-50 transition-all shadow-sm">
-                        <ArrowLeft size={20} />
-                    </a>
-                    <div>
-                        <h1 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-                            <Cpu size={28} className="text-sky-500" />
-                            {isEdit ? 'Ubah Data Perangkat' : 'Tambah Data Perangkat'}
-                        </h1>
-                        <p className="text-sm font-medium text-slate-500 mt-1">Silakan isi form di bawah ini dengan lengkap</p>
+                {/* Header Section */}
+                <div className="mb-8 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <a href={routes.index} className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-sky-600 hover:border-sky-200 hover:bg-sky-50 transition-all shadow-sm">
+                            <ArrowLeft size={18} />
+                        </a>
+                        <nav className="hidden sm:flex" aria-label="Breadcrumb">
+                            <ol className="flex items-center space-x-2 text-sm font-medium text-slate-500">
+                                <li>Data Master</li>
+                                <li><span className="mx-2 text-slate-300">/</span></li>
+                                <li><a href={routes.index} className="hover:text-sky-600 transition-colors">Data Perangkat</a></li>
+                                <li><span className="mx-2 text-slate-300">/</span></li>
+                                <li className="text-slate-800 font-bold">{isEdit ? 'Ubah Data' : 'Tambah Baru'}</li>
+                            </ol>
+                        </nav>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="p-6 sm:p-8">
-                        <form action={actionUrl} method="POST">
-                            <input type="hidden" name="_token" value={csrfToken} />
-                            {isEdit && <input type="hidden" name="_method" value="PUT" />}
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="flex flex-col gap-2">
-                                    <label htmlFor="id_drone" className="text-sm font-bold text-slate-700">ID Drone</label>
-                                    <input type="text" id="id_drone" name="id_drone" required autoFocus
-                                        defaultValue={old.id_drone ?? (perangkat?.id_drone || '')}
-                                        className={`w-full bg-slate-50 border ${errors.id_drone ? 'border-rose-300 focus:ring-rose-500/30' : 'border-slate-200 focus:ring-sky-500/30'} rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 transition-all`} />
-                                    {errors.id_drone && <p className="text-xs font-semibold text-rose-500 mt-1">{errors.id_drone[0]}</p>}
-                                </div>
-                                
-                                <div className="flex flex-col gap-2">
-                                    <label htmlFor="ip_drone" className="text-sm font-bold text-slate-700">IP Drone</label>
-                                    <input type="text" id="ip_drone" name="ip_drone" required
-                                        defaultValue={old.ip_drone ?? (perangkat?.ip_drone || '')}
-                                        className={`w-full bg-slate-50 border ${errors.ip_drone ? 'border-rose-300 focus:ring-rose-500/30' : 'border-slate-200 focus:ring-sky-500/30'} rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 transition-all`} />
-                                    {errors.ip_drone && <p className="text-xs font-semibold text-rose-500 mt-1">{errors.ip_drone[0]}</p>}
-                                </div>
-                                
-                                <div className="flex flex-col gap-2 md:col-span-2">
-                                    <label htmlFor="status" className="text-sm font-bold text-slate-700">Status Perangkat</label>
-                                    <select id="status" name="status" required
-                                        defaultValue={old.status ?? (perangkat?.status ?? '')}
-                                        className={`w-full bg-slate-50 border ${errors.status ? 'border-rose-300 focus:ring-rose-500/30' : 'border-slate-200 focus:ring-sky-500/30'} rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 transition-all cursor-pointer`}>
-                                        <option value="" disabled>--- Pilih status ---</option>
-                                        <option value="1">Aktif</option>
-                                        <option value="0">Tidak Aktif</option>
-                                    </select>
-                                    {errors.status && <p className="text-xs font-semibold text-rose-500 mt-1">{errors.status[0]}</p>}
-                                </div>
-
-                                <div className="flex items-center justify-end gap-3 md:col-span-2 pt-6 mt-2 border-t border-slate-100">
-                                    <a href={routes.index} className="flex items-center gap-2 bg-slate-100 text-slate-600 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition">
-                                        <X size={18} /> Batal
-                                    </a>
-                                    <button type="submit" className="flex items-center gap-2 bg-sky-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-sky-600 transition shadow-sm shadow-sky-500/30">
-                                        <Save size={18} /> Simpan
-                                    </button>
-                                </div>
+                {/* Main Split Layout */}
+                <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                    
+                    {/* Left Column: Context & Info */}
+                    <div className="lg:col-span-4 flex flex-col gap-6 sticky top-8">
+                        <div>
+                            <div className="w-14 h-14 bg-gradient-to-br from-sky-400 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-sky-500/20 mb-6">
+                                <Cpu size={28} />
                             </div>
-                        </form>
-                    </div>
-                </div>
+                            <h1 className="text-3xl font-black text-slate-800 tracking-tight mb-3">
+                                {isEdit ? 'Ubah Data Perangkat' : 'Tambah Perangkat Baru'}
+                            </h1>
+                            <p className="text-slate-500 text-sm leading-relaxed">
+                                {isEdit 
+                                    ? 'Perbarui konfigurasi jaringan dan status perangkat drone yang sudah terdaftar.' 
+                                    : 'Tambahkan perangkat drone baru untuk memperluas jangkauan pemantauan kebun.'}
+                            </p>
+                        </div>
 
+                        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm mt-4">
+                            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Activity size={16} className="text-sky-500" /> Informasi Teknis
+                            </h3>
+                            <ul className="space-y-3 text-sm text-slate-600">
+                                <li className="flex gap-3">
+                                    <Server size={16} className="text-slate-400 shrink-0 mt-0.5" />
+                                    <span>Pastikan <strong>ID Drone</strong> unik dan sesuai dengan serial number fisik perangkat.</span>
+                                </li>
+                                <li className="flex gap-3">
+                                    <Wifi size={16} className="text-slate-400 shrink-0 mt-0.5" />
+                                    <span>Alamat <strong>IP Drone</strong> harus bersifat statis agar koneksi telemetri GCS stabil.</span>
+                                </li>
+                                <li className="flex gap-3">
+                                    <Activity size={16} className="text-slate-400 shrink-0 mt-0.5" />
+                                    <span>Status <strong>Aktif</strong> diperlukan agar drone dapat menerima misi penerbangan.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    {/* Right Column: The Form */}
+                    <div className="lg:col-span-8">
+                        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
+                            
+                            {/* Decorative top bar */}
+                            <div className="h-2 w-full bg-gradient-to-r from-sky-400 to-blue-600"></div>
+                            
+                            <div className="p-8 sm:p-10">
+                                <form action={actionUrl} method="POST" className="space-y-8">
+                                    <input type="hidden" name="_token" value={csrfToken} />
+                                    {isEdit && <input type="hidden" name="_method" value="PUT" />}
+
+                                    {/* Section 1: Identifikasi Drone */}
+                                    <div>
+                                        <h2 className="text-lg font-bold text-slate-800 mb-5 pb-2 border-b border-slate-100 flex items-center gap-2">
+                                            Identifikasi Perangkat
+                                        </h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="flex flex-col gap-2">
+                                                <label htmlFor="id_drone" className="text-sm font-bold text-slate-700">ID Drone / Serial Number</label>
+                                                <input type="text" id="id_drone" name="id_drone" required autoFocus
+                                                    defaultValue={old.id_drone ?? (perangkat?.id_drone || '')}
+                                                    placeholder="Contoh: MAVIC-001"
+                                                    className={`w-full bg-slate-50 border ${errors.id_drone ? 'border-rose-300 focus:ring-rose-500/30' : 'border-slate-200 focus:ring-sky-500/30'} rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:bg-white transition-all uppercase`} />
+                                                {errors.id_drone && <p className="text-xs font-semibold text-rose-500 mt-1">{errors.id_drone[0]}</p>}
+                                            </div>
+                                            
+                                            <div className="flex flex-col gap-2">
+                                                <label htmlFor="ip_drone" className="text-sm font-bold text-slate-700">Alamat IP Telemetri</label>
+                                                <input type="text" id="ip_drone" name="ip_drone" required
+                                                    defaultValue={old.ip_drone ?? (perangkat?.ip_drone || '')}
+                                                    placeholder="Contoh: 192.168.1.100"
+                                                    className={`w-full bg-slate-50 border ${errors.ip_drone ? 'border-rose-300 focus:ring-rose-500/30' : 'border-slate-200 focus:ring-sky-500/30'} rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:bg-white transition-all`} />
+                                                {errors.ip_drone && <p className="text-xs font-semibold text-rose-500 mt-1">{errors.ip_drone[0]}</p>}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Section 2: Status */}
+                                    <div>
+                                        <h2 className="text-lg font-bold text-slate-800 mb-5 pb-2 border-b border-slate-100 flex items-center gap-2">
+                                            Operasional
+                                        </h2>
+                                        <div className="grid grid-cols-1 gap-6">
+                                            <div className="flex flex-col gap-2">
+                                                <label htmlFor="status" className="text-sm font-bold text-slate-700">Status Perangkat</label>
+                                                <select id="status" name="status" required
+                                                    defaultValue={old.status ?? (perangkat?.status ?? '')}
+                                                    className={`w-full bg-slate-50 border ${errors.status ? 'border-rose-300 focus:ring-rose-500/30' : 'border-slate-200 focus:ring-sky-500/30'} rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:bg-white transition-all cursor-pointer appearance-none`}>
+                                                    <option value="" disabled>--- Pilih Status Operasional ---</option>
+                                                    <option value="1">🟢 Aktif & Siap Terbang</option>
+                                                    <option value="0">🔴 Tidak Aktif / Maintenance</option>
+                                                </select>
+                                                {errors.status && <p className="text-xs font-semibold text-rose-500 mt-1">{errors.status[0]}</p>}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex items-center justify-end gap-4 pt-6 mt-6 border-t border-slate-100">
+                                        <a href={routes.index} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-6 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
+                                            <X size={18} /> Batal
+                                        </a>
+                                        <button type="submit" className="flex items-center gap-2 bg-gradient-to-r from-sky-500 to-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:from-sky-600 hover:to-blue-700 transition-all shadow-lg shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0">
+                                            <Save size={18} /> Simpan Data
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
     );
