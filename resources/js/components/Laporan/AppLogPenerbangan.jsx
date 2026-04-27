@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
     Paperclip, 
     Trees, 
@@ -35,8 +36,8 @@ const ModalDetail = ({ isOpen, onClose, log, telemetry, loading, error }) => {
     const scanLabel = log.scan_mode === 'qlv' ? 'QLV (Quick Look Vision)' : 'Traditional Scan';
     const accColor = parseFloat(log.accuracy) >= 95 ? 'text-emerald-700 bg-emerald-50 ring-1 ring-emerald-200' : 'text-amber-700 bg-amber-50 ring-1 ring-amber-200';
 
-    return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+    return createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
@@ -194,7 +195,8 @@ const ModalDetail = ({ isOpen, onClose, log, telemetry, loading, error }) => {
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
