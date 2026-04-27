@@ -10,8 +10,7 @@ import {
     Layers, 
     Route, 
     Wifi, 
-    Eye, 
-    FileText, 
+    Eye,
     Brain, 
     History, 
     Settings, 
@@ -21,7 +20,10 @@ import {
     LogOut, 
     Menu, 
     X, 
-    Clock
+    Clock,
+    Cog,
+    BarChart3,
+    Cpu
 } from 'lucide-react';
 
 const AppNavbar = ({ 
@@ -34,9 +36,9 @@ const AppNavbar = ({
 }) => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
+    const [scrolled, setScrolled] = useState(false);
     const navRef = useRef(null);
 
-    // Handle click outside to close dropdowns
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (navRef.current && !navRef.current.contains(event.target)) {
@@ -47,179 +49,247 @@ const AppNavbar = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const toggleDropdown = (name) => {
-        setActiveDropdown(activeDropdown === name ? null : name);
-    };
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 8);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
-    // Helper for active route classes
+    const toggleDropdown = (name) => setActiveDropdown(activeDropdown === name ? null : name);
+
     const isRouteActive = (routePrefixes) => {
         if (!currentRoute) return false;
         return routePrefixes.some(prefix => currentRoute === prefix || currentRoute.startsWith(prefix + '.'));
     };
 
-    const navLinkClass = (isActive) => 
-        `relative px-4 py-2.5 text-[13px] font-bold rounded-xl transition-all duration-300 flex items-center gap-2 overflow-hidden
-        ${isActive ? 'text-blue-700 bg-blue-50/90 shadow-[0_2px_10px_-3px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/10' : 'text-slate-600 hover:text-blue-600 hover:bg-slate-100/60'}`;
+    /* ── Pill nav link ── */
+    const NavLink = ({ href, active, icon: Icon, children }) => (
+        <a href={href}
+            className={`relative flex items-center gap-2 px-3.5 py-2 text-[13px] font-semibold rounded-xl transition-all duration-200 group
+                ${active
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'}`}>
+            {Icon && <Icon size={14} className={`shrink-0 transition-colors ${active ? 'text-blue-200' : 'text-slate-400 group-hover:text-slate-600'}`} />}
+            {children}
+            {active && <span className="absolute inset-0 rounded-xl ring-1 ring-blue-500/30 pointer-events-none" />}
+        </a>
+    );
 
-    const dropdownItemClass = (isActive) => 
-        `flex items-center gap-3 px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 rounded-lg mx-2 mb-1 last:mb-0
-        ${isActive ? 'bg-blue-50/80 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600 hover:translate-x-1'}`;
+    /* ── Dropdown trigger ── */
+    const DropTrigger = ({ name, active, icon: Icon, children }) => (
+        <button onClick={() => toggleDropdown(name)}
+            className={`relative flex items-center gap-2 px-3.5 py-2 text-[13px] font-semibold rounded-xl transition-all duration-200 group
+                ${active
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'}`}>
+            {Icon && <Icon size={14} className={`shrink-0 ${active ? 'text-blue-200' : 'text-slate-400 group-hover:text-slate-600'}`} />}
+            {children}
+            <ChevronDown size={12} className={`ml-0.5 transition-transform duration-200 ${activeDropdown === name ? 'rotate-180' : ''} ${active ? 'text-blue-200' : 'text-slate-400'}`} />
+            {active && <span className="absolute inset-0 rounded-xl ring-1 ring-blue-500/30 pointer-events-none" />}
+        </button>
+    );
 
-    const mobileNavLinkClass = (isActive) => 
-        `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 mx-4 mb-1 last:mb-0
-        ${isActive ? 'bg-blue-50/80 text-blue-700 shadow-sm ring-1 ring-blue-500/10' : 'text-slate-600 hover:bg-slate-50/80'}`;
+    /* ── Dropdown item ── */
+    const DropItem = ({ href, active, icon: Icon, badge, children }) => (
+        <a href={href}
+            className={`flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium rounded-xl transition-all duration-150 mx-1
+                ${active
+                    ? 'bg-blue-50 text-blue-700 font-semibold'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 hover:translate-x-0.5'}`}>
+            {Icon && (
+                <span className={`w-7 h-7 flex items-center justify-center rounded-lg shrink-0 ${active ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
+                    <Icon size={13} />
+                </span>
+            )}
+            <span className="flex-1">{children}</span>
+            {badge && <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">{badge}</span>}
+        </a>
+    );
+
+    /* ── Disabled dropdown item ── */
+    const DropItemDisabled = ({ icon: Icon, badge, children }) => (
+        <div className="flex items-center gap-3 px-3 py-2.5 text-[13px] font-medium rounded-xl mx-1 opacity-50 cursor-not-allowed">
+            {Icon && <span className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0 bg-slate-100 text-slate-400"><Icon size={13} /></span>}
+            <span className="flex-1 text-slate-500">{children}</span>
+            {badge && <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">{badge}</span>}
+        </div>
+    );
+
+    /* ── Dropdown panel ── */
+    const DropPanel = ({ children, width = 'w-52' }) => (
+        <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-3 ${width} bg-white border border-slate-100 rounded-2xl shadow-xl shadow-black/[0.08] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150`}>
+            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-t border-l border-slate-100 rotate-45 rounded-tl-sm" />
+            {children}
+        </div>
+    );
 
     return (
-        <nav ref={navRef} className="w-full sticky top-0 z-[100] backdrop-blur-xl bg-white/80 border-b border-slate-200/60 shadow-sm">
-            <div className="flex items-center justify-between h-[72px] px-4 lg:px-6 max-w-[1920px] mx-auto">
-                
-                {/* BRAND LOGO */}
+        <nav ref={navRef}
+            className={`w-full sticky top-0 z-[100] transition-all duration-300
+                ${scrolled
+                    ? 'bg-white/95 backdrop-blur-xl shadow-[0_1px_24px_-4px_rgba(0,0,0,0.12)] border-b border-slate-200/80'
+                    : 'bg-white/90 backdrop-blur-xl border-b border-slate-200/50 shadow-sm'}`}>
+
+            <div className="flex items-center justify-between h-16 px-4 lg:px-6 max-w-[1920px] mx-auto gap-3">
+
+                {/* ── BRAND ── */}
                 <a href={routes.dashboard || '/'} className="flex items-center gap-3 shrink-0 group">
-                    <img 
-                        src="/images/logo-ipb-full.png" 
-                        alt="Logo IPB" 
-                        className="h-16 w-auto object-contain transition-transform group-hover:scale-105" 
-                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                    />
-                    <div style={{ display: 'none' }} className="w-10 h-10 rounded-full bg-blue-900 text-white items-center justify-center font-black text-base shrink-0">
-                        GCS
+                    <div className="relative">
+                        <img
+                            src="/images/logo-ipb-full.png"
+                            alt="Logo IPB"
+                            className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                        />
+                        <div style={{ display: 'none' }}
+                            className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white items-center justify-center font-black text-sm shadow-md">
+                            GCS
+                        </div>
                     </div>
-                    <div className="w-px h-8 bg-slate-200 hidden sm:block mx-1"></div>
-                    <div className="hidden sm:flex flex-col leading-none gap-0.5">
-                        <span className="font-bold text-[15px] leading-tight text-blue-900">Drone CPS</span>
-                        <span className="text-slate-400 text-[10px] font-medium tracking-wide">Ground Control Station</span>
+                    <div className="hidden sm:flex flex-col leading-none">
+                        <span className="font-black text-[14px] text-slate-900 tracking-tight" style={{ letterSpacing: '-0.03em' }}>Drone CPS</span>
+                        <span className="text-slate-400 text-[10px] font-semibold tracking-widest uppercase mt-0.5">GCS Platform</span>
                     </div>
                 </a>
 
-                {/* DESKTOP MENU */}
+                {/* ── DESKTOP NAV ── */}
                 <div className="hidden xl:flex items-center gap-1 flex-1 justify-center">
-                    
-                    {/* Dashboard */}
-                    <a href={routes.dashboard} className={navLinkClass(isRouteActive(['dashboard']))}>
+
+                    <NavLink href={routes.dashboard} active={isRouteActive(['dashboard'])} icon={LayoutDashboard}>
                         Dashboard
-                    </a>
+                    </NavLink>
 
-                    {/* Data Master Dropdown */}
+                    {/* Data Master */}
                     <div className="relative">
-                        <button onClick={() => toggleDropdown('master')} className={navLinkClass(isRouteActive(['lahan', 'kebun', 'perangkat', 'user']))}>
+                        <DropTrigger name="master" active={isRouteActive(['lahan', 'kebun', 'perangkat', 'user'])} icon={Database}>
                             Data Master
-                            <ChevronDown size={14} className={`transition-transform duration-200 ${activeDropdown === 'master' ? 'rotate-180' : ''}`} />
-                        </button>
+                        </DropTrigger>
                         {activeDropdown === 'master' && (
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-56 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 py-3 animate-in fade-in slide-in-from-top-4 duration-300">
-                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-slate-100 rotate-45 rounded-sm"></div>
-                                <a href={routes.lahan} className={dropdownItemClass(isRouteActive(['lahan']))}><Map size={16} className="text-blue-500" /> Data Lahan</a>
-                                <a href={routes.kebun} className={dropdownItemClass(isRouteActive(['kebun']))}><Leaf size={16} className="text-emerald-500" /> Data Kebun</a>
-                                <a href={routes.perangkat} className={dropdownItemClass(isRouteActive(['perangkat']))}><Plane size={16} className="text-sky-500" /> Data Perangkat</a>
-                                <a href={routes.user} className={dropdownItemClass(isRouteActive(['user']))}><Users size={16} className="text-indigo-500" /> Data User</a>
-                            </div>
+                            <DropPanel>
+                                <DropItem href={routes.lahan} active={isRouteActive(['lahan'])} icon={Map}>Data Lahan</DropItem>
+                                <DropItem href={routes.kebun} active={isRouteActive(['kebun'])} icon={Leaf}>Data Kebun</DropItem>
+                                <DropItem href={routes.perangkat} active={isRouteActive(['perangkat'])} icon={Plane}>Data Perangkat</DropItem>
+                                <DropItem href={routes.user} active={isRouteActive(['user'])} icon={Users}>Data User</DropItem>
+                            </DropPanel>
                         )}
                     </div>
 
-                    {/* GCS BUTTON */}
-                    <div className="px-2">
-                        <a href={routes.gcs} className={`relative px-5 py-2.5 text-[13px] font-black rounded-xl transition-all duration-300 flex items-center gap-2 overflow-hidden shadow-sm hover:shadow-lg ${isRouteActive(['gcs']) ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/40 hover:-translate-y-0.5' : 'bg-slate-800 text-white hover:bg-slate-700 hover:-translate-y-0.5'}`}>
-                            <Gamepad2 size={16} className={isRouteActive(['gcs']) ? 'animate-pulse' : ''} /> GCS
-                        </a>
-                    </div>
-
-                    {/* Dataset Dropdown */}
-                    <div className="relative">
-                        <button onClick={() => toggleDropdown('dataset')} className={navLinkClass(isRouteActive(['drone-dataset', 'kebun-dataset', 'sawit-dataset']))}>
-                            Dataset
-                            <ChevronDown size={14} className={`transition-transform duration-200 ${activeDropdown === 'dataset' ? 'rotate-180' : ''}`} />
-                        </button>
-                        {activeDropdown === 'dataset' && (
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-48 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 py-3 animate-in fade-in slide-in-from-top-4 duration-300">
-                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-slate-100 rotate-45 rounded-sm"></div>
-                                <a href={routes.droneDataset} className={dropdownItemClass(isRouteActive(['drone-dataset']))}><Plane size={16} className="text-blue-500" /> Drone</a>
-                                <a href={routes.kebunDataset} className={dropdownItemClass(isRouteActive(['kebun-dataset']))}><Leaf size={16} className="text-emerald-500" /> Kebun</a>
-                                <a href={routes.sawitDataset} className={dropdownItemClass(isRouteActive(['sawit-dataset']))}><Database size={16} className="text-amber-500" /> Sawit</a>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Rule Engine Dropdown */}
-                    <div className="relative">
-                        <button onClick={() => toggleDropdown('rule')} className={navLinkClass(isRouteActive(['dead-reckoning']))}>
-                            Rule Engine
-                            <ChevronDown size={14} className={`transition-transform duration-200 ${activeDropdown === 'rule' ? 'rotate-180' : ''}`} />
-                        </button>
-                        {activeDropdown === 'rule' && (
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 py-3 animate-in fade-in slide-in-from-top-4 duration-300">
-                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-slate-100 rotate-45 rounded-sm"></div>
-                                <a href={routes.deadReckoning} className={dropdownItemClass(isRouteActive(['dead-reckoning']))}><Route size={16} className="text-blue-500" /> Dead-Reckoning</a>
-                                <div className="flex items-center justify-between px-4 py-2 text-[13px] font-semibold text-slate-400 bg-slate-50/50 cursor-not-allowed mx-2 mb-1 rounded-lg">
-                                    <span className="flex items-center gap-3"><Wifi size={16} /> Live-Reckoning</span>
-                                    <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold shadow-sm">SOON</span>
-                                </div>
-                                <div className="flex items-center justify-between px-4 py-2 text-[13px] font-semibold text-slate-400 bg-slate-50/50 cursor-not-allowed mx-2 rounded-lg">
-                                    <span className="flex items-center gap-3"><Eye size={16} /> Quick Look Vision</span>
-                                    <span className="text-[9px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold shadow-sm">SOON</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Laporan Dropdown */}
-                    <div className="relative">
-                        <button onClick={() => toggleDropdown('laporan')} className={navLinkClass(isRouteActive(['laporan']))}>
-                            Laporan
-                            <ChevronDown size={14} className={`transition-transform duration-200 ${activeDropdown === 'laporan' ? 'rotate-180' : ''}`} />
-                        </button>
-                        {activeDropdown === 'laporan' && (
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 py-3 animate-in fade-in slide-in-from-top-4 duration-300">
-                                <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-slate-100 rotate-45 rounded-sm"></div>
-                                <a href={routes.laporanAi} className={dropdownItemClass(currentRoute === 'laporan.index')}><Brain size={16} className="text-purple-500" /> Prediksi Kematangan</a>
-                                <a href={routes.laporanLog} className={dropdownItemClass(currentRoute === 'laporan.log-penerbangan')}><History size={16} className="text-blue-500" /> Log Penerbangan</a>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Pengaturan */}
-                    <a href={routes.pengaturan} className={navLinkClass(isRouteActive(['pengaturan-aplikasi']))}>
-                        Pengaturan
+                    {/* GCS — special pill */}
+                    <a href={routes.gcs}
+                        className={`relative flex items-center gap-2 px-4 py-2 text-[13px] font-black rounded-xl transition-all duration-200 shadow-sm mx-1
+                            ${isRouteActive(['gcs'])
+                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-500/40 hover:shadow-blue-500/60 hover:-translate-y-0.5'
+                                : 'bg-slate-900 text-white hover:bg-slate-800 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-900/20'}`}>
+                        <Gamepad2 size={14} className={isRouteActive(['gcs']) ? 'text-blue-200 animate-pulse' : 'text-slate-400'} />
+                        GCS
+                        {isRouteActive(['gcs']) && <span className="absolute inset-0 rounded-xl ring-2 ring-blue-400/30 pointer-events-none" />}
                     </a>
+
+                    {/* Dataset */}
+                    <div className="relative">
+                        <DropTrigger name="dataset" active={isRouteActive(['drone-dataset', 'kebun-dataset', 'sawit-dataset'])} icon={Layers}>
+                            Dataset
+                        </DropTrigger>
+                        {activeDropdown === 'dataset' && (
+                            <DropPanel>
+                                <DropItem href={routes.droneDataset} active={isRouteActive(['drone-dataset'])} icon={Plane}>Dataset Drone</DropItem>
+                                <DropItem href={routes.kebunDataset} active={isRouteActive(['kebun-dataset'])} icon={Leaf}>Dataset Kebun</DropItem>
+                                <DropItem href={routes.sawitDataset} active={isRouteActive(['sawit-dataset'])} icon={Database}>Dataset Sawit</DropItem>
+                            </DropPanel>
+                        )}
+                    </div>
+
+                    {/* Rule Engine */}
+                    <div className="relative">
+                        <DropTrigger name="rule" active={isRouteActive(['dead-reckoning'])} icon={Cog}>
+                            Rule Engine
+                        </DropTrigger>
+                        {activeDropdown === 'rule' && (
+                            <DropPanel width="w-60">
+                                <DropItem href={routes.deadReckoning} active={isRouteActive(['dead-reckoning'])} icon={Route}>Dead-Reckoning</DropItem>
+                                <DropItemDisabled icon={Wifi} badge="SOON">Live-Reckoning</DropItemDisabled>
+                                <DropItemDisabled icon={Eye} badge="SOON">Quick Look Vision</DropItemDisabled>
+                            </DropPanel>
+                        )}
+                    </div>
+
+                    {/* Laporan */}
+                    <div className="relative">
+                        <DropTrigger name="laporan" active={isRouteActive(['laporan'])} icon={BarChart3}>
+                            Laporan
+                        </DropTrigger>
+                        {activeDropdown === 'laporan' && (
+                            <DropPanel width="w-56">
+                                <DropItem href={routes.laporanAi} active={currentRoute === 'laporan.index'} icon={Brain}>Prediksi Kematangan</DropItem>
+                                <DropItem href={routes.laporanLog} active={currentRoute === 'laporan.log-penerbangan'} icon={History}>Log Penerbangan</DropItem>
+                            </DropPanel>
+                        )}
+                    </div>
+
+                    <NavLink href={routes.pengaturan} active={isRouteActive(['pengaturan-aplikasi'])} icon={Settings}>
+                        Pengaturan
+                    </NavLink>
+
                 </div>
 
-                {/* RIGHT ICONS & USER */}
-                <div className="hidden xl:flex items-center gap-3">
-                    <a href={routes.logAktivitas} title="Log Aktivitas" className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-blue-600 transition-colors">
-                        <Clock size={18} />
+                {/* ── RIGHT ICONS ── */}
+                <div className="hidden xl:flex items-center gap-2">
+                    <a href={routes.logAktivitas} title="Log Aktivitas"
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-blue-600 transition-all">
+                        <Clock size={17} />
                     </a>
-                    <a href={routes.cuaca} title="Pengaturan Cuaca" className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-sky-500 transition-colors">
-                        <Cloud size={18} />
+                    <a href={routes.cuaca} title="Cuaca Misi"
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-sky-500 transition-all">
+                        <Cloud size={17} />
                     </a>
-                    <div className="w-px h-6 bg-slate-200 mx-1"></div>
 
-                    {/* User Profile */}
+                    {/* Separator */}
+                    <div className="w-px h-5 bg-slate-200 mx-1" />
+
+                    {/* User pill */}
                     <div className="relative">
-                        <button onClick={() => toggleDropdown('user')} className="flex items-center gap-3 bg-slate-50 hover:bg-blue-50/50 border border-slate-200/60 hover:border-blue-200 px-2 py-1.5 rounded-2xl transition-all shadow-sm">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-xs font-black text-white shadow-[0_2px_8px_-2px_rgba(79,70,229,0.4)]">
+                        <button onClick={() => toggleDropdown('user')}
+                            className="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-all duration-200 group">
+                            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-[11px] font-black text-white shadow">
                                 {userInitial}
                             </div>
-                            <div className="hidden lg:flex flex-col text-left leading-none pr-1">
-                                <span className="text-xs font-bold text-slate-700">{userName}</span>
-                                <span className="text-[10px] font-semibold text-slate-400 mt-0.5">Administrator</span>
+                            <div className="hidden lg:flex flex-col items-start leading-none">
+                                <span className="text-[12px] font-bold text-slate-800">{userName}</span>
+                                <span className="text-[10px] text-slate-400 font-medium mt-0.5">Admin</span>
                             </div>
-                            <ChevronDown size={14} className={`text-slate-400 mr-1 transition-transform duration-200 ${activeDropdown === 'user' ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${activeDropdown === 'user' ? 'rotate-180' : ''}`} />
                         </button>
 
                         {activeDropdown === 'user' && (
-                            <div className="absolute top-full right-0 mt-4 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-                                <div className="p-4 bg-slate-50/50 border-b border-slate-100">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Login Sebagai</div>
-                                    <div className="font-black text-slate-800 text-sm">{userName}</div>
-                                    <div className="text-xs font-medium text-slate-500 mt-0.5">{userEmail}</div>
+                            <div className="absolute top-full right-0 mt-3 w-64 bg-white border border-slate-100 rounded-2xl shadow-xl shadow-black/[0.08] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                                {/* User info header */}
+                                <div className="p-4 bg-gradient-to-br from-slate-50 to-blue-50/50 border-b border-slate-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-sm font-black text-white shadow-md">
+                                            {userInitial}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-bold text-slate-800">{userName}</div>
+                                            <div className="text-xs text-slate-500 mt-0.5">{userEmail}</div>
+                                        </div>
+                                    </div>
+                                    <div className="mt-3 inline-flex items-center gap-1.5 bg-blue-100 text-blue-700 text-[10px] font-bold px-2.5 py-1 rounded-full">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                        Administrator
+                                    </div>
                                 </div>
-                                <div className="p-2 flex flex-col">
-                                    <a href={routes.profile} className="flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg transition-colors">
-                                        <User size={16} /> Profil Saya
+                                <div className="p-2">
+                                    <a href={routes.profile}
+                                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-700 transition-colors">
+                                        <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 text-slate-500"><User size={13} /></span>
+                                        Profil Saya
                                     </a>
                                     <form action={routes.logout} method="POST" className="w-full">
                                         <input type="hidden" name="_token" value={csrfToken} />
-                                        <button type="submit" className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
-                                            <LogOut size={16} /> Keluar
+                                        <button type="submit"
+                                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors">
+                                            <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 text-rose-500"><LogOut size={13} /></span>
+                                            Keluar Sistem
                                         </button>
                                     </form>
                                 </div>
@@ -228,72 +298,74 @@ const AppNavbar = ({
                     </div>
                 </div>
 
-                {/* MOBILE HAMBURGER */}
-                <button onClick={() => setMobileOpen(!mobileOpen)} className="xl:hidden p-2.5 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-blue-600 rounded-xl transition-colors">
-                    {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                {/* ── MOBILE HAMBURGER ── */}
+                <button onClick={() => setMobileOpen(!mobileOpen)}
+                    className="xl:hidden w-9 h-9 flex items-center justify-center bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all">
+                    {mobileOpen ? <X size={18} /> : <Menu size={18} />}
                 </button>
             </div>
 
-            {/* MOBILE MENU DROPDOWN */}
+            {/* ── MOBILE MENU ── */}
             {mobileOpen && (
-                <div className="xl:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200/60 shadow-2xl overflow-y-auto max-h-[calc(100vh-[72px])] animate-in slide-in-from-top-4 fade-in duration-300 pb-8">
-                    <div className="py-6 space-y-1">
-                        <a href={routes.dashboard} className={mobileNavLinkClass(isRouteActive(['dashboard']))}>
-                            <LayoutDashboard size={18} className={isRouteActive(['dashboard']) ? 'text-blue-600' : 'text-slate-400'} /> Dashboard
+                <div className="xl:hidden bg-white border-t border-slate-200/60 shadow-2xl max-h-[80vh] overflow-y-auto animate-in slide-in-from-top-2 fade-in duration-200">
+                    <div className="p-4 space-y-1">
+
+                        <a href={routes.dashboard} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isRouteActive(['dashboard']) ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-700 hover:bg-slate-100'}`}>
+                            <LayoutDashboard size={16} className={isRouteActive(['dashboard']) ? 'text-blue-200' : 'text-slate-400'} />Dashboard
                         </a>
 
-                        <div className="pt-5 pb-2 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Master</div>
-                        <a href={routes.lahan} className={mobileNavLinkClass(isRouteActive(['lahan']))}>
-                            <Map size={18} className={isRouteActive(['lahan']) ? 'text-blue-600' : 'text-slate-400'} /> Data Lahan
+                        <div className="pt-3 pb-1.5 px-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">Data Master</div>
+                        {[
+                            { href: routes.lahan, label: 'Data Lahan', icon: Map, key: 'lahan' },
+                            { href: routes.kebun, label: 'Data Kebun', icon: Leaf, key: 'kebun' },
+                            { href: routes.perangkat, label: 'Data Perangkat', icon: Plane, key: 'perangkat' },
+                            { href: routes.user, label: 'Data User', icon: Users, key: 'user' },
+                        ].map(({ href, label, icon: Icon, key }) => (
+                            <a key={key} href={href} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isRouteActive([key]) ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-700 hover:bg-slate-100'}`}>
+                                <Icon size={16} className={isRouteActive([key]) ? 'text-blue-200' : 'text-slate-400'} />{label}
+                            </a>
+                        ))}
+
+                        <div className="pt-3 pb-1.5 px-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">GCS & Laporan</div>
+                        <a href={routes.gcs} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black transition-all ${isRouteActive(['gcs']) ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>
+                            <Gamepad2 size={16} className="text-slate-400" />Ground Control Station
                         </a>
-                        <a href={routes.kebun} className={mobileNavLinkClass(isRouteActive(['kebun']))}>
-                            <Leaf size={18} className={isRouteActive(['kebun']) ? 'text-blue-600' : 'text-slate-400'} /> Data Kebun
+                        <a href={routes.laporanAi} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${currentRoute === 'laporan.index' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-700 hover:bg-slate-100'}`}>
+                            <Brain size={16} className={currentRoute === 'laporan.index' ? 'text-blue-200' : 'text-slate-400'} />Prediksi Kematangan
                         </a>
-                        <a href={routes.perangkat} className={mobileNavLinkClass(isRouteActive(['perangkat']))}>
-                            <Plane size={18} className={isRouteActive(['perangkat']) ? 'text-blue-600' : 'text-slate-400'} /> Data Perangkat
-                        </a>
-                        <a href={routes.user} className={mobileNavLinkClass(isRouteActive(['user']))}>
-                            <Users size={18} className={isRouteActive(['user']) ? 'text-blue-600' : 'text-slate-400'} /> Data User
+                        <a href={routes.laporanLog} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${currentRoute === 'laporan.log-penerbangan' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-700 hover:bg-slate-100'}`}>
+                            <History size={16} className={currentRoute === 'laporan.log-penerbangan' ? 'text-blue-200' : 'text-slate-400'} />Log Penerbangan
                         </a>
 
-                        <div className="pt-5 pb-2 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Laporan</div>
-                        <a href={routes.gcs} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black transition-all shadow-sm ${isRouteActive(['gcs']) ? 'bg-blue-600 text-white' : 'bg-slate-800 text-white hover:bg-slate-700'}`}>
-                            <Gamepad2 size={18} /> Ground Control Station
+                        <div className="pt-3 pb-1.5 px-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">Dataset & Rule Engine</div>
+                        <a href={routes.droneDataset} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isRouteActive(['drone-dataset']) ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-700 hover:bg-slate-100'}`}>
+                            <Layers size={16} className={isRouteActive(['drone-dataset']) ? 'text-blue-200' : 'text-slate-400'} />Dataset Drone
                         </a>
-                        <a href={routes.laporanAi} className={mobileNavLinkClass(currentRoute === 'laporan.index')}>
-                            <Brain size={18} className={currentRoute === 'laporan.index' ? 'text-blue-600' : 'text-slate-400'} /> Prediksi Kematangan
-                        </a>
-                        <a href={routes.laporanLog} className={mobileNavLinkClass(currentRoute === 'laporan.log-penerbangan')}>
-                            <History size={18} className={currentRoute === 'laporan.log-penerbangan' ? 'text-blue-600' : 'text-slate-400'} /> Log Penerbangan
+                        <a href={routes.deadReckoning} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isRouteActive(['dead-reckoning']) ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-700 hover:bg-slate-100'}`}>
+                            <Route size={16} className={isRouteActive(['dead-reckoning']) ? 'text-blue-200' : 'text-slate-400'} />Dead-Reckoning
                         </a>
 
-                        <div className="pt-5 pb-2 px-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dataset & Rule Engine</div>
-                        <a href={routes.droneDataset} className={mobileNavLinkClass(isRouteActive(['drone-dataset']))}>
-                            <Layers size={18} className={isRouteActive(['drone-dataset']) ? 'text-blue-600' : 'text-slate-400'} /> Dataset Drone
+                        <div className="pt-3 pb-1.5 px-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.12em]">Sistem</div>
+                        <a href={routes.cuaca} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isRouteActive(['cuaca']) ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-700 hover:bg-slate-100'}`}>
+                            <Cloud size={16} className={isRouteActive(['cuaca']) ? 'text-blue-200' : 'text-slate-400'} />Cuaca Misi
                         </a>
-                        <a href={routes.deadReckoning} className={mobileNavLinkClass(isRouteActive(['dead-reckoning']))}>
-                            <Route size={18} className={isRouteActive(['dead-reckoning']) ? 'text-blue-600' : 'text-slate-400'} /> Dead-Reckoning
+                        <a href={routes.pengaturan} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isRouteActive(['pengaturan-aplikasi']) ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-700 hover:bg-slate-100'}`}>
+                            <Settings size={16} className={isRouteActive(['pengaturan-aplikasi']) ? 'text-blue-200' : 'text-slate-400'} />Pengaturan Aplikasi
+                        </a>
+                        <a href={routes.logAktivitas} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isRouteActive(['log-aktivitas']) ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-700 hover:bg-slate-100'}`}>
+                            <Clock size={16} className={isRouteActive(['log-aktivitas']) ? 'text-blue-200' : 'text-slate-400'} />Log Aktivitas
                         </a>
 
-                        <div className="pt-4 pb-2 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Pengaturan Sistem</div>
-                        <a href={routes.cuaca} className={mobileNavLinkClass(isRouteActive(['cuaca']))}>
-                            <Cloud size={18} className={isRouteActive(['cuaca']) ? 'text-blue-600' : 'text-slate-400'} /> Cuaca Misi
-                        </a>
-                        <a href={routes.pengaturan} className={mobileNavLinkClass(isRouteActive(['pengaturan-aplikasi']))}>
-                            <Settings size={18} className={isRouteActive(['pengaturan-aplikasi']) ? 'text-blue-600' : 'text-slate-400'} /> Pengaturan Aplikasi
-                        </a>
-                        <a href={routes.logAktivitas} className={mobileNavLinkClass(isRouteActive(['log-aktivitas']))}>
-                            <Clock size={18} className={isRouteActive(['log-aktivitas']) ? 'text-blue-600' : 'text-slate-400'} /> Log Aktivitas
-                        </a>
-                        
-                        <div className="border-t border-slate-100 mt-6 pt-4 space-y-2">
-                            <a href={routes.profile} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-600 bg-slate-50 hover:bg-slate-100 transition-colors">
-                                <User size={18} className="text-slate-400" /> Profil Saya
+                        {/* User Section */}
+                        <div className="border-t border-slate-100 mt-4 pt-4 space-y-2">
+                            <a href={routes.profile} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 transition-all">
+                                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-[11px] font-black text-white">{userInitial}</div>
+                                {userName}
                             </a>
                             <form method="POST" action={routes.logout} className="w-full">
                                 <input type="hidden" name="_token" value={csrfToken} />
-                                <button type="submit" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors shadow-sm">
-                                    <LogOut size={18} className="text-red-500" /> Keluar Sistem
+                                <button type="submit" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all">
+                                    <LogOut size={16} className="text-rose-500" />Keluar Sistem
                                 </button>
                             </form>
                         </div>

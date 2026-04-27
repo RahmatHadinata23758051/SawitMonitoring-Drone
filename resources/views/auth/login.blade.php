@@ -36,18 +36,18 @@
             
             <div class="relative z-20 px-16 text-left w-full h-full flex flex-col justify-end pb-24">
                 <div class="mb-4">
-                    <div class="w-16 h-1.5 bg-emerald-500 rounded-full mb-8"></div>
+                    <div class="w-16 h-1.5 bg-blue-600 rounded-full mb-8"></div>
                 </div>
                 <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 leading-tight tracking-tighter">
-                    Monitoring <span class="text-emerald-400">Sawit</span> <br>
+                    Monitoring <span class="text-blue-600">Sawit</span> <br>
                 </h1>
                 <p class="text-lg text-slate-300 max-w-xl leading-relaxed text-justify">
                     Aplikasi stasiun kendali darat (GCS) dan sistem cerdas berbasis AI untuk pemantauan perkebunan kelapa sawit digital dan berkelanjutan.
                 </p>
                 <div class="mt-8 flex items-center gap-4 text-sm text-slate-400 font-medium">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-plane-up text-emerald-400"></i> Auto-Pilot Misi</span>
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-brain text-emerald-400"></i> AI Kematangan</span>
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-satellite text-emerald-400"></i> Live Telemetry</span>
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-plane-up text-blue-600"></i> Auto-Pilot Misi</span>
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-brain text-blue-600"></i> AI Kematangan</span>
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-satellite text-blue-600"></i> Live Telemetry</span>
                 </div>
             </div>
         </div>
