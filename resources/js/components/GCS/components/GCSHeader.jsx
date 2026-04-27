@@ -15,7 +15,7 @@ const GCSHeader = ({
   scannedTrees = 0, baseTotalSample = 0, cockpitWarning
 }) => {
   return (
-    <header className={`h-12 border-b flex items-center justify-between px-3 shadow-md z-10 shrink-0 ${t('bg-slate-900 border-slate-800', 'bg-white border-slate-200')}`}>
+    <header className={`font-sans h-12 border-b flex items-center justify-between px-3 shadow-md z-10 shrink-0 ${t('bg-slate-900 border-slate-800', 'bg-white border-slate-200')}`}>
       <div className="flex items-center gap-3">
         {/* Kembali ke Dashboard */}
         <a href="/dashboard" className={`flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded border transition ${t('border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 hover:bg-slate-800', 'border-slate-300 text-slate-500 hover:text-slate-800 hover:bg-slate-100')}`} title="Kembali ke Dashboard">

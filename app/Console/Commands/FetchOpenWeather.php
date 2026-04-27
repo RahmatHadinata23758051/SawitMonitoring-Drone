@@ -70,8 +70,10 @@ class FetchOpenWeather extends Command
                 $cuaca->humidity       = $data['main']['humidity'] ?? '--';
                 $cuaca->wind_speed     = round(($data['wind']['speed'] ?? 0) * 3.6, 1); // m/s → km/h
                 $cuaca->rainfall       = $data['rain']['1h'] ?? '0';
-                $cuaca->description    = ucfirst($data['weather'][0]['description'] ?? '--');
-                $cuaca->image          = 'https://openweathermap.org/img/wn/' . ($data['weather'][0]['icon'] ?? '01d') . '@2x.png';
+                $cuaca->description      = ucfirst($data['weather'][0]['description'] ?? '--');
+                $cuaca->image            = 'https://openweathermap.org/img/wn/' . ($data['weather'][0]['icon'] ?? '01d') . '@2x.png';
+                $cuaca->last_fetched_at  = now();
+                $cuaca->fetch_status     = 'success';
                 $cuaca->save();
 
                 $msg = "Cuaca {$cuaca->kabupaten_kota}: {$cuaca->temperature}°C - {$cuaca->description}";
@@ -90,6 +92,11 @@ class FetchOpenWeather extends Command
         $msg  = $response->json('message') ?? 'Unknown error';
         Log::error("[OWM] ❌ Gagal fetch: {$code} - {$msg} (kota: {$cityName} / query: {$normalized})");
         $output?->error("❌ Gagal fetch OWM [{$code}]: {$msg}");
+
+        // Catat status gagal agar UI bisa menampilkan info ini
+        $cuaca->fetch_status = 'failed';
+        $cuaca->save();
+
         return 1;
     }
 }
