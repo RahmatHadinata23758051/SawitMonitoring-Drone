@@ -13,7 +13,15 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Poppins', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', ...defaultTheme.fontFamily.sans],
+                mono: ['JetBrains Mono', ...defaultTheme.fontFamily.mono],
+            },
+            fontSize: {
+                'xxs': ['0.65rem', { lineHeight: '1rem' }],
+            },
+            letterSpacing: {
+                'tightest': '-0.04em',
+                'tighter': '-0.02em',
             },
         },
     },

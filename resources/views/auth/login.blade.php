@@ -8,13 +8,17 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        body { font-family: 'Poppins', sans-serif; }
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.01em;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased overflow-hidden selection:bg-blue-500 selection:text-white">
@@ -32,18 +36,18 @@
             
             <div class="relative z-20 px-16 text-left w-full h-full flex flex-col justify-end pb-24">
                 <div class="mb-4">
-                    <div class="w-16 h-1.5 bg-blue-500 rounded-full mb-8"></div>
+                    <div class="w-16 h-1.5 bg-emerald-500 rounded-full mb-8"></div>
                 </div>
-                <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-                    Monitoring <span class="text-blue-400">Sawit</span> <br>
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 leading-tight tracking-tighter">
+                    Monitoring <span class="text-emerald-400">Sawit</span> <br>
                 </h1>
                 <p class="text-lg text-slate-300 max-w-xl leading-relaxed text-justify">
                     Aplikasi stasiun kendali darat (GCS) dan sistem cerdas berbasis AI untuk pemantauan perkebunan kelapa sawit digital dan berkelanjutan.
                 </p>
                 <div class="mt-8 flex items-center gap-4 text-sm text-slate-400 font-medium">
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-plane-up text-blue-500"></i> Auto-Pilot Misi</span>
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-brain text-blue-500"></i> AI Kematangan</span>
-                    <span class="flex items-center gap-2"><i class="fa-solid fa-satellite text-blue-500"></i> Live Telemetry</span>
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-plane-up text-emerald-400"></i> Auto-Pilot Misi</span>
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-brain text-emerald-400"></i> AI Kematangan</span>
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-satellite text-emerald-400"></i> Live Telemetry</span>
                 </div>
             </div>
         </div>
@@ -57,8 +61,8 @@
                     <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm mb-6">
                         <img src="{{ asset('images/logo-ipb-full.png') }}" alt="Logo IPB" class="h-16 w-auto">
                     </div>
-                    <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Selamat Datang Kembali</h2>
-                    <p class="text-sm text-slate-500 mt-1.5">Masuk ke pusat kendali sistem Anda.</p>
+                    <h2 class="text-2xl font-bold text-slate-800 tracking-tight" style="letter-spacing: -0.03em">Selamat Datang Kembali</h2>
+                    <p class="text-sm text-slate-500 mt-1.5 font-medium">Masuk ke pusat kendali sistem Anda.</p>
                 </div>
                 
                 <x-auth-session-status class="mb-4" :status="session('status')" />
