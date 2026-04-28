@@ -968,7 +968,27 @@ const AppGCS = () => {
   const loadMissionForEdit = (missionId, e) => {
     e.stopPropagation();
     const m = savedMissions.find(m => m.id === missionId);
-    if (m) { setConfig(m.configData); setWaypoints([...m.waypointsData]); setMissionName(m.name); setNavAlgorithm(m.algorithm); setScanMode(m.scan); setEditingMissionId(m.id); setIsMapActive(true); setIsMissionSaved(false); setActiveTab('current'); setActiveMapTab('map'); setWarning(''); }
+    if (m) { 
+      setConfig(m.configData); 
+      
+      // Enrich waypoints dengan data pohon lengkap (termasuk Lat/Lon) dari kalkulasi grid
+      const { trees: fullTrees } = generateTreeGrid(m.configData);
+      const enrichedWaypoints = m.waypointsData.map(wp => {
+        const match = fullTrees.find(t => t.id === wp.id);
+        return match ? match : wp;
+      });
+      
+      setWaypoints(enrichedWaypoints); 
+      setMissionName(m.name); 
+      setNavAlgorithm(m.algorithm); 
+      setScanMode(m.scan); 
+      setEditingMissionId(m.id); 
+      setIsMapActive(true); 
+      setIsMissionSaved(false); 
+      setActiveTab('current'); 
+      setActiveMapTab('map'); 
+      setWarning(''); 
+    }
   };
 
   const handleResetDraft = () => {

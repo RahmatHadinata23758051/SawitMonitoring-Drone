@@ -462,8 +462,8 @@ const GCSRightPanel = ({
                             <td className="p-2 font-bold text-blue-600">{i + 1}</td>
                             <td className="p-2 font-bold">{wp.id}</td>
                             <td className="p-2 font-mono text-slate-500">{wp.x.toFixed(1)}, {wp.y.toFixed(1)}</td>
-                            <td className="p-2 font-mono text-emerald-700">{wp.lat.toFixed(6)}</td>
-                            <td className="p-2 font-mono text-emerald-700">{wp.lon.toFixed(6)}</td>
+                            <td className="p-2 font-mono text-emerald-700">{wp.lat !== undefined && wp.lat !== null ? wp.lat.toFixed(6) : '-'}</td>
+                            <td className="p-2 font-mono text-emerald-700">{wp.lon !== undefined && wp.lon !== null ? wp.lon.toFixed(6) : '-'}</td>
                           </tr>
                         ))}
                       </tbody>

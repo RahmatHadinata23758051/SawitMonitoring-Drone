@@ -78,9 +78,9 @@ const GCSHeader = ({
               {scannedTrees}/{baseTotalSample}
             </span>
           </span>
-          
+
           <div className={`h-4 w-px mx-1 ${t('bg-slate-700', 'bg-slate-300')}`}></div>
-          
+
           <span>ALT <span className="font-bold text-emerald-600">{telemetry.alt?.toFixed(1) ?? '--'}m</span></span>
           <span>SPD <span className="font-bold text-blue-600">{telemetry.speed?.toFixed(1) ?? '--'}m/s</span></span>
           <span>BAT <span className={`font-bold ${(telemetry.bat ?? 100) > 30 ? 'text-emerald-600' : 'text-rose-500'}`}>{Math.floor(telemetry.bat ?? 0)}%</span></span>
