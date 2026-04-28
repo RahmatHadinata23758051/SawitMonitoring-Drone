@@ -215,13 +215,17 @@ const AppGCS = () => {
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          const mapped = data.map(m => ({
-            id: `MSN-${m.id}`, name: m.mission_name, algorithm: m.nav_algorithm, scan: m.scan_mode,
-            wpCount: m.scan_mode === 'qlv' ? '1 Koridor' : '2 Lajur',
-            date: new Date(m.created_at).toLocaleString(),
-            waypointsData: Array.isArray(m.waypoints) ? m.waypoints : [],
-            configData: m.config_data || {}, _dbId: m.id,
-          }));
+          const mapped = data.map(m => {
+            const fallbackConfig = { namaBlok: 'Blok A-01', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14 };
+            const mConfig = m.config_data && Object.keys(m.config_data).length > 0 ? m.config_data : fallbackConfig;
+            return {
+              id: `MSN-${m.id}`, name: m.mission_name, algorithm: m.nav_algorithm, scan: m.scan_mode,
+              wpCount: m.scan_mode === 'qlv' ? '1 Koridor' : '2 Lajur',
+              date: new Date(m.created_at).toLocaleString(),
+              waypointsData: Array.isArray(m.waypoints) ? m.waypoints : [],
+              configData: mConfig, _dbId: m.id,
+            };
+          });
           setSavedMissions(mapped);
         }
       })

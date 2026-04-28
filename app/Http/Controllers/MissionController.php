@@ -52,6 +52,7 @@ class MissionController extends Controller
             'scan_mode'     => $validated['scan_mode'] ?? 'traditional',
             'waypoints'     => $validated['waypoints'],
             'path_data'     => $validated['path_data'] ?? [],
+            'config_data'   => $validated['config_data'] ?? null,
             'status'        => $validated['status'] ?? 'Saved',
         ]);
 

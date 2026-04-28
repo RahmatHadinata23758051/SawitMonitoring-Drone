@@ -11,6 +11,7 @@ class Mission extends Model
     protected $casts = [
         'waypoints' => 'array',
         'path_data' => 'array',
+        'config_data' => 'array',
     ];
 
     public function perangkat()
