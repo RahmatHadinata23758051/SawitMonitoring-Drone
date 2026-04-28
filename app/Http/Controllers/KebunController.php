@@ -142,9 +142,9 @@ class KebunController extends Controller
             'id'            => 'BLK-' . $k->id,
             'namaBlok'      => $k->nama,
             'luasKebun'     => (float) $k->luas,
-            'totalPohon'    => (int) ($k->jumlah_pohon ?? 140),
+            'totalPohon'    => (int) (empty($k->jumlah_pohon) ? 140 : $k->jumlah_pohon),
             'tinggiPohon'   => 8.5,
-            'jumlahSampel'  => (int) ceil(($k->jumlah_pohon ?? 140) * 0.10),
+            'jumlahSampel'  => (int) ceil((empty($k->jumlah_pohon) ? 140 : $k->jumlah_pohon) * 0.10),
             'status'        => 'Tersimpan',
         ]);
         return response()->json($kebun);

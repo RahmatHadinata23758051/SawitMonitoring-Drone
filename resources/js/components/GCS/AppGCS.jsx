@@ -93,10 +93,35 @@ const AppGCS = () => {
     fetch('/api/kebun')
       .then(r => r.ok ? r.json() : [])
       .then(data => {
-        if (Array.isArray(data) && data.length > 0) setManagedBlocks(data);
-        else setManagedBlocks([{ id: 'BLK-1001', namaBlok: 'Blok A-01 (Demo)', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }]);
+        const apiBlocks = Array.isArray(data) && data.length > 0 ? data : [{ id: 'BLK-1001', namaBlok: 'Blok A-01 (Demo)', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }];
+        
+        try {
+          const storedStr = localStorage.getItem('gcs_managed_blocks');
+          if (storedStr) {
+            const local = JSON.parse(storedStr);
+            // Gabungkan API blocks dengan modifikasi/penghapusan lokal
+            const merged = [...local];
+            apiBlocks.forEach(apiBlock => {
+              // Jika apiBlock tidak ada di local (dan belum dihapus), kita bisa menambahkannya?
+              // Lebih aman: gunakan local blocks sepenuhnya sebagai sumber kebenaran jika sudah disinkron
+              const exists = merged.some(m => m.id === apiBlock.id);
+              const isDeleted = JSON.parse(localStorage.getItem('gcs_deleted_blocks') || '[]').includes(apiBlock.id);
+              if (!exists && !isDeleted) merged.push(apiBlock);
+            });
+            setManagedBlocks(merged);
+          } else {
+            setManagedBlocks(apiBlocks);
+            localStorage.setItem('gcs_managed_blocks', JSON.stringify(apiBlocks));
+          }
+        } catch (e) {
+          setManagedBlocks(apiBlocks);
+        }
       })
-      .catch(() => setManagedBlocks([{ id: 'BLK-1001', namaBlok: 'Blok A-01 (Demo)', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }]));
+      .catch(() => {
+        const localStr = localStorage.getItem('gcs_managed_blocks');
+        if (localStr) setManagedBlocks(JSON.parse(localStr));
+        else setManagedBlocks([{ id: 'BLK-1001', namaBlok: 'Blok A-01 (Demo)', luasKebun: 1.0, totalPohon: 140, tinggiPohon: 8.5, jumlahSampel: 14, status: 'Tersimpan' }]);
+      });
   }, []);
 
   // Tabs & Map
@@ -879,12 +904,37 @@ const AppGCS = () => {
 
   const handleSaveBlock = () => {
     if (!config.namaBlok.trim()) { setWarning('Isi Nama Blok terlebih dahulu!'); setTimeout(() => setWarning(''), 3000); return; }
-    setManagedBlocks(prev => { const idx = prev.findIndex(b => b.id === config.id); if (idx !== -1) { const u = [...prev]; u[idx] = { ...config, status: 'Tersimpan' }; return u; } return [...prev, { ...config, status: 'Tersimpan' }]; });
+    setManagedBlocks(prev => { 
+      const idx = prev.findIndex(b => b.id === config.id); 
+      let updated;
+      if (idx !== -1) { 
+        updated = [...prev]; 
+        updated[idx] = { ...config, status: 'Tersimpan' }; 
+      } else {
+        updated = [...prev, { ...config, status: 'Tersimpan' }];
+      }
+      localStorage.setItem('gcs_managed_blocks', JSON.stringify(updated));
+      return updated;
+    });
     setWarning('Data Blok berhasil disimpan!'); setTimeout(() => setWarning(''), 3000);
   };
 
   const loadBlock = (block) => { setConfig(block); setMissionName(`MISI-${block.namaBlok.replace(/\s+/g, '')}`); setWaypoints([]); setIsMapActive(false); setIsMissionSaved(false); setActiveMapTab('map'); setWarning(''); };
-  const deleteBlock = (id) => setManagedBlocks(prev => prev.filter(b => b.id !== id));
+  const deleteBlock = (id) => {
+    setManagedBlocks(prev => {
+      const updated = prev.filter(b => b.id !== id);
+      localStorage.setItem('gcs_managed_blocks', JSON.stringify(updated));
+      return updated;
+    });
+    // Track API blocks that are deleted so they don't reappear on reload
+    if (String(id).startsWith('BLK-')) {
+       const deletedIds = JSON.parse(localStorage.getItem('gcs_deleted_blocks') || '[]');
+       if (!deletedIds.includes(id)) {
+           deletedIds.push(id);
+           localStorage.setItem('gcs_deleted_blocks', JSON.stringify(deletedIds));
+       }
+    }
+  };
 
   const handleStartWaypoint = () => {
     if (!missionName.trim()) { setWarning('Harap isi Nama Misi terlebih dahulu!'); setTimeout(() => setWarning(''), 3000); return; }
