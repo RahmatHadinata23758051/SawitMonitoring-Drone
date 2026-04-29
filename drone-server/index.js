@@ -22,12 +22,14 @@ let throttle = 128;
 let flags = 0;
 
 // ==========================
-// FLAGS (dari hasil reverse engineering + analisis pcap)
+// FLAGS (dari hasil reverse engineering + analisis pcap E88 Pro)
 // Setiap flag hanya aktif ~1 detik (pulse/trigger), lalu kembali ke 0
 // ==========================
-const FLAG_ARM = 1; // arm / disarm
-const FLAG_TAKEOFF_LANDING = 2; // auto takeoff & auto landing (konteks tergantung kondisi drone)
-const FLAG_EMERGENCY = 4; // emergency stop
+const CMD_TAKEOFF = 0x01;
+const CMD_LAND = 0x02;
+const CMD_EMERGENCY = 0x04;
+const CMD_UNLOCK_MOTOR = 0x40; // Arming (Idle)
+const CMD_CALIBRATE = 0x80;
 
 const b = (v) => v & 0xff;
 
@@ -105,44 +107,50 @@ app.post("/command", (req, res) => {
 
   switch (cmd) {
     // --- ARM ---
-    // Hanya menyalakan motor (idle), TIDAK langsung takeoff
-    // Throttle tetap di 128 (netral/idle)
+    // Menyala tanpa terbang (Unlock Motor)
     case "arm":
       if (Date.now() - connectedAt < 3000) {
         return res.json({ status: "wait_stabilize" });
       }
       roll = pitch = yaw = 128;
       throttle = 128;
-      pulseFlag(FLAG_ARM);
+      pulseFlag(CMD_UNLOCK_MOTOR);
       break;
 
     // --- TAKEOFF ---
-    // Auto takeoff — aktifkan setelah arm
+    // Auto takeoff — naik ke udara
     case "takeoff":
-      pulseFlag(FLAG_TAKEOFF_LANDING);
+      pulseFlag(CMD_TAKEOFF);
       break;
 
     // --- LANDING ---
-    // Auto landing — drone turun otomatis
+    // Auto landing — drone turun perlahan
     case "land":
       roll = pitch = yaw = 128; // reset attitude sebelum landing
-      pulseFlag(FLAG_TAKEOFF_LANDING);
+      pulseFlag(CMD_LAND);
       break;
 
     // --- DISARM ---
-    // Matikan motor sepenuhnya
+    // Mematikan motor, ekuivalen dengan emergency atau unlock ulang
     case "disarm":
       roll = pitch = yaw = 128;
       throttle = 128;
-      pulseFlag(FLAG_ARM);
+      pulseFlag(CMD_EMERGENCY); // Untuk drone mainan, emergency stop mematikan motor
       break;
 
     // --- EMERGENCY STOP ---
-    // Kirim flag emergency (flag 4), drone akan stop mendadak
+    // Berhenti mendadak
     case "emergency":
       roll = pitch = yaw = 128;
       throttle = 128;
-      pulseFlag(FLAG_EMERGENCY);
+      pulseFlag(CMD_EMERGENCY);
+      break;
+
+    // --- CALIBRATE GYRO ---
+    case "calibrate":
+      roll = pitch = yaw = 128;
+      throttle = 128;
+      pulseFlag(CMD_CALIBRATE);
       break;
 
     // --- JOYSTICK (continuous dari frontend, 10Hz) ---
