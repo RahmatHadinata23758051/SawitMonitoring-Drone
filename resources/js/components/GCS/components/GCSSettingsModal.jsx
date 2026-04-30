@@ -184,8 +184,9 @@ const GCSSettingsModal = ({
                         className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900"
                       >
                         <option value="dummy">Dummy (Webcam Laptop)</option>
-                        <option value="mjpeg">HTTP MJPEG (ESP32-CAM)</option>
+                        <option value="mjpeg">HTTP MJPEG (Kamera Lama/ESP32)</option>
                         <option value="hls">HLS Proxy (.m3u8)</option>
+                        <option value="d16_proxy">D16 Camera (WebSocket Proxy)</option>
                       </select>
                     </div>
                     <div>
@@ -198,6 +199,12 @@ const GCSSettingsModal = ({
                         <>
                           <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">URL HLS (.m3u8)</label>
                           <input type="text" value={hlsUrl} onChange={(e) => setHlsUrl(e.target.value)} disabled={isVideoConnected} className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900" />
+                        </>
+                      ) : videoProtocol === 'd16_proxy' ? (
+                        <>
+                          <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">WEBSOCKET PROXY URL</label>
+                          <input type="text" value={videoIp} onChange={(e) => setVideoIp(e.target.value)} disabled={isVideoConnected} placeholder="ws://localhost:8082" className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-orange-400 disabled:opacity-50 bg-white text-slate-900" />
+                          <span className="text-[8px] text-orange-500 mt-1 block leading-tight">D16 mengirim raw H.264 via TCP. Butuh proxy Node.js (jsmpeg) untuk tampil di browser.</span>
                         </>
                       ) : (
                         <div className="flex items-center h-full pt-4">
