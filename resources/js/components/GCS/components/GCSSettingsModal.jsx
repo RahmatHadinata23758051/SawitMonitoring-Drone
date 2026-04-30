@@ -205,7 +205,7 @@ const GCSSettingsModal = ({
                         <>
                           <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">URL STREAM / PROXY D16</label>
                           <input type="text" value={d16StreamUrl} onChange={(e) => setD16StreamUrl(e.target.value)} disabled={isVideoConnected} placeholder="http://127.0.0.1:3002/stream" className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-orange-400 disabled:opacity-50 bg-white text-slate-900" />
-                          <span className="text-[8px] text-orange-500 mt-1 block leading-tight">Jalankan npm run proxy:d16-web, lalu gunakan URL MJPEG lokal ini. Decoder D16 masih eksperimental.</span>
+                          <span className="text-[8px] text-orange-500 mt-1 block leading-tight">Pastikan <code>node index.js</code> sudah berjalan. Proxy D16 MJPEG sudah terintegrasi di port 3002.</span>
                         </>
                       ) : (
                         <div className="flex items-center h-full pt-4">
