@@ -11,6 +11,12 @@ const app = express();
 app.use(express.json());
 
 const client = dgram.createSocket("udp4");
+client.on('error', (err) => {
+    console.log(`[Socket Error] ${err.message}`);
+});
+client.bind(PORT, () => {
+    console.log(`[UDP] Local socket bound to port ${PORT}`);
+});
 
 // ==========================
 // VIDEO WEBSOCKET PROXY
@@ -30,39 +36,41 @@ wss.on('connection', (ws) => {
 
 // Dengarkan balasan paket dari Drone di socket kontrol
 let videoPacketCount = 0;
+let initCount = 0;
+
+function parseD16Packet(msg) {
+  // Jika panjang kurang dari 56 atau magic byte bukan 0x93 0x01, ini bukan paket video
+  if (msg.length < 56 || msg[0] !== 0x93 || msg[1] !== 0x01) return null;
+  // Ekstrak isi video/H264 murni tanpa header D16
+  return msg.subarray(56);
+}
+
 client.on('message', (msg, rinfo) => {
     if (rinfo.address === HOST) {
-        if (msg.length > 200) { 
+        const payload = parseD16Packet(msg);
+        if (payload) {
             videoPacketCount++;
-            if (videoPacketCount % 50 === 0) console.log(`🎥 [Video] Menerima 50 frame dari port asal kontrol...`);
+            if (videoPacketCount % 50 === 0) console.log(`🎥 [Video] Menerima 50 frame/fragment H.264 dari drone...`);
+            
+            // Kirim frame murni ke GCS Frontend (JMuxer)
             for (const ws of wsClients) {
-                if (ws.readyState === WebSocket.OPEN) ws.send(msg, { binary: true });
+                if (ws.readyState === WebSocket.OPEN) ws.send(payload, { binary: true });
             }
         }
     }
 });
 
 // ==========================
-// UNIVERSAL UDP VIDEO CATCHER
+// CAMERA WAKEUP SENDER
 // ==========================
-// Drone kadang menembakkan video ke port UDP standar. Kita buka semuanya.
-const COMMON_VIDEO_PORTS = [8080, 8888, 7070, 1234, 5600, 11111, 9000, 50000, 4200, 5000];
-COMMON_VIDEO_PORTS.forEach(vPort => {
-    try {
-        const vSocket = dgram.createSocket('udp4');
-        vSocket.on('error', () => { /* abaikan jika port bentrok */ });
-        vSocket.on('message', (msg, rinfo) => {
-            if (rinfo.address === HOST && msg.length > 200) {
-                videoPacketCount++;
-                if (videoPacketCount % 50 === 0) console.log(`🎥 [Video] Menerima 50 frame dari port UDP ${vPort}`);
-                for (const ws of wsClients) {
-                    if (ws.readyState === WebSocket.OPEN) ws.send(msg, { binary: true });
-                }
-            }
-        });
-        vSocket.bind(vPort);
-    } catch (e) {}
-});
+// Menembakkan INIT_PACKET setiap 1 detik agar drone terus mengirim stream video
+setInterval(() => {
+    initCount++;
+    const initPacket = Buffer.from([0xef, 0x00, 0x04, 0x00]);
+    client.send(initPacket, PORT, HOST, (err) => {
+        if (err) console.error(`[Video] Gagal mengirim Wakeup: ${err.message}`);
+    });
+}, 1000);
 
 let connectedAt = Date.now();
 

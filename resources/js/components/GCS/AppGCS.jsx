@@ -353,7 +353,7 @@ const AppGCS = () => {
         if (videoProtocol === 'mjpeg') {
           setLiveStreamUrl(`http://${videoIp}:81/stream`);
         } else if (videoProtocol === 'd16_proxy') {
-          setLiveStreamUrl('ws://localhost:8082');
+          setLiveStreamUrl(`http://${videoIp}:3002`); // Menggunakan server HTTP rekan di port 3002 (IP dinamis)
         } else {
           setLiveStreamUrl(hlsUrl);
         }
