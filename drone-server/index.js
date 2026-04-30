@@ -1,3 +1,13 @@
+// === GLOBAL ERROR TRAP (untuk debug crash tersembunyi) ===
+process.on('uncaughtException', (err) => {
+  console.error('\n[FATAL] Uncaught Exception:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled Promise Rejection:', reason);
+});
+
 const dgram = require("dgram");
 const express = require("express");
 
@@ -7,19 +17,8 @@ const INTERVAL = 100; // 10Hz (Persis seperti test script V2)
 
 const app = express();
 app.use(express.json());
-
-const client = dgram.createSocket("udp4");
-client.on('error', (err) => {
-    console.log(`[Socket Error] ${err.message}`);
-});
-client.bind(PORT, () => {
-    console.log(`[UDP] Local socket bound to port ${PORT}`);
-});
-
-let connectedAt = Date.now();
-
 // ==========================
-// D16 VIDEO PROXY (MJPEG)
+// D16 VIDEO PROXY — Konstanta
 // ==========================
 const HTTP_PORT = 3002;
 const INIT_PACKET = Buffer.from([0xef, 0x00, 0x04, 0x00]);
@@ -27,75 +26,98 @@ const MJPEG_BOUNDARY = "d16-frame";
 const JPEG_HEADER_640X360 = Buffer.from("ffd8ffe000104a46494600010100000100010000ffdb004300100b0c0e0c0a100e0d0e1211101318281a181616183123251d283a333d3c3933383740485c4e404457453738506d51575f626768673e4d71797064785c656763ffdb0043011112121815182f1a1a2f634238426363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363ffc00011080168028003011100021101031101ffc4001f0000010501010101010100000000000000000102030405060708090a0bffc400b5100002010303020403050504040000017d01020300041105122131410613516107227114328191a1082342b1c11552d1f02433627282090a161718191a25262728292a3435363738393a434445464748494a535455565758595a636465666768696a737475767778797a838485868788898a92939495969798999aa2a3a4a5a6a7a8a9aab2b3b4b5b6b7b8b9bac2c3c4c5c6c7c8c9cad2d3d4d5d6d7d8d9dae1e2e3e4e5e6e7e8e9eaf1f2f3f4f5f6f7f8f9faffc4001f0100030101010101010101010000000000000102030405060708090a0bffc400b51100020102040403040705040400010277000102031104052131061241510761711322328108144291a1b1c109233352f0156272d10a162434e125f11718191a262728292a35363738393a434445464748494a535455565758595a636465666768696a737475767778797a82838485868788898a92939495969798999aa2a3a4a5a6a7a8a9aab2b3b4b5b6b7b8b9bac2c3c4c5c6c7c8c9cad2d3d4d5d6d7d8d9dae2e3e4e5e6e7e8e9eaf2f3f4f5f6f7f8f9faffda000c03010002110311003f00", "hex");
 
 const videoApp = express();
-const videoUdp = dgram.createSocket("udp4");
-
-// WAJIB: Tanpa error handler ini, Node.js akan crash saat drone belum terhubung (ENETUNREACH)
-videoUdp.on('error', (err) => {
-  // Silent ignore — drone belum konek, bukan error fatal
-});
 
 let lastJpeg = null;
 let mjpegClients = new Set();
 let partialFrames = new Map();
 let currentVideoFrameId = -1;
+let videoPacketCount = 0;
+let totalRawPackets = 0;
+let lastRawPacketAt = 0;
+
+const client = dgram.createSocket("udp4");
+client.on('error', (err) => {
+  console.log(`[Socket Error] ${err.message}`);
+});
+
+// Semua setup DALAM bind callback — persis seperti test script yang proven bekerja
+client.bind(PORT, () => {
+  console.log(`[UDP] Local socket bound to port ${PORT}`);
+
+  // Handler video — dipasang setelah socket siap
+  client.on('message', (msg, rinfo) => {
+    try {
+      totalRawPackets++;
+      lastRawPacketAt = Date.now();
+      if (totalRawPackets <= 5 || totalRawPackets % 100 === 0) {
+        console.log(`[UDP IN] dari ${rinfo.address}:${rinfo.port} len=${msg.length} magic=0x${msg[0]?.toString(16)} 0x${msg[1]?.toString(16)}`);
+      }
+      if (rinfo.address === HOST) processVideoPacket(msg);
+    } catch (e) {
+      console.error('[Video Error]', e.message);
+    }
+  });
+
+  // Kirim INIT langsung lalu tiap 1 detik
+  client.send(INIT_PACKET, PORT, HOST, () => {});
+  setInterval(() => { client.send(INIT_PACKET, PORT, HOST, () => {}); }, 1000);
+});
+// ==========================
+// D16 VIDEO PROXY — Functions
+// ==========================
+let connectedAt = Date.now();
 
 function emitJpeg(jpeg) {
   lastJpeg = jpeg;
   const chunkHeader = Buffer.from(`--${MJPEG_BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: ${jpeg.length}\r\n\r\n`, "ascii");
   for (const res of Array.from(mjpegClients)) {
-    try { res.write(chunkHeader); res.write(jpeg); res.write(Buffer.from("\r\n", "ascii")); } 
+    try { res.write(chunkHeader); res.write(jpeg); res.write(Buffer.from("\r\n", "ascii")); }
     catch { mjpegClients.delete(res); }
   }
 }
 
-videoUdp.on("message", (msg) => {
+function processVideoPacket(msg) {
+  // Cek magic byte D16: header 56 byte diawali 0x93 0x01
   if (msg.length < 56 || msg[0] !== 0x93 || msg[1] !== 0x01) return;
-  const frameId = msg.readUInt32LE(40);
+
+  videoPacketCount++;
+  if (videoPacketCount % 100 === 0) console.log(`🎥 [Video] ${videoPacketCount} paket diterima dari drone`);
+
+  const frameId   = msg.readUInt32LE(40);
   const fragIndex = msg.readUInt32LE(32);
   const fragTotal = msg.readUInt32LE(36);
-  const payload = msg.subarray(56);
+  const payload   = msg.subarray(56);
 
-  // OPTIMASI ANTI-DELAY: Drop frame lama secara agresif!
+  // Anti-delay: drop frame lama, langsung ke frame baru
   if (frameId > currentVideoFrameId) {
-    // Paksa render frame sebelumnya meskipun tidak lengkap (Slight Glitch > Delay Parah)
     if (partialFrames.has(currentVideoFrameId)) {
-        const oldF = partialFrames.get(currentVideoFrameId);
-        if (oldF.fragments.size > (oldF.total * 0.3)) { // Minimal 30% pecahan untuk dipaksa render
-            const chunks = [];
-            for (let i = 0; i < oldF.total; i++) {
-                chunks.push(oldF.fragments.get(i) || Buffer.alloc(0)); // Isi kosong jika data hilang di udara
-            }
-            emitJpeg(Buffer.concat([JPEG_HEADER_640X360, Buffer.concat(chunks), Buffer.from([0xff, 0xd9])]));
-        }
+      const oldF = partialFrames.get(currentVideoFrameId);
+      if (oldF.fragments.size > (oldF.total * 0.3)) {
+        const chunks = [];
+        for (let i = 0; i < oldF.total; i++) chunks.push(oldF.fragments.get(i) || Buffer.alloc(0));
+        emitJpeg(Buffer.concat([JPEG_HEADER_640X360, Buffer.concat(chunks), Buffer.from([0xff, 0xd9])]));
+      }
     }
     currentVideoFrameId = frameId;
-    partialFrames.clear(); // Bersihkan sisa-sisa antrean
+    partialFrames.clear();
   }
-  
-  if (frameId < currentVideoFrameId) return; // Abaikan frame kadaluarsa yang telat datang
+
+  if (frameId < currentVideoFrameId) return;
 
   if (!partialFrames.has(frameId)) {
     partialFrames.set(frameId, { total: fragTotal, fragments: new Map() });
   }
-  
   const frame = partialFrames.get(frameId);
   frame.fragments.set(fragIndex, payload);
 
-  // Jika komplit sempurna
   if (frame.fragments.size === frame.total) {
     const chunks = [];
     for (let i = 0; i < frame.total; i++) chunks.push(frame.fragments.get(i));
     emitJpeg(Buffer.concat([JPEG_HEADER_640X360, Buffer.concat(chunks), Buffer.from([0xff, 0xd9])]));
     partialFrames.delete(frameId);
   }
-});
+}
 
-videoUdp.bind(0, () => {
-  // Wakeup drone camera setiap 1 detik (error diabaikan saat drone belum konek)
-  setInterval(() => {
-    videoUdp.send(INIT_PACKET, PORT, HOST, (err) => { /* silent ignore */ });
-  }, 1000);
-});
 
 videoApp.use((_, res, next) => { res.setHeader("Access-Control-Allow-Origin", "*"); next(); });
 videoApp.get("/stream", (req, res) => {
@@ -104,8 +126,21 @@ videoApp.get("/stream", (req, res) => {
   if (lastJpeg) emitJpeg(lastJpeg);
   req.on("close", () => mjpegClients.delete(res));
 });
+// Status & diagnostic endpoint
+videoApp.get("/status", (_, res) => {
+  res.json({
+    drone: `${HOST}:${PORT}`,
+    video_packets_received: videoPacketCount,
+    total_raw_udp: totalRawPackets,
+    last_packet_ms_ago: lastRawPacketAt ? Date.now() - lastRawPacketAt : null,
+    mjpeg_clients: mjpegClients.size,
+    has_frame: !!lastJpeg,
+    uptime_s: Math.floor(process.uptime()),
+  });
+});
 videoApp.listen(HTTP_PORT, () => {
   console.log(`🎥 [Video] D16 MJPEG Proxy siap di http://localhost:${HTTP_PORT}/stream`);
+  console.log(`📊 [Video] Status: http://localhost:${HTTP_PORT}/status`);
 });
 
 // ==========================
@@ -136,28 +171,28 @@ let sequenceCounter = 0;
 
 function buildPacket() {
   const packet = Buffer.alloc(88, 0x00);
-  
+
   // Magic & Size
   packet.writeUInt8(0xef, 0);
   packet.writeUInt8(0x02, 1);
   packet.writeUInt8(0x58, 2);
   packet.writeUInt8(0x00, 3);
-  
+
   // Magic 2
   packet.writeUInt8(0x02, 4);
   packet.writeUInt8(0x02, 5);
   packet.writeUInt8(0x00, 6);
   packet.writeUInt8(0x01, 7);
-  
+
   // Dynamic Sequence Counter (Little Endian)
   packet.writeUInt32LE(sequenceCounter, 12);
-  
+
   // Magic 3
   packet.writeUInt8(0x14, 16);
   packet.writeUInt8(0x00, 17);
   packet.writeUInt8(0x66, 18);
   packet.writeUInt8(0x14, 19);
-  
+
   // Controls
   const headless = 0x00; // Matikan Headless Mode (0x02 -> 0x00) agar orientasi normal
   packet.writeUInt8(roll, 20);
@@ -166,20 +201,20 @@ function buildPacket() {
   packet.writeUInt8(yaw, 23);
   packet.writeUInt8(flags, 24); // flags variable stores the command
   packet.writeUInt8(headless, 25);
-  
+
   // Checksum
   const checksum = roll ^ pitch ^ throttle ^ yaw ^ flags ^ headless;
   packet.writeUInt8(checksum, 36);
-  
+
   // Static suffix
   packet.writeUInt8(0x99, 37);
-  
+
   // Tail
   packet.writeUInt8(0x32, 82);
   packet.writeUInt8(0x4b, 83);
   packet.writeUInt8(0x14, 84);
   packet.writeUInt8(0x2d, 85);
-  
+
   sequenceCounter++;
   return packet;
 }
@@ -219,7 +254,7 @@ let joystickTimer = null;
 // Memberikan nilai yang cukup kuat untuk melampaui deadzone drone (biasanya 128 +- 30)
 function nudgeJoystick(axis, value, durationMs = 600) {
   if (joystickTimer) clearTimeout(joystickTimer);
-  
+
   if (axis === 'pitch') pitch = value;
   if (axis === 'roll') roll = value;
   if (axis === 'yaw') yaw = value;
