@@ -17,6 +17,16 @@ const INTERVAL = 100; // 10Hz (Persis seperti test script V2)
 
 const app = express();
 app.use(express.json());
+
+// CORS — izinkan akses dari browser (Laravel frontend & GCS)
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
 const { WebSocketServer } = require("ws");
 
 // ==========================
@@ -193,9 +203,110 @@ const CMD_CALIBRATE = 0x80;
 const b = (v) => v & 0xff;
 
 // ==========================
-// PACKET
+// TELEMETRY & RULE ENGINE EXECUTION
 // ==========================
 let sequenceCounter = 0;
+let isExecutingSequence = false;
+
+// Helpers untuk mengembalikan stik ke tengah
+function resetSticks() {
+  roll = 128;
+  pitch = 128;
+  yaw = 128;
+  throttle = 128;
+  flags = 0;
+}
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+app.post('/execute-sequence', async (req, res) => {
+  if (isExecutingSequence) {
+    return res.status(400).json({ error: "Drone sedang mengeksekusi misi lain." });
+  }
+  
+  const { sequence } = req.body;
+  if (!sequence || !Array.isArray(sequence)) {
+    return res.status(400).json({ error: "Invalid sequence payload." });
+  }
+
+  isExecutingSequence = true;
+  res.json({ message: "Eksekusi rule engine dimulai", steps: sequence.length });
+
+  console.log(`\n🚀 [Rule Engine] Memulai eksekusi ${sequence.length} instruksi...`);
+
+  // === AUTO-ARM: Drone D16 HARUS di-ARM dulu sebelum bisa bergerak ===
+  console.log(`🔓 [Rule Engine] Auto-ARM: Unlock motor drone...`);
+  resetSticks();
+  pulseFlag(0x40, 2000); // Unlock motor (ARM)
+  lastCommandAt = Date.now();
+  await sleep(2500); // Tunggu ARM selesai
+
+  for (let i = 0; i < sequence.length; i++) {
+    const step = sequence[i];
+    let durationMs = step.durasi || 1000;
+    
+    // Konversi satuan waktu ke milidetik
+    if (step.satuan_waktu === 'detik') durationMs *= 1000;
+    else if (step.satuan_waktu === 'menit') durationMs *= 60000;
+
+    const action = step.aksi.toLowerCase();
+    console.log(`👉 Step ${i+1}: ${action} (${durationMs}ms)`);
+
+    resetSticks();
+    lastCommandAt = Date.now(); // Cegah WATCHDOG mereset sticks saat eksekusi
+
+    // Mapping Dataset label ke IMU Telemetry (D16 Protocol)
+    if (action.includes('takeoff') || action.includes('lepas landas')) {
+      pulseFlag(CMD_TAKEOFF, Math.min(durationMs, 2000));
+    }
+    else if (action.includes('mendarat') || action.includes('land')) {
+      pulseFlag(CMD_LAND, Math.min(durationMs, 2000));
+    }
+    else if (action.includes('diam (darat)')) {
+      // ARM/Unlock saja - motor menyala tapi tidak terbang
+      pulseFlag(0x40, Math.min(durationMs, 2000));
+    }
+    else if (action.includes('diam')) {
+      // Hover di udara (tetap di 128 / netral)
+    }
+    else if (action.includes('maju')) {
+      pitch = 192; // Maju
+    }
+    else if (action.includes('mundur')) {
+      pitch = 64; // Mundur
+    }
+    else if (action.includes('naik')) {
+      throttle = 192; // Naik
+    }
+    else if (action.includes('turun')) {
+      throttle = 64; // Turun
+    }
+    else if (action.includes('roll kanan') || action.includes('belok kanan')) {
+      roll = 192; // Geser Kanan
+    }
+    else if (action.includes('roll kiri') || action.includes('belok kiri')) {
+      roll = 64; // Geser Kiri
+    }
+    else if (action.includes('rotasi kanan')) {
+      yaw = 192; // Putar Kanan
+    }
+    else if (action.includes('rotasi kiri')) {
+      yaw = 64; // Putar Kiri
+    }
+
+    // Refresh lastCommandAt tiap 500ms agar WATCHDOG tidak cut in
+    const steps = Math.floor(durationMs / 500);
+    for (let t = 0; t < steps; t++) {
+      await sleep(500);
+      lastCommandAt = Date.now();
+    }
+    await sleep(durationMs % 500); // Sisa waktu
+  }
+
+  console.log(`✅ [Rule Engine] Misi selesai. Drone hover.`);
+  resetSticks();
+  isExecutingSequence = false;
+});
 
 function buildPacket() {
   const packet = Buffer.alloc(88, 0x00);
@@ -301,6 +412,9 @@ function nudgeJoystick(axis, value, durationMs = 600) {
 setInterval(() => {
   const idle = Date.now() - lastCommandAt > 3000;
   const droneActive = throttle > 128 || flags > 0;
+
+  // Jangan ganggu saat Rule Engine sedang berjalan
+  if (isExecutingSequence) return;
 
   if (idle && droneActive) {
     console.warn("[WATCHDOG] Tidak ada command 3 detik, reset attitude & hover");

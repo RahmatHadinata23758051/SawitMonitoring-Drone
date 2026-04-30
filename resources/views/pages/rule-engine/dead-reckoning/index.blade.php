@@ -21,6 +21,10 @@
                         <input type="text" id="search-rule" placeholder="Cari rule..."
                             class="pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-56 transition">
                     </div>
+                    <button id="btn-run-mission"
+                        class="inline-flex items-center gap-2 bg-emerald-600 text-white rounded-xl py-2 px-4 text-sm font-semibold hover:bg-emerald-700 transition shadow-sm">
+                        <i class="fa-solid fa-rocket"></i> Jalankan Misi
+                    </button>
                     <a href="{{ route('dead-reckoning.create') }}"
                         class="inline-flex items-center gap-2 bg-primary text-white rounded-xl py-2 px-4 text-sm font-semibold hover:opacity-90 transition shadow-sm">
                         <i class="fa-solid fa-plus"></i> Tambah Rule
@@ -79,13 +83,82 @@
     @push('scripts')
         <script>
             window.addEventListener('load', function() {
+                // Live search table
                 document.getElementById('search-rule').addEventListener('input', function() {
                     const q = this.value.toLowerCase();
                     document.querySelectorAll('#rule-table tbody tr').forEach(row => { row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none'; });
                 });
+
                 @if (session('success')) Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: '{{ session('success') }}', showConfirmButton: false, timer: 2500, timerProgressBar: true }); @endif
+
+                // Konfirmasi delete
                 document.querySelectorAll('.delete-form').forEach(form => {
                     form.addEventListener('submit', function(e) { e.preventDefault(); Swal.fire({ title: 'Konfirmasi', text: `Hapus rule ID ${this.dataset.id}?`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Ya, Hapus!', cancelButtonText: 'Batal' }).then(r => { if (r.isConfirmed) this.submit(); }); });
+                });
+
+                // Jalankan Misi Dead-Reckoning
+                document.getElementById('btn-run-mission').addEventListener('click', async function() {
+                    const btn = this;
+
+                    // Cek apakah ada rules
+                    const rows = document.querySelectorAll('#rule-table tbody tr');
+                    if (rows.length === 0 || rows[0].cells.length < 2) {
+                        Swal.fire({ icon: 'warning', title: 'Tidak Ada Rule', text: 'Tambah minimal satu rule terlebih dahulu.' });
+                        return;
+                    }
+
+                    const confirm = await Swal.fire({
+                        title: '🚀 Jalankan Misi?',
+                        html: `Drone akan mengeksekusi <b>${rows.length}</b> instruksi secara berurutan. Pastikan area terbang aman!`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Jalankan!',
+                        cancelButtonText: 'Batal',
+                        confirmButtonColor: '#059669',
+                    });
+
+                    if (!confirm.isConfirmed) return;
+
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengeksekusi...';
+
+                    try {
+                        // Ambil sequence dari Laravel API
+                        const seqRes = await fetch('/api/dead-reckoning/sequence');
+                        const seqData = await seqRes.json();
+
+                        if (!seqData.sequence || seqData.sequence.length === 0) {
+                            Swal.fire({ icon: 'warning', title: 'Tidak ada rule', text: 'Tambah rule terlebih dahulu.' });
+                            return;
+                        }
+
+                        // Kirim ke Node.js Drone Server
+                        const execRes = await fetch('http://127.0.0.1:3001/execute-sequence', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sequence: seqData.sequence }),
+                        });
+
+                        const execData = await execRes.json();
+
+                        if (execRes.ok) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Misi Dimulai!',
+                                text: `${execData.steps} instruksi sedang dieksekusi drone.`,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                showConfirmButton: false,
+                            });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Gagal', text: execData.error || 'Server drone tidak merespon.' });
+                        }
+                    } catch (err) {
+                        Swal.fire({ icon: 'error', title: 'Koneksi Gagal', text: 'Pastikan Node.js drone server (port 3001) sedang berjalan.' });
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-rocket"></i> Jalankan Misi';
+                    }
                 });
             });
         </script>

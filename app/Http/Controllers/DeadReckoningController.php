@@ -28,6 +28,29 @@ class DeadReckoningController extends Controller
     }
 
     /**
+     * Ambil sequence rules terurut untuk Dead-Reckoning execution (API).
+     */
+    public function getSequence()
+    {
+        $rules = DeadReckoning::with('drone_dataset')
+            ->orderBy('id', 'asc')
+            ->get()
+            ->map(function ($rule) {
+                return [
+                    'id'           => $rule->id,
+                    'aksi'         => $rule->drone_dataset->label,
+                    'durasi'       => (float) $rule->durasi,
+                    'satuan_waktu' => $rule->satuan_waktu,
+                ];
+            });
+
+        return response()->json([
+            'total'    => $rules->count(),
+            'sequence' => $rules,
+        ]);
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
