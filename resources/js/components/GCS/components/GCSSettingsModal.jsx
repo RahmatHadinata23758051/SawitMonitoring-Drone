@@ -14,7 +14,8 @@ const GCSSettingsModal = ({
   droneMode, setDroneMode,
   theme, setTheme,
   telemBaud, setTelemBaud, isTelemConnected, handleConnectTelemetry,
-  videoIp, setVideoIp, videoProtocol, setVideoProtocol, hlsUrl, setHlsUrl, isVideoConnected, handleConnectVideo,
+  videoIp, setVideoIp, videoProtocol, setVideoProtocol, hlsUrl, setHlsUrl,
+  d16StreamUrl, setD16StreamUrl, isVideoConnected, handleConnectVideo,
   drones, setDrones, droneForm, setDroneForm, isEditingDrone, setIsEditingDrone,
   telemetryHistory, setTelemetryHistory, handleExportTelemetry,
   aiInput, setAiInput, aiHistory, isAiLoading, handleAskGemini, chatEndRef,
@@ -172,7 +173,7 @@ const GCSSettingsModal = ({
               <div className="flex flex-col gap-5">
                 <div>
                   <h2 className="text-base font-extrabold flex items-center gap-2 mb-1 text-slate-900"><Video className="w-4 h-4 text-orange-500" /> Setting Video Stream</h2>
-                  <p className="text-xs text-slate-500">Mode Simulasi: Webcam laptop. Mode Real: MJPEG IP Camera dari drone.</p>
+                  <p className="text-xs text-slate-500">Mode Simulasi: Webcam laptop. Mode Real: MJPEG/HLS atau URL proxy kamera drone.</p>
                 </div>
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
@@ -186,7 +187,7 @@ const GCSSettingsModal = ({
                         <option value="dummy">Dummy (Webcam Laptop)</option>
                         <option value="mjpeg">HTTP MJPEG (Kamera Lama/ESP32)</option>
                         <option value="hls">HLS Proxy (.m3u8)</option>
-                        <option value="d16_proxy">D16 Camera (WebSocket Proxy)</option>
+                        <option value="d16_proxy">D16 / Custom Stream URL</option>
                       </select>
                     </div>
                     <div>
@@ -202,9 +203,9 @@ const GCSSettingsModal = ({
                         </>
                       ) : videoProtocol === 'd16_proxy' ? (
                         <>
-                          <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">WEBSOCKET PROXY URL</label>
-                          <input type="text" value={videoIp} onChange={(e) => setVideoIp(e.target.value)} disabled={isVideoConnected} placeholder="ws://localhost:8082" className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-orange-400 disabled:opacity-50 bg-white text-slate-900" />
-                          <span className="text-[8px] text-orange-500 mt-1 block leading-tight">D16 mengirim raw H.264 via TCP. Butuh proxy Node.js (jsmpeg) untuk tampil di browser.</span>
+                          <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">URL STREAM / PROXY D16</label>
+                          <input type="text" value={d16StreamUrl} onChange={(e) => setD16StreamUrl(e.target.value)} disabled={isVideoConnected} placeholder="http://127.0.0.1:3002/stream" className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-orange-400 disabled:opacity-50 bg-white text-slate-900" />
+                          <span className="text-[8px] text-orange-500 mt-1 block leading-tight">Jalankan npm run proxy:d16-web, lalu gunakan URL MJPEG lokal ini. Decoder D16 masih eksperimental.</span>
                         </>
                       ) : (
                         <div className="flex items-center h-full pt-4">
@@ -225,7 +226,7 @@ const GCSSettingsModal = ({
                     className={`w-full py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 text-white transition ${isVideoConnected ? 'bg-rose-500 hover:bg-rose-400' : 'bg-orange-500 hover:bg-orange-400'}`}
                   >
                     <Power className="w-4 h-4" />
-                    {isVideoConnected ? 'STOP STREAM' : (droneMode === 'simulasi' || videoProtocol === 'dummy' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : 'CONNECT MJPEG STREAM'))}
+                    {isVideoConnected ? 'STOP STREAM' : (droneMode === 'simulasi' || videoProtocol === 'dummy' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : (videoProtocol === 'd16_proxy' ? 'CONNECT D16 STREAM' : 'CONNECT MJPEG STREAM')))}
                   </button>
                 </div>
               </div>

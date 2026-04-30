@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "probe:camera": "node camera-probe.js",
+    "probe:d16-udp": "node d16-udp-probe.js",
+    "proxy:d16-web": "node d16-web-proxy.js",
+    "extract:d16-frames": "node d16-frame-extract.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -11,7 +15,6 @@
   "description": "",
   "dependencies": {
     "express": "^5.2.1",
-    "node-mavlink": "^2.3.0",
-    "ws": "^8.20.0"
+    "node-mavlink": "^2.3.0"
   }
 }

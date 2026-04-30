@@ -9,18 +9,7 @@ const GCSCameraPanel = ({
   isPipVisible, setIsPipVisible
 }) => {
   const hlsVideoRef = React.useRef(null);
-  const jmuxerRef = React.useRef(null);
-  const wsRef = React.useRef(null);
   const [hlsStatus, setHlsStatus] = useState('WAITING');
-
-  useEffect(() => {
-    if (!document.getElementById('jmuxer-script')) {
-      const script = document.createElement('script');
-      script.id = 'jmuxer-script';
-      script.src = '/jmuxer.min.js'; // Menggunakan script lokal agar bisa jalan tanpa internet
-      document.head.appendChild(script);
-    }
-  }, []);
 
   useEffect(() => {
     let hls;
@@ -51,37 +40,8 @@ const GCSCameraPanel = ({
         hlsVideoRef.current.src = liveStreamUrl;
         setHlsStatus('NATIVE HLS');
       }
-    } else if (droneMode === 'real' && isVideoConnected && liveStreamUrl?.startsWith('ws://')) {
-      const initJMuxer = () => {
-        if (typeof window.JMuxer === 'undefined') {
-          setTimeout(initJMuxer, 100);
-          return;
-        }
-        jmuxerRef.current = new window.JMuxer({
-          node: 'd16-player',
-          mode: 'video',
-          flushingTime: 10,
-          fps: 20,
-          debug: false
-        });
-        wsRef.current = new WebSocket(liveStreamUrl);
-        wsRef.current.binaryType = 'arraybuffer';
-        wsRef.current.onmessage = (event) => {
-          if (jmuxerRef.current) jmuxerRef.current.feed({ video: new Uint8Array(event.data) });
-        };
-        wsRef.current.onerror = () => {
-          setIsVideoConnected(false);
-          setAlertPopup({ title: 'Proxy Error', message: 'Gagal connect ke ' + liveStreamUrl + '. Pastikan video-proxy.js berjalan.' });
-        };
-      };
-      initJMuxer();
     }
-
-    return () => { 
-      if (hls) hls.destroy(); 
-      if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
-      if (jmuxerRef.current) { jmuxerRef.current.destroy(); jmuxerRef.current = null; }
-    };
+    return () => { if (hls) hls.destroy(); };
   }, [droneMode, isVideoConnected, liveStreamUrl]);
 
   return (
@@ -106,8 +66,6 @@ const GCSCameraPanel = ({
             liveStreamUrl?.endsWith('.m3u8') ? (
               <video ref={hlsVideoRef} autoPlay playsInline muted className="w-full h-full object-cover"
                 onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat HLS stream.' }); }} />
-            ) : liveStreamUrl?.startsWith('ws://') ? (
-              <video id="d16-player" autoPlay playsInline muted className="w-full h-full object-cover bg-slate-900" />
             ) : (
               <img src={liveStreamUrl} alt="Live FPV" className="w-full h-full object-cover"
                 onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat stream.' }); }} />

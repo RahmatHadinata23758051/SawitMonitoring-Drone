@@ -25,5 +25,3 @@ Thumbs.db
 /public/images
 /public/streams
 /drone-server/node_modules
-package-lock.json
-/drone-server/package-lock.json

@@ -172,6 +172,7 @@ const AppGCS = () => {
   const [videoIp, setVideoIp] = useState('192.168.1.100');
   const [videoProtocol, setVideoProtocol] = useState('mjpeg');
   const [hlsUrl, setHlsUrl] = useState('/streams/drone.m3u8');
+  const [d16StreamUrl, setD16StreamUrl] = useState('http://127.0.0.1:3002/stream');
   const [isVideoConnected, setIsVideoConnected] = useState(false);
   const [liveStreamUrl, setLiveStreamUrl] = useState('');
 
@@ -352,10 +353,10 @@ const AppGCS = () => {
       } else if (droneMode === 'real') {
         if (videoProtocol === 'mjpeg') {
           setLiveStreamUrl(`http://${videoIp}:81/stream`);
-        } else if (videoProtocol === 'd16_proxy') {
-          setLiveStreamUrl('ws://localhost:8082');
-        } else {
+        } else if (videoProtocol === 'hls') {
           setLiveStreamUrl(hlsUrl);
+        } else if (videoProtocol === 'd16_proxy') {
+          setLiveStreamUrl(d16StreamUrl);
         }
         setIsVideoConnected(true);
       } else {
@@ -1269,6 +1270,8 @@ const AppGCS = () => {
         setVideoProtocol={setVideoProtocol}
         hlsUrl={hlsUrl}
         setHlsUrl={setHlsUrl}
+        d16StreamUrl={d16StreamUrl}
+        setD16StreamUrl={setD16StreamUrl}
         isVideoConnected={isVideoConnected}
         handleConnectVideo={handleConnectVideo}
         drones={drones}
