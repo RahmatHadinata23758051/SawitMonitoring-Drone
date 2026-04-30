@@ -9,6 +9,12 @@ const app = express();
 app.use(express.json());
 
 const client = dgram.createSocket("udp4");
+client.on('error', (err) => {
+    console.log(`[Socket Error] ${err.message}`);
+});
+client.bind(PORT, () => {
+    console.log(`[UDP] Local socket bound to port ${PORT}`);
+});
 
 let connectedAt = Date.now();
 
