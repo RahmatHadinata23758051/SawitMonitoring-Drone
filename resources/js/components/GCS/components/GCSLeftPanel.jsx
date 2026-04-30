@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Camera, GaugeCircle, Minimize2, Maximize2, ExternalLink,
   Battery, Clock, Play, Home, AlertTriangle, Navigation, Compass,
-  Crosshair, MonitorPlay
+  Crosshair, MonitorPlay, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw
 } from 'lucide-react';
 import Hls from 'hls.js';
 
@@ -158,20 +158,39 @@ const GCSLeftPanel = ({
                   <button id="btn-drone-takeoff"  onClick={() => handleDroneCommand('takeoff')}  disabled={isDisarmed} className={`${btn} bg-sky-700 hover:bg-sky-600 text-white`}>🚀 TAKEOFF</button>
                   <button id="btn-drone-land"     onClick={() => handleDroneCommand('land')}     disabled={isDisarmed} className={`${btn} bg-amber-700 hover:bg-amber-600 text-white`}>🛬 LAND</button>
                 </div>
-                <div className="grid grid-cols-2 gap-1">
-                  <button id="btn-drone-throttle-up"   onClick={() => handleDroneCommand('throttle_up')}   disabled={isDisarmed} className={`${btn} bg-indigo-700 hover:bg-indigo-600 text-white`}>THROTTLE ▲</button>
-                  <button id="btn-drone-throttle-down" onClick={() => handleDroneCommand('throttle_down')} disabled={isDisarmed} className={`${btn} bg-indigo-900 hover:bg-indigo-800 text-white`}>THROTTLE ▼</button>
+                {/* DUAL D-PAD CONTROLLER (MODE 2 LAYOUT) */}
+                <div className="flex justify-around items-center py-3 bg-slate-50/50 rounded-lg border border-slate-100 mb-1.5 mt-1">
+                  
+                  {/* Left Stick (Throttle / Yaw) */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-[9px] font-bold mb-1.5 tracking-wider text-slate-500">THROTTLE/YAW</span>
+                    <div className="relative w-24 h-24 rounded-full border-2 flex items-center justify-center shadow-inner border-slate-200 bg-white">
+                      <button id="btn-drone-throttle-up"   onClick={() => handleDroneCommand('throttle_up')}   disabled={isDisarmed} className="absolute top-0.5 p-1 rounded-full transition hover:bg-indigo-100 text-slate-600 disabled:opacity-30"><ChevronUp size={18}/></button>
+                      <button id="btn-drone-throttle-down" onClick={() => handleDroneCommand('throttle_down')} disabled={isDisarmed} className="absolute bottom-0.5 p-1 rounded-full transition hover:bg-indigo-100 text-slate-600 disabled:opacity-30"><ChevronDown size={18}/></button>
+                      <button id="btn-drone-yaw-left"      onClick={() => handleDroneCommand('yaw_left')}      disabled={isDisarmed} className="absolute left-0.5 p-1 rounded-full transition hover:bg-orange-100 text-slate-600 disabled:opacity-30"><RotateCcw size={14}/></button>
+                      <button id="btn-drone-yaw-right"     onClick={() => handleDroneCommand('yaw_right')}     disabled={isDisarmed} className="absolute right-0.5 p-1 rounded-full transition hover:bg-orange-100 text-slate-600 disabled:opacity-30"><RotateCw size={14}/></button>
+                      {/* Center Knob */}
+                      <div className="w-8 h-8 rounded-full shadow-md border bg-slate-100 border-slate-300"></div>
+                    </div>
+                  </div>
+
+                  {/* Right Stick (Pitch / Roll) */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-[9px] font-bold mb-1.5 tracking-wider text-slate-500">PITCH/ROLL</span>
+                    <div className="relative w-24 h-24 rounded-full border-2 flex items-center justify-center shadow-inner border-slate-200 bg-white">
+                      <button id="btn-drone-pitch-forward"  onClick={() => handleDroneCommand('pitch_forward')}  disabled={isDisarmed} className="absolute top-0.5 p-1 rounded-full transition hover:bg-teal-100 text-slate-600 disabled:opacity-30"><ChevronUp size={18}/></button>
+                      <button id="btn-drone-pitch-backward" onClick={() => handleDroneCommand('pitch_backward')} disabled={isDisarmed} className="absolute bottom-0.5 p-1 rounded-full transition hover:bg-teal-100 text-slate-600 disabled:opacity-30"><ChevronDown size={18}/></button>
+                      <button id="btn-drone-roll-left"      onClick={() => handleDroneCommand('roll_left')}      disabled={isDisarmed} className="absolute left-0.5 p-1 rounded-full transition hover:bg-cyan-100 text-slate-600 disabled:opacity-30"><ChevronLeft size={18}/></button>
+                      <button id="btn-drone-roll-right"     onClick={() => handleDroneCommand('roll_right')}     disabled={isDisarmed} className="absolute right-0.5 p-1 rounded-full transition hover:bg-cyan-100 text-slate-600 disabled:opacity-30"><ChevronRight size={18}/></button>
+                      {/* Center Knob */}
+                      <div className="w-8 h-8 rounded-full shadow-md border bg-slate-100 border-slate-300"></div>
+                    </div>
+                  </div>
+
                 </div>
-                <div className="grid grid-cols-4 gap-1">
-                  <button id="btn-drone-pitch-forward"  onClick={() => handleDroneCommand('pitch_forward')}  disabled={isDisarmed} className={`${btn} bg-teal-700 hover:bg-teal-600 text-white`}>P↑</button>
-                  <button id="btn-drone-pitch-backward" onClick={() => handleDroneCommand('pitch_backward')} disabled={isDisarmed} className={`${btn} bg-teal-900 hover:bg-teal-800 text-white`}>P↓</button>
-                  <button id="btn-drone-roll-left"      onClick={() => handleDroneCommand('roll_left')}      disabled={isDisarmed} className={`${btn} bg-cyan-700 hover:bg-cyan-600 text-white`}>R←</button>
-                  <button id="btn-drone-roll-right"     onClick={() => handleDroneCommand('roll_right')}     disabled={isDisarmed} className={`${btn} bg-cyan-700 hover:bg-cyan-600 text-white`}>R→</button>
-                </div>
-                <div className="grid grid-cols-3 gap-1">
-                  <button id="btn-drone-yaw-left"  onClick={() => handleDroneCommand('yaw_left')}       disabled={isDisarmed} className={`${btn} bg-orange-700 hover:bg-orange-600 text-white`}>YAW←</button>
-                  <button id="btn-drone-yaw-right" onClick={() => handleDroneCommand('yaw_right')}      disabled={isDisarmed} className={`${btn} bg-orange-700 hover:bg-orange-600 text-white`}>YAW→</button>
-                  <button id="btn-drone-reset"     onClick={() => handleDroneCommand('reset_attitude')} disabled={isDisarmed} className={`${btn} bg-slate-600 hover:bg-slate-500 text-white`}>↺ RST</button>
+
+                <div className="flex justify-center mb-1">
+                   <button id="btn-drone-reset" onClick={() => handleDroneCommand('reset_attitude')} disabled={isDisarmed} className={`${btn} w-full bg-slate-200 hover:bg-slate-300 text-slate-700`}>↺ RESET ATTITUDE</button>
                 </div>
                 <button id="btn-drone-emergency" onClick={() => handleDroneCommand('emergency')} disabled={isDisarmed}
                   className={`${btn} w-full bg-rose-700 hover:bg-rose-600 text-white flex items-center justify-center gap-1.5`}>

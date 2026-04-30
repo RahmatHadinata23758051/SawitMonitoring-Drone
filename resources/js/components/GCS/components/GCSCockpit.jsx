@@ -1,5 +1,5 @@
 import React from 'react';
-import { Battery, Clock, Play, Home, GaugeCircle, AlertTriangle } from 'lucide-react';
+import { Battery, Clock, Play, Home, GaugeCircle, AlertTriangle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw, RotateCw } from 'lucide-react';
 
 /**
  * GCSCockpit — Panel Gauge Cockpit + Drone Control (kanan atas)
@@ -112,84 +112,35 @@ const GCSCockpit = ({
             </button>
           </div>
 
-          {/* THROTTLE Row */}
-          <div className="grid grid-cols-2 gap-1">
-            <button
-              id="btn-drone-throttle-up"
-              onClick={() => handleDroneCommand('throttle_up')}
-              disabled={isDisarmed}
-              className={`${btnBase} bg-indigo-600 hover:bg-indigo-500 text-white`}
-            >
-              THROTTLE ▲
-            </button>
-            <button
-              id="btn-drone-throttle-down"
-              onClick={() => handleDroneCommand('throttle_down')}
-              disabled={isDisarmed}
-              className={`${btnBase} bg-indigo-800 hover:bg-indigo-700 text-white`}
-            >
-              THROTTLE ▼
-            </button>
-          </div>
+          {/* DUAL D-PAD CONTROLLER (MODE 2 LAYOUT) */}
+          <div className="flex justify-around items-center py-2">
+            
+            {/* Left Stick (Throttle / Yaw) */}
+            <div className="flex flex-col items-center">
+              <span className={`text-[8px] font-bold mb-1 tracking-wider ${t('text-slate-500', 'text-slate-400')}`}>THROTTLE / YAW</span>
+              <div className={`relative w-24 h-24 rounded-full border-2 flex items-center justify-center shadow-inner ${t('border-slate-700 bg-slate-800/50', 'border-slate-200 bg-slate-100/50')}`}>
+                <button onClick={() => handleDroneCommand('throttle_up')} disabled={isDisarmed} className={`absolute top-0.5 p-1 rounded-full transition ${t('hover:bg-indigo-600 text-slate-300', 'hover:bg-indigo-100 text-slate-600')} disabled:opacity-30`}><ChevronUp size={18}/></button>
+                <button onClick={() => handleDroneCommand('throttle_down')} disabled={isDisarmed} className={`absolute bottom-0.5 p-1 rounded-full transition ${t('hover:bg-indigo-600 text-slate-300', 'hover:bg-indigo-100 text-slate-600')} disabled:opacity-30`}><ChevronDown size={18}/></button>
+                <button onClick={() => handleDroneCommand('yaw_left')} disabled={isDisarmed} className={`absolute left-0.5 p-1 rounded-full transition ${t('hover:bg-orange-600 text-slate-300', 'hover:bg-orange-100 text-slate-600')} disabled:opacity-30`}><RotateCcw size={14}/></button>
+                <button onClick={() => handleDroneCommand('yaw_right')} disabled={isDisarmed} className={`absolute right-0.5 p-1 rounded-full transition ${t('hover:bg-orange-600 text-slate-300', 'hover:bg-orange-100 text-slate-600')} disabled:opacity-30`}><RotateCw size={14}/></button>
+                {/* Center Knob */}
+                <div className={`w-7 h-7 rounded-full shadow-md border ${t('bg-slate-700 border-slate-600', 'bg-slate-200 border-slate-300')}`}></div>
+              </div>
+            </div>
 
-          {/* PITCH Row */}
-          <div className="grid grid-cols-2 gap-1">
-            <button
-              id="btn-drone-pitch-forward"
-              onClick={() => handleDroneCommand('pitch_forward')}
-              disabled={isDisarmed}
-              className={`${btnBase} bg-teal-600 hover:bg-teal-500 text-white`}
-            >
-              PITCH ↑
-            </button>
-            <button
-              id="btn-drone-pitch-backward"
-              onClick={() => handleDroneCommand('pitch_backward')}
-              disabled={isDisarmed}
-              className={`${btnBase} bg-teal-800 hover:bg-teal-700 text-white`}
-            >
-              PITCH ↓
-            </button>
-          </div>
+            {/* Right Stick (Pitch / Roll) */}
+            <div className="flex flex-col items-center">
+              <span className={`text-[8px] font-bold mb-1 tracking-wider ${t('text-slate-500', 'text-slate-400')}`}>PITCH / ROLL</span>
+              <div className={`relative w-24 h-24 rounded-full border-2 flex items-center justify-center shadow-inner ${t('border-slate-700 bg-slate-800/50', 'border-slate-200 bg-slate-100/50')}`}>
+                <button onClick={() => handleDroneCommand('pitch_forward')} disabled={isDisarmed} className={`absolute top-0.5 p-1 rounded-full transition ${t('hover:bg-teal-600 text-slate-300', 'hover:bg-teal-100 text-slate-600')} disabled:opacity-30`}><ChevronUp size={18}/></button>
+                <button onClick={() => handleDroneCommand('pitch_backward')} disabled={isDisarmed} className={`absolute bottom-0.5 p-1 rounded-full transition ${t('hover:bg-teal-600 text-slate-300', 'hover:bg-teal-100 text-slate-600')} disabled:opacity-30`}><ChevronDown size={18}/></button>
+                <button onClick={() => handleDroneCommand('roll_left')} disabled={isDisarmed} className={`absolute left-0.5 p-1 rounded-full transition ${t('hover:bg-cyan-600 text-slate-300', 'hover:bg-cyan-100 text-slate-600')} disabled:opacity-30`}><ChevronLeft size={18}/></button>
+                <button onClick={() => handleDroneCommand('roll_right')} disabled={isDisarmed} className={`absolute right-0.5 p-1 rounded-full transition ${t('hover:bg-cyan-600 text-slate-300', 'hover:bg-cyan-100 text-slate-600')} disabled:opacity-30`}><ChevronRight size={18}/></button>
+                {/* Center Knob */}
+                <div className={`w-7 h-7 rounded-full shadow-md border ${t('bg-slate-700 border-slate-600', 'bg-slate-200 border-slate-300')}`}></div>
+              </div>
+            </div>
 
-          {/* ROLL Row */}
-          <div className="grid grid-cols-2 gap-1">
-            <button
-              id="btn-drone-roll-left"
-              onClick={() => handleDroneCommand('roll_left')}
-              disabled={isDisarmed}
-              className={`${btnBase} bg-cyan-700 hover:bg-cyan-600 text-white`}
-            >
-              ROLL ←
-            </button>
-            <button
-              id="btn-drone-roll-right"
-              onClick={() => handleDroneCommand('roll_right')}
-              disabled={isDisarmed}
-              className={`${btnBase} bg-cyan-700 hover:bg-cyan-600 text-white`}
-            >
-              ROLL →
-            </button>
-          </div>
-
-          {/* YAW Row */}
-          <div className="grid grid-cols-2 gap-1">
-            <button
-              id="btn-drone-yaw-left"
-              onClick={() => handleDroneCommand('yaw_left')}
-              disabled={isDisarmed}
-              className={`${btnBase} bg-orange-700 hover:bg-orange-600 text-white`}
-            >
-              YAW ←
-            </button>
-            <button
-              id="btn-drone-yaw-right"
-              onClick={() => handleDroneCommand('yaw_right')}
-              disabled={isDisarmed}
-              className={`${btnBase} bg-orange-700 hover:bg-orange-600 text-white`}
-            >
-              YAW →
-            </button>
           </div>
 
           {/* RESET + EMERGENCY Row */}
