@@ -1,14 +1,68 @@
 const dgram = require("dgram");
 const express = require("express");
+const WebSocket = require("ws");
 
 const HOST = "192.168.169.1";
 const PORT = 8800;
 const INTERVAL = 100; // 10Hz (Persis seperti test script V2)
+const PROXY_WS_PORT = 8082; // Port WebSocket untuk video streaming
 
 const app = express();
 app.use(express.json());
 
 const client = dgram.createSocket("udp4");
+
+// ==========================
+// VIDEO WEBSOCKET PROXY
+// ==========================
+const wss = new WebSocket.Server({ port: PROXY_WS_PORT }, () => {
+    console.log(`🎥 [Video Proxy] WebSocket Server berjalan di ws://localhost:${PROXY_WS_PORT}`);
+});
+
+let wsClients = [];
+wss.on('connection', (ws) => {
+    console.log(`💻 [Client] Web browser GCS terhubung ke Video Stream!`);
+    wsClients.push(ws);
+    ws.on('close', () => {
+        wsClients = wsClients.filter(c => c !== ws);
+    });
+});
+
+// Dengarkan balasan paket dari Drone di socket kontrol
+let videoPacketCount = 0;
+client.on('message', (msg, rinfo) => {
+    if (rinfo.address === HOST) {
+        if (msg.length > 200) { 
+            videoPacketCount++;
+            if (videoPacketCount % 50 === 0) console.log(`🎥 [Video] Menerima 50 frame dari port asal kontrol...`);
+            for (const ws of wsClients) {
+                if (ws.readyState === WebSocket.OPEN) ws.send(msg, { binary: true });
+            }
+        }
+    }
+});
+
+// ==========================
+// UNIVERSAL UDP VIDEO CATCHER
+// ==========================
+// Drone kadang menembakkan video ke port UDP standar. Kita buka semuanya.
+const COMMON_VIDEO_PORTS = [8080, 8888, 7070, 1234, 5600, 11111, 9000, 50000, 4200, 5000];
+COMMON_VIDEO_PORTS.forEach(vPort => {
+    try {
+        const vSocket = dgram.createSocket('udp4');
+        vSocket.on('error', () => { /* abaikan jika port bentrok */ });
+        vSocket.on('message', (msg, rinfo) => {
+            if (rinfo.address === HOST && msg.length > 200) {
+                videoPacketCount++;
+                if (videoPacketCount % 50 === 0) console.log(`🎥 [Video] Menerima 50 frame dari port UDP ${vPort}`);
+                for (const ws of wsClients) {
+                    if (ws.readyState === WebSocket.OPEN) ws.send(msg, { binary: true });
+                }
+            }
+        });
+        vSocket.bind(vPort);
+    } catch (e) {}
+});
 
 let connectedAt = Date.now();
 
