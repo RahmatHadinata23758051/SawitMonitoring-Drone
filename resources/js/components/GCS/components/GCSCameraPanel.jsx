@@ -9,8 +9,50 @@ const GCSCameraPanel = ({
   isPipVisible, setIsPipVisible
 }) => {
   const hlsVideoRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
+  const wsRef = React.useRef(null);
   const [hlsStatus, setHlsStatus] = useState('WAITING');
 
+  // WEBSOCKET FPV LOGIC
+  useEffect(() => {
+    // Hanya aktif jika mode real, video connected, dan bukan HLS stream
+    if (droneMode === 'real' && isVideoConnected && !liveStreamUrl?.endsWith('.m3u8')) {
+      const ws = new WebSocket('ws://127.0.0.1:3003');
+      wsRef.current = ws;
+      
+      ws.binaryType = 'blob';
+
+      ws.onopen = () => {
+        console.log('[FPV] WebSocket Terhubung');
+      };
+
+      ws.onmessage = async (event) => {
+        if (!canvasRef.current) return;
+        const ctx = canvasRef.current.getContext('2d');
+        
+        try {
+          // Native zero-buffer drawing (setara C++ GPU render)
+          const bitmap = await createImageBitmap(event.data);
+          ctx.drawImage(bitmap, 0, 0, canvasRef.current.width, canvasRef.current.height);
+          bitmap.close(); // Cegah memory leak
+        } catch (e) {
+          console.error('[FPV] Render Error:', e);
+        }
+      };
+
+      ws.onerror = () => {
+        console.error('[FPV] WebSocket Error');
+        setIsVideoConnected(false);
+        setAlertPopup({ title: 'Video Terputus', message: 'Koneksi FPV WebSocket gagal.' });
+      };
+
+      return () => {
+        if (ws.readyState === 1 || ws.readyState === 0) ws.close();
+      };
+    }
+  }, [droneMode, isVideoConnected, liveStreamUrl, setIsVideoConnected, setAlertPopup]);
+
+  // HLS LOGIC
   useEffect(() => {
     let hls;
     if (droneMode === 'real' && isVideoConnected && liveStreamUrl?.endsWith('.m3u8')) {
@@ -67,8 +109,7 @@ const GCSCameraPanel = ({
               <video ref={hlsVideoRef} autoPlay playsInline muted className="w-full h-full object-cover"
                 onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat HLS stream.' }); }} />
             ) : (
-              <img src={liveStreamUrl} alt="Live FPV" className="w-full h-full object-cover"
-                onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat stream.' }); }} />
+              <canvas ref={canvasRef} width={640} height={360} className="w-full h-full object-cover" />
             )
           ) : (
             <div className="w-full h-full flex items-center justify-center">

@@ -17,10 +17,16 @@ const INTERVAL = 100; // 10Hz (Persis seperti test script V2)
 
 const app = express();
 app.use(express.json());
+const { WebSocketServer } = require("ws");
+
 // ==========================
 // D16 VIDEO PROXY — Konstanta
 // ==========================
 const HTTP_PORT = 3002;
+const WS_PORT = 3003;
+const wss = new WebSocketServer({ port: WS_PORT });
+console.log(`🔌 [WebSocket] FPV Stream berjalan di ws://localhost:${WS_PORT}`);
+
 const INIT_PACKET = Buffer.from([0xef, 0x00, 0x04, 0x00]);
 const MJPEG_BOUNDARY = "d16-frame";
 const JPEG_HEADER_640X360 = Buffer.from("ffd8ffe000104a46494600010100000100010000ffdb004300100b0c0e0c0a100e0d0e1211101318281a181616183123251d283a333d3c3933383740485c4e404457453738506d51575f626768673e4d71797064785c656763ffdb0043011112121815182f1a1a2f634238426363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363ffc00011080168028003011100021101031101ffc4001f0000010501010101010100000000000000000102030405060708090a0bffc400b5100002010303020403050504040000017d01020300041105122131410613516107227114328191a1082342b1c11552d1f02433627282090a161718191a25262728292a3435363738393a434445464748494a535455565758595a636465666768696a737475767778797a838485868788898a92939495969798999aa2a3a4a5a6a7a8a9aab2b3b4b5b6b7b8b9bac2c3c4c5c6c7c8c9cad2d3d4d5d6d7d8d9dae1e2e3e4e5e6e7e8e9eaf1f2f3f4f5f6f7f8f9faffc4001f0100030101010101010101010000000000000102030405060708090a0bffc400b51100020102040403040705040400010277000102031104052131061241510761711322328108144291a1b1c109233352f0156272d10a162434e125f11718191a262728292a35363738393a434445464748494a535455565758595a636465666768696a737475767778797a82838485868788898a92939495969798999aa2a3a4a5a6a7a8a9aab2b3b4b5b6b7b8b9bac2c3c4c5c6c7c8c9cad2d3d4d5d6d7d8d9dae2e3e4e5e6e7e8e9eaf2f3f4f5f6f7f8f9faffda000c03010002110311003f00", "hex");
@@ -40,11 +46,12 @@ client.on('error', (err) => {
   console.log(`[Socket Error] ${err.message}`);
 });
 
-// Semua setup DALAM bind callback — persis seperti test script yang proven bekerja
-client.bind(PORT, () => {
-  console.log(`[UDP] Local socket bound to port ${PORT}`);
+// ==== SINGLE SOCKET (Port Acak) ====
+// Menghindari bind port 8800 lokal agar tidak bentrok dengan port drone
+client.bind(0, () => {
+  const address = client.address();
+  console.log(`[UDP] Local socket bound to random port ${address.port}`);
 
-  // Handler video — dipasang setelah socket siap
   client.on('message', (msg, rinfo) => {
     try {
       totalRawPackets++;
@@ -58,10 +65,11 @@ client.bind(PORT, () => {
     }
   });
 
-  // Kirim INIT langsung lalu tiap 1 detik
+  // Kirim INIT tiap detik
   client.send(INIT_PACKET, PORT, HOST, () => {});
   setInterval(() => { client.send(INIT_PACKET, PORT, HOST, () => {}); }, 1000);
 });
+
 // ==========================
 // D16 VIDEO PROXY — Functions
 // ==========================
@@ -69,15 +77,22 @@ let connectedAt = Date.now();
 
 function emitJpeg(jpeg) {
   lastJpeg = jpeg;
+  // Tetap simpan emit MJPEG HTTP jika sewaktu-waktu dibutuhkan untuk legacy player
   const chunkHeader = Buffer.from(`--${MJPEG_BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: ${jpeg.length}\r\n\r\n`, "ascii");
   for (const res of Array.from(mjpegClients)) {
     try { res.write(chunkHeader); res.write(jpeg); res.write(Buffer.from("\r\n", "ascii")); }
     catch { mjpegClients.delete(res); }
   }
+
+  // === WEBSOCKET ZERO-LATENCY BROADCAST ===
+  wss.clients.forEach(client => {
+    if (client.readyState === 1 /* WebSocket.OPEN */) {
+      client.send(jpeg); // Kirim buffer binary murni
+    }
+  });
 }
 
 function processVideoPacket(msg) {
-  // Cek magic byte D16: header 56 byte diawali 0x93 0x01
   if (msg.length < 56 || msg[0] !== 0x93 || msg[1] !== 0x01) return;
 
   videoPacketCount++;
@@ -88,33 +103,46 @@ function processVideoPacket(msg) {
   const fragTotal = msg.readUInt32LE(36);
   const payload   = msg.subarray(56);
 
-  // Anti-delay: drop frame lama, langsung ke frame baru
-  if (frameId > currentVideoFrameId) {
-    if (partialFrames.has(currentVideoFrameId)) {
-      const oldF = partialFrames.get(currentVideoFrameId);
-      if (oldF.fragments.size > (oldF.total * 0.3)) {
-        const chunks = [];
-        for (let i = 0; i < oldF.total; i++) chunks.push(oldF.fragments.get(i) || Buffer.alloc(0));
-        emitJpeg(Buffer.concat([JPEG_HEADER_640X360, Buffer.concat(chunks), Buffer.from([0xff, 0xd9])]));
+  // Jika drone mengirim frame baru, paksa render frame lama apa adanya (Best Effort FPV)
+  // Ini kunci agar tidak stuck 1 menit meskipun ada paket hilang!
+  if (frameId > currentVideoFrameId && partialFrames.has(currentVideoFrameId)) {
+    const oldF = partialFrames.get(currentVideoFrameId);
+    // Render jika kita punya lebih dari separuh data (mengurangi blank screen)
+    if (oldF.fragments.size > (oldF.total * 0.4)) {
+      const chunks = [];
+      for (let i = 0; i < oldF.total; i++) {
+        const chunk = oldF.fragments.get(i);
+        if (chunk) chunks.push(chunk);
+        // Kalau hilang, kita skip saja byte-nya, decoder Chrome/Canvas sangat pintar memperbaiki JPEG rusak
       }
+      emitJpeg(Buffer.concat([JPEG_HEADER_640X360, Buffer.concat(chunks), Buffer.from([0xff, 0xd9])]));
     }
-    currentVideoFrameId = frameId;
-    partialFrames.clear();
+    partialFrames.delete(currentVideoFrameId);
   }
 
-  if (frameId < currentVideoFrameId) return;
+  currentVideoFrameId = frameId;
 
   if (!partialFrames.has(frameId)) {
     partialFrames.set(frameId, { total: fragTotal, fragments: new Map() });
   }
+
   const frame = partialFrames.get(frameId);
   frame.fragments.set(fragIndex, payload);
 
+  // Jika paket sempurna 100% tanpa packet loss, langsung render
   if (frame.fragments.size === frame.total) {
     const chunks = [];
-    for (let i = 0; i < frame.total; i++) chunks.push(frame.fragments.get(i));
+    for (let i = 0; i < frame.total; i++) {
+      chunks.push(frame.fragments.get(i));
+    }
     emitJpeg(Buffer.concat([JPEG_HEADER_640X360, Buffer.concat(chunks), Buffer.from([0xff, 0xd9])]));
     partialFrames.delete(frameId);
+  }
+
+  // Garbage collection: batasi memory
+  while (partialFrames.size > 24) {
+    const oldest = partialFrames.keys().next().value;
+    partialFrames.delete(oldest);
   }
 }
 

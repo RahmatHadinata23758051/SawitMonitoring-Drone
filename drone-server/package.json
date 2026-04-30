@@ -15,6 +15,7 @@
   "description": "",
   "dependencies": {
     "express": "^5.2.1",
-    "node-mavlink": "^2.3.0"
+    "node-mavlink": "^2.3.0",
+    "ws": "^8.20.0"
   }
 }
