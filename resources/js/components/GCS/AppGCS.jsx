@@ -352,6 +352,8 @@ const AppGCS = () => {
       } else if (droneMode === 'real') {
         if (videoProtocol === 'mjpeg') {
           setLiveStreamUrl(`http://${videoIp}:81/stream`);
+        } else if (videoProtocol === 'd16_proxy') {
+          setLiveStreamUrl('ws://localhost:8082');
         } else {
           setLiveStreamUrl(hlsUrl);
         }
