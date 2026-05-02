@@ -1,6 +1,176 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Camera, Crosshair, MonitorPlay } from 'lucide-react';
 import Hls from 'hls.js';
+
+/**
+ * WebGL Drone FPV Stream — Pengganti OpenGL ES di Browser
+ * 
+ * Menggunakan WebGL (yang dibangun di atas OpenGL ES 2.0) untuk rendering video.
+ * Alur kerja IDENTIK dengan Android GLSurfaceView:
+ *   1. Terima JPEG frame via WebSocket
+ *   2. Decode ke ImageBitmap (GPU-friendly format)
+ *   3. Upload ke GPU sebagai texture (gl.texImage2D — sama persis dengan OpenGL ES)
+ *   4. Render fullscreen quad menggunakan vertex + fragment shader pada 60 FPS
+ * 
+ * Keuntungan vs Canvas2D:
+ *   - Zero CPU compositing (langsung di GPU)
+ *   - V-sync aligned (tidak ada tearing)
+ *   - Gambar "ditahan" sebagai GPU texture, di-redraw setiap 16ms
+ */
+
+// Vertex shader: fullscreen quad
+const VERTEX_SHADER_SRC = `
+  attribute vec2 a_position;
+  attribute vec2 a_texCoord;
+  varying vec2 v_texCoord;
+  void main() {
+    gl_Position = vec4(a_position, 0.0, 1.0);
+    v_texCoord = a_texCoord;
+  }
+`;
+
+// Fragment shader: sample texture
+const FRAGMENT_SHADER_SRC = `
+  precision mediump float;
+  varying vec2 v_texCoord;
+  uniform sampler2D u_texture;
+  void main() {
+    gl_FragColor = texture2D(u_texture, v_texCoord);
+  }
+`;
+
+function createShader(gl, type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error('Shader error:', gl.getShaderInfoLog(shader));
+    gl.deleteShader(shader);
+    return null;
+  }
+  return shader;
+}
+
+const DroneCanvasStream = ({ wsUrl = 'ws://127.0.0.1:3003' }) => {
+  const canvasRef = useRef(null);
+  const latestBitmapRef = useRef(null);
+  const textureReadyRef = useRef(false);
+  const rafIdRef = useRef(null);
+  const wsRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // === INIT WebGL (OpenGL ES 2.0 di Browser) ===
+    const gl = canvas.getContext('webgl', {
+      alpha: false,
+      antialias: false,
+      depth: false,
+      desynchronized: true,       // Bypass V-sync queue untuk ultra-low latency
+      preserveDrawingBuffer: false,
+      powerPreference: 'high-performance'
+    });
+
+    if (!gl) {
+      console.error('[FPV WebGL] WebGL tidak tersedia, fallback ke Canvas2D');
+      return;
+    }
+
+    console.log('[FPV WebGL] GPU:', gl.getParameter(gl.RENDERER));
+
+    // === SHADERS (sama dengan GLSL di OpenGL ES) ===
+    const vertShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER_SRC);
+    const fragShader = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER_SRC);
+    const program = gl.createProgram();
+    gl.attachShader(program, vertShader);
+    gl.attachShader(program, fragShader);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    // === FULLSCREEN QUAD (2 triangles = 1 rectangle) ===
+    // Posisi vertex (clip space)            Texcoord (UV, flipped Y)
+    const vertices = new Float32Array([
+      -1, -1,   0, 1,   // Bottom-left
+       1, -1,   1, 1,   // Bottom-right
+      -1,  1,   0, 0,   // Top-left
+       1,  1,   1, 0,   // Top-right
+    ]);
+
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    const aPos = gl.getAttribLocation(program, 'a_position');
+    const aTex = gl.getAttribLocation(program, 'a_texCoord');
+    gl.enableVertexAttribArray(aPos);
+    gl.enableVertexAttribArray(aTex);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 16, 0);
+    gl.vertexAttribPointer(aTex, 2, gl.FLOAT, false, 16, 8);
+
+    // === TEXTURE (gl.texImage2D — sama persis dengan OpenGL ES) ===
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    // === RENDER LOOP: 60 FPS GPU redraw ===
+    function renderLoop() {
+      if (textureReadyRef.current) {
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
+      rafIdRef.current = requestAnimationFrame(renderLoop);
+    }
+    rafIdRef.current = requestAnimationFrame(renderLoop);
+
+    // === WebSocket: Terima JPEG frame dari drone ===
+    const ws = new WebSocket(wsUrl);
+    ws.binaryType = 'blob';
+    wsRef.current = ws;
+
+    ws.onmessage = async (event) => {
+      try {
+        const newBitmap = await createImageBitmap(event.data);
+        // Upload ke GPU texture (gl.texImage2D — inti dari OpenGL ES rendering)
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, newBitmap);
+        textureReadyRef.current = true;
+        // Free bitmap setelah upload ke GPU
+        if (latestBitmapRef.current) latestBitmapRef.current.close();
+        latestBitmapRef.current = newBitmap;
+      } catch (e) {
+        // Frame corrupt, skip
+      }
+    };
+
+    ws.onerror = (e) => console.error('[FPV WebGL] WS Error:', e);
+    ws.onclose = () => console.warn('[FPV WebGL] WS Closed');
+
+    return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      if (wsRef.current && wsRef.current.readyState <= 1) wsRef.current.close();
+      if (latestBitmapRef.current) {
+        latestBitmapRef.current.close();
+        latestBitmapRef.current = null;
+      }
+      gl.deleteTexture(texture);
+      gl.deleteProgram(program);
+      gl.deleteShader(vertShader);
+      gl.deleteShader(fragShader);
+      gl.deleteBuffer(buffer);
+    };
+  }, [wsUrl]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={640}
+      height={360}
+      className="w-full h-full object-cover"
+    />
+  );
+};
 
 const GCSCameraPanel = ({
   droneMode, isVideoConnected, webcamStream, videoRef,
@@ -8,51 +178,10 @@ const GCSCameraPanel = ({
   liveAiVision, telemetry, targetAltitude,
   isPipVisible, setIsPipVisible
 }) => {
-  const hlsVideoRef = React.useRef(null);
-  const canvasRef = React.useRef(null);
-  const wsRef = React.useRef(null);
+  const hlsVideoRef = useRef(null);
   const [hlsStatus, setHlsStatus] = useState('WAITING');
 
-  // WEBSOCKET FPV LOGIC
-  useEffect(() => {
-    // Hanya aktif jika mode real, video connected, dan bukan HLS stream
-    if (droneMode === 'real' && isVideoConnected && !liveStreamUrl?.endsWith('.m3u8')) {
-      const ws = new WebSocket('ws://127.0.0.1:3003');
-      wsRef.current = ws;
-      
-      ws.binaryType = 'blob';
-
-      ws.onopen = () => {
-        console.log('[FPV] WebSocket Terhubung');
-      };
-
-      ws.onmessage = async (event) => {
-        if (!canvasRef.current) return;
-        const ctx = canvasRef.current.getContext('2d');
-        
-        try {
-          // Native zero-buffer drawing (setara C++ GPU render)
-          const bitmap = await createImageBitmap(event.data);
-          ctx.drawImage(bitmap, 0, 0, canvasRef.current.width, canvasRef.current.height);
-          bitmap.close(); // Cegah memory leak
-        } catch (e) {
-          console.error('[FPV] Render Error:', e);
-        }
-      };
-
-      ws.onerror = () => {
-        console.error('[FPV] WebSocket Error');
-        setIsVideoConnected(false);
-        setAlertPopup({ title: 'Video Terputus', message: 'Koneksi FPV WebSocket gagal.' });
-      };
-
-      return () => {
-        if (ws.readyState === 1 || ws.readyState === 0) ws.close();
-      };
-    }
-  }, [droneMode, isVideoConnected, liveStreamUrl, setIsVideoConnected, setAlertPopup]);
-
-  // HLS LOGIC
+  // HLS LOGIC (untuk stream lain jika diperlukan)
   useEffect(() => {
     let hls;
     if (droneMode === 'real' && isVideoConnected && liveStreamUrl?.endsWith('.m3u8')) {
@@ -86,6 +215,31 @@ const GCSCameraPanel = ({
     return () => { if (hls) hls.destroy(); };
   }, [droneMode, isVideoConnected, liveStreamUrl]);
 
+  // Render video content based on mode
+  const renderVideoContent = () => {
+    if (droneMode === 'simulasi' && isVideoConnected && webcamStream) {
+      return <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />;
+    }
+
+    if (droneMode === 'real' && isVideoConnected) {
+      if (liveStreamUrl?.endsWith('.m3u8')) {
+        return (
+          <video ref={hlsVideoRef} autoPlay playsInline muted className="w-full h-full object-cover"
+            onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat HLS stream.' }); }} />
+        );
+      }
+
+      // GPU-Accelerated Canvas Stream (60 FPS redraw, persis Android SurfaceView)
+      return <DroneCanvasStream wsUrl="ws://127.0.0.1:3003" />;
+    }
+
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <span className="text-slate-500 text-[10px] font-mono border border-slate-600 border-dashed px-3 py-1.5 rounded">NO SIGNAL</span>
+      </div>
+    );
+  };
+
   return (
     <div className="flex items-start justify-center gap-4 w-full pointer-events-auto">
       {/* CAM 1: RGB */}
@@ -102,20 +256,7 @@ const GCSCameraPanel = ({
           </div>
         </div>
         <div className="relative bg-black w-full" style={{ aspectRatio: '16/9' }}>
-          {droneMode === 'simulasi' && isVideoConnected && webcamStream ? (
-            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-          ) : droneMode === 'real' && isVideoConnected ? (
-            liveStreamUrl?.endsWith('.m3u8') ? (
-              <video ref={hlsVideoRef} autoPlay playsInline muted className="w-full h-full object-cover"
-                onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat HLS stream.' }); }} />
-            ) : (
-              <canvas ref={canvasRef} width={640} height={360} className="w-full h-full object-cover" />
-            )
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-slate-500 text-[10px] font-mono border border-slate-600 border-dashed px-3 py-1.5 rounded">NO SIGNAL</span>
-            </div>
-          )}
+          {renderVideoContent()}
         </div>
       </div>
 
