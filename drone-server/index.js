@@ -157,24 +157,31 @@ client.on("message", (msg, rinfo) => {
 client.bind(0, () => {
   const addr = client.address();
 
-  // Perbesar receive buffer agar kernel tidak buang paket UDP
   try {
-    client.setRecvBufferSize(4 * 1024 * 1024); // 4MB
+    client.setRecvBufferSize(4 * 1024 * 1024);
     console.log(`📡 [UDP] Port ${addr.port} → ${HOST}:${PORT} | RecvBuf: 4MB`);
   } catch (e) {
     console.log(`📡 [UDP] Port ${addr.port} → ${HOST}:${PORT} | RecvBuf: default`);
   }
 
-  // Init packet lebih sering = drone dipaksa kirim video secepat mungkin (50ms = 20x/detik)
+  // Kirim INIT setiap 1 detik agar drone terus kirim video
   function sendInit() { client.send(INIT_PACKET, PORT, HOST); }
   sendInit();
-  setInterval(sendInit, 50); 
+  setInterval(sendInit, 1000);
+
+  // =========================================================
+  // HEARTBEAT KONTROL — 10Hz (100ms)
+  // KRITIS: Tanpa ini, drone tidak akan merespon APAPUN!
+  // Paket 88-byte dikirim terus-menerus ke drone.
+  // =========================================================
+  setInterval(sendPacket, INTERVAL);
+  console.log(`⚡ Heartbeat Kontrol: ${1000/INTERVAL}Hz`);
 
   // FPS monitor
   setInterval(() => {
     if (currentFps > 0 || videoPackets > 0) {
-      console.log(`📊 FPS: ${currentFps} | Packets/sec: ${Math.floor(videoPackets / 5)} | Frames: ${emittedFrameCount}`);
-      videoPackets = 0; // reset setiap 5 detik untuk rata-rata
+      console.log(`📊 FPS: ${currentFps} | Frames: ${emittedFrameCount}`);
+      videoPackets = 0;
     }
   }, 5000);
 });
@@ -232,13 +239,24 @@ app.post('/execute-sequence', async (req, res) => {
 
   console.log(`\n🚀 [Rule Engine] Memulai eksekusi ${sequence.length} instruksi...`);
 
-  // === AUTO-ARM: Drone D16 HARUS di-ARM dulu sebelum bisa bergerak ===
-  console.log(`🔓 [Rule Engine] Auto-ARM: Unlock motor drone...`);
+  // === FASE 1: ARM ===
+  // Kirim sinyal unlock motor ke drone
+  console.log(`🔓 [Rule Engine] Fase 1 — ARM (unlock motor)...`);
   resetSticks();
-  pulseFlag(0x40, 2000); // Unlock motor (ARM)
+  pulseFlag(0x40, 1500);
   lastCommandAt = Date.now();
-  await sleep(2500); // Tunggu ARM selesai
+  await sleep(2000);
 
+  // === FASE 2: TAKEOFF ===
+  // KRITIS: Drone D16 WAJIB menerima TAKEOFF sebelum merespon throttle/pitch/roll!
+  // Tanpa ini, semua perintah gerak diabaikan.
+  console.log(`🛫 [Rule Engine] Fase 2 — TAKEOFF, tunggu drone stabil 4 detik...`);
+  resetSticks();
+  pulseFlag(CMD_TAKEOFF, 2000);
+  lastCommandAt = Date.now();
+  await sleep(4000); // Tunggu drone naik & stabil di udara
+
+  // === FASE 3: EKSEKUSI INSTRUKSI USER ===
   for (let i = 0; i < sequence.length; i++) {
     const step = sequence[i];
     let durationMs = step.durasi || 1000;
@@ -251,45 +269,44 @@ app.post('/execute-sequence', async (req, res) => {
     console.log(`👉 Step ${i+1}: ${action} (${durationMs}ms)`);
 
     resetSticks();
-    lastCommandAt = Date.now(); // Cegah WATCHDOG mereset sticks saat eksekusi
+    lastCommandAt = Date.now();
 
-    // Mapping Dataset label ke IMU Telemetry (D16 Protocol)
-    if (action.includes('takeoff') || action.includes('lepas landas')) {
-      pulseFlag(CMD_TAKEOFF, Math.min(durationMs, 2000));
-    }
-    else if (action.includes('mendarat') || action.includes('land')) {
+    // === Mapping Dataset label → Telemetri D16 ===
+    if (action.includes('mendarat') || action.includes('land')) {
       pulseFlag(CMD_LAND, Math.min(durationMs, 2000));
     }
-    else if (action.includes('diam (darat)')) {
-      // ARM/Unlock saja - motor menyala tapi tidak terbang
-      pulseFlag(0x40, Math.min(durationMs, 2000));
-    }
-    else if (action.includes('diam')) {
-      // Hover di udara (tetap di 128 / netral)
+    else if (action.includes('diam (darat)') || action.includes('diam')) {
+      // Hover — stik tetap di tengah (128), drone melayang
     }
     else if (action.includes('maju')) {
-      pitch = 192; // Maju
+      pitch = 192;
     }
     else if (action.includes('mundur')) {
-      pitch = 64; // Mundur
+      pitch = 64;
     }
     else if (action.includes('naik')) {
-      throttle = 192; // Naik
+      throttle = 192;
     }
     else if (action.includes('turun')) {
-      throttle = 64; // Turun
+      throttle = 64;
     }
     else if (action.includes('roll kanan') || action.includes('belok kanan')) {
-      roll = 192; // Geser Kanan
+      roll = 192;
     }
     else if (action.includes('roll kiri') || action.includes('belok kiri')) {
-      roll = 64; // Geser Kiri
+      roll = 64;
     }
     else if (action.includes('rotasi kanan')) {
-      yaw = 192; // Putar Kanan
+      yaw = 192;
     }
     else if (action.includes('rotasi kiri')) {
-      yaw = 64; // Putar Kiri
+      yaw = 64;
+    }
+    else if (action.includes('pitch atas')) {
+      pitch = 64;  // Tilt ke atas (nose up = gerak mundur/naik)
+    }
+    else if (action.includes('pitch bawah')) {
+      pitch = 192; // Tilt ke bawah (nose down = gerak maju)
     }
 
     // Refresh lastCommandAt tiap 500ms agar WATCHDOG tidak cut in
@@ -301,7 +318,17 @@ app.post('/execute-sequence', async (req, res) => {
     await sleep(durationMs % 500); // Sisa waktu
   }
 
-  console.log(`✅ [Rule Engine] Misi selesai. Drone hover.`);
+  // === FASE 4: AUTO-LAND (jika user tidak mendefinisikan mendarat di akhir) ===
+  const lastAction = sequence[sequence.length - 1]?.aksi?.toLowerCase() || '';
+  if (!lastAction.includes('mendarat') && !lastAction.includes('land')) {
+    console.log(`🛬 [Rule Engine] Fase 4 — Auto-LAND (step terakhir bukan mendarat)...`);
+    resetSticks();
+    pulseFlag(CMD_LAND, 2000);
+    lastCommandAt = Date.now();
+    await sleep(3000); // Tunggu drone mendarat
+  }
+
+  console.log(`✅ [Rule Engine] Misi selesai.`);
   resetSticks();
   isExecutingSequence = false;
 });
@@ -380,12 +407,6 @@ function pulseFlag(flagValue, durationMs = 2000) {
   flagTimer = setTimeout(() => {
     flags = 0;
     flagTimer = null;
-    // KRITIS: Matikan heartbeat setelah pulse selesai agar video stream tidak mati
-    // Drone D16 BERHENTI mengirim video jika terus menerima paket kontrol 88-byte
-    const hasStickInput = roll !== 128 || pitch !== 128 || yaw !== 128 || throttle !== 128;
-    if (!hasStickInput) {
-      controlActive = false;
-    }
   }, durationMs);
 }
 
@@ -423,9 +444,9 @@ setInterval(() => {
   if (isExecutingSequence) return;
 
   if (idle && droneActive) {
-    console.warn("[WATCHDOG] Tidak ada command 3 detik, reset attitude & hover");
+    console.warn("[WATCHDOG] Tidak ada command 3 detik, reset ke hover");
     roll = pitch = yaw = throttle = 128;
-    controlActive = false; // Matikan heartbeat agar video jalan lagi
+    flags = 0;
   }
 }, 500);
 
