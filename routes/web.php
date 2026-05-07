@@ -70,6 +70,9 @@ Route::middleware('auth')->group(function () {
         'destroy' => 'kebun-dataset.destroy',
     ])->parameters(['kebun' => 'kebunDataset']);
     Route::resource('rule-engine/dead-reckoning', DeadReckoningController::class)->except('show');
+    Route::delete('/rule-engine/dead-reckoning/{deadReckoning}/ajax', [DeadReckoningController::class, 'destroyAjax'])->name('dead-reckoning.destroyAjax');
+    Route::post('/rule-engine/dead-reckoning/reorder', [DeadReckoningController::class, 'reorder'])->name('dead-reckoning.reorder');
+    Route::post('/rule-engine/dead-reckoning/store-ajax', [DeadReckoningController::class, 'storeAjax'])->name('dead-reckoning.storeAjax');
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/log-penerbangan/export/{format}', [FlightLogController::class, 'export'])->name('laporan.log-penerbangan.export');
     Route::get('/laporan/log-penerbangan', [FlightLogController::class, 'logPenerbangan'])->name('laporan.log-penerbangan');
