@@ -250,20 +250,36 @@ class DeadReckoningController extends Controller
      */
     public function destroyAjax(DeadReckoning $deadReckoning)
     {
-        $label = $deadReckoning->drone_dataset->label;
-        $deadReckoning->delete();
+        try {
+            $label = $deadReckoning->drone_dataset?->label ?? 'Unknown';
+            $deadReckoning->delete();
 
-        DeadReckoning::orderBy('sort_order')->each(function ($r, $i) {
-            $r->timestamps = false;
-            $r->update(['sort_order' => $i + 1]);
-        });
+            // Re-sequence sort_order agar tetap rapi
+            DeadReckoning::orderBy('sort_order')->each(function ($r, $i) {
+                $r->timestamps = false;
+                $r->update(['sort_order' => $i + 1]);
+            });
 
-        activity()
-            ->event('delete')
-            ->causedBy(Auth::user())
-            ->log('Rule dihapus (AJAX): ' . $label);
+            try {
+                activity()
+                    ->event('delete')
+                    ->causedBy(Auth::user())
+                    ->log('Rule dihapus (AJAX): ' . $label);
+            } catch (\Throwable $e) {
+                // Log activity gagal, tapi delete tetap berhasil
+                \Log::warning('Activity log failed for delete: ' . $e->getMessage());
+            }
 
-        return response()->json(['ok' => true, 'message' => 'Rule dihapus']);
+            return response()->json(['ok' => true, 'message' => 'Rule dihapus'], 200);
+        } catch (\Throwable $e) {
+            \Log::error('DeadReckoningController::destroyAjax error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Gagal menghapus: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

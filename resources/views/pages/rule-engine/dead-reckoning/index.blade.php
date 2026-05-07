@@ -248,8 +248,13 @@
                         setTimeout(() => { row.remove(); renumber(); checkEmpty(); }, 220);
                         showModernToast('Instruksi dihapus', `Instruksi ${label} berhasil dihapus.`);
                     } else {
-                        row.style.opacity='1'; row.style.transform='';
-                        Swal.fire({ icon:'error', title:'Gagal', text:'Coba lagi.', customClass:{popup:'rounded-2xl'} });
+                        row.style.opacity = '1'; row.style.transform = '';
+                        let errMsg = 'Terjadi kesalahan. Coba lagi.';
+                        try {
+                            const json = await r.json();
+                            if (json && json.message) errMsg = json.message;
+                        } catch(_) {}
+                        Swal.fire({ icon:'error', title:'Gagal Menghapus', text: errMsg, customClass:{popup:'rounded-2xl'} });
                     }
                 };
             });
