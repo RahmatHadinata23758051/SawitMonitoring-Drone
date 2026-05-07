@@ -203,7 +203,7 @@ const CMD_TAKEOFF = 0x01;
 const CMD_LAND = 0x02;
 const CMD_EMERGENCY = 0x04;
 const CMD_UNLOCK_MOTOR = 0x00; // Not explicitly used in D16 byte command
-const CMD_CALIBRATE_CANDIDATE = 0x80; // belum tervalidasi untuk D16
+const CMD_CALIBRATE = 0x80;
 
 const b = (v) => v & 0xff;
 
@@ -224,40 +224,6 @@ function resetSticks() {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// ==========================
-// SOFT LANDING (Gradual Throttle Decrease)
-// Turunkan throttle perlahan dari hover (128) → nilai rendah (50) lalu kirim CMD_LAND
-// Ini mencegah drone "jatuh" mendadak saat mendarat
-// ==========================
-async function softLand() {
-  console.log(`🛬 [SoftLand] Menurunkan throttle perlahan...`);
-  const START_THROTTLE = 128;  // Posisi hover
-  const END_THROTTLE   = 50;   // Nilai rendah sebelum cut (jangan 0, bisa jatuh bebas)
-  const DESCENT_MS     = 2500; // Total durasi penurunan (2.5 detik)
-  const STEPS          = 20;   // Jumlah langkah penurunan
-  const stepDelay      = Math.floor(DESCENT_MS / STEPS);
-  const stepSize       = (START_THROTTLE - END_THROTTLE) / STEPS;
-
-  // Reset attitude — stik netral, hanya throttle yang dimanipulasi
-  roll = 128; pitch = 128; yaw = 128;
-  flags = 0;
-
-  for (let s = 0; s <= STEPS; s++) {
-    throttle = Math.round(START_THROTTLE - s * stepSize);
-    lastCommandAt = Date.now();
-    console.log(`  ↓ Throttle: ${throttle}`);
-    await sleep(stepDelay);
-  }
-
-  // Kirim flag landing setelah throttle rendah
-  throttle = 128; // Kembalikan ke netral sebelum CMD_LAND
-  pulseFlag(CMD_LAND, 2000);
-  lastCommandAt = Date.now();
-  await sleep(3000); // Tunggu drone benar-benar di tanah
-  resetSticks();
-  console.log(`✅ [SoftLand] Selesai.`);
-}
-
 app.post('/execute-sequence', async (req, res) => {
   if (isExecutingSequence) {
     return res.status(400).json({ error: "Drone sedang mengeksekusi misi lain." });
@@ -274,11 +240,11 @@ app.post('/execute-sequence', async (req, res) => {
   console.log(`\n🚀 [Rule Engine] Memulai eksekusi ${sequence.length} instruksi...`);
 
   // === FASE 0: KALIBRASI GYRO ===
-  // Kirim CMD_CALIBRATE_CANDIDATE dulu agar sensor di-zero sebelum terbang
+  // Kirim CMD_CALIBRATE dulu agar sensor di-zero sebelum terbang
   // Ini kunci konsistensi antar misi (mencegah gyro thermal drift)
-  console.log(`🧭 [Rule Engine] Fase 0 — Kalibrasi sensor gyro (Kandidat)...`);
+  console.log(`🧭 [Rule Engine] Fase 0 — Kalibrasi sensor gyro...`);
   resetSticks();
-  pulseFlag(CMD_CALIBRATE_CANDIDATE, 1000); // 0x80 = calibrate candidate
+  pulseFlag(CMD_CALIBRATE, 1000); // 0x80 = calibrate
   lastCommandAt = Date.now();
   await sleep(3000); // Beri waktu gyro settle di posisi diam
 
@@ -298,8 +264,6 @@ app.post('/execute-sequence', async (req, res) => {
   await sleep(5000); // Diperpanjang 4→5 detik agar drone lebih stabil
 
   // === FASE 3: EKSEKUSI INSTRUKSI USER ===
-  const AUTO_INTER_STEP_HOVER_MS = 1000; // Jeda hover otomatis antar langkah
-
   for (let i = 0; i < sequence.length; i++) {
     const step = sequence[i];
     let durationMs = step.durasi || 1000;
@@ -309,20 +273,14 @@ app.post('/execute-sequence', async (req, res) => {
     else if (step.satuan_waktu === 'menit') durationMs *= 60000;
 
     const action = step.aksi.toLowerCase();
-    const isDiamTerbang = action.includes('diam terbang') || action.includes('hover');
-    const isLast = i === sequence.length - 1;
-
-    console.log(`👉 Step ${i+1}/${sequence.length}: ${action} (${durationMs}ms)`);
+    console.log(`👉 Step ${i+1}: ${action} (${durationMs}ms)`);
 
     resetSticks();
     lastCommandAt = Date.now();
 
     // === Mapping Dataset label → Telemetri D16 ===
     if (action.includes('mendarat') || action.includes('land')) {
-      // Soft landing: turunkan throttle perlahan lalu kirim CMD_LAND
-      await softLand();
-      // Skip timer loop di bawah karena softLand sudah handle timing-nya
-      continue;
+      pulseFlag(CMD_LAND, Math.min(durationMs, 2000));
     }
     else if (action.includes('diam (darat)') || action.includes('diam')) {
       // Hover — stik tetap di tengah (128), drone melayang
@@ -365,24 +323,6 @@ app.post('/execute-sequence', async (req, res) => {
       lastCommandAt = Date.now();
     }
     await sleep(durationMs % 500); // Sisa waktu
-
-    // === JEDA HOVER OTOMATIS antar langkah ===
-    // Tidak perlu jeda jika:
-    // - Ini langkah terakhir (akan langsung ke Auto-Land)
-    // - Step ini sendiri adalah "Diam Terbang" (user sudah set durasinya)
-    // - Step ini adalah mendarat (tidak masuk akal hover dulu setelah landing)
-    const skipAutoHover = isLast || isDiamTerbang || action.includes('mendarat') || action.includes('land');
-    if (!skipAutoHover) {
-      console.log(`  ⏸️  [Auto-Hover] Jeda ${AUTO_INTER_STEP_HOVER_MS}ms sebelum step berikutnya...`);
-      resetSticks(); // Kembali ke hover (stik tengah)
-      lastCommandAt = Date.now();
-      const hoverSteps = Math.floor(AUTO_INTER_STEP_HOVER_MS / 500);
-      for (let t = 0; t < hoverSteps; t++) {
-        await sleep(500);
-        lastCommandAt = Date.now();
-      }
-      await sleep(AUTO_INTER_STEP_HOVER_MS % 500);
-    }
   }
 
   // === FASE 4: AUTO-LAND (jika user tidak mendefinisikan mendarat di akhir) ===
@@ -390,7 +330,9 @@ app.post('/execute-sequence', async (req, res) => {
   if (!lastAction.includes('mendarat') && !lastAction.includes('land')) {
     console.log(`🛬 [Rule Engine] Fase 4 — Auto-LAND (step terakhir bukan mendarat)...`);
     resetSticks();
-    await softLand();
+    pulseFlag(CMD_LAND, 2000);
+    lastCommandAt = Date.now();
+    await sleep(3000); // Tunggu drone mendarat
   }
 
   console.log(`✅ [Rule Engine] Misi selesai.`);
@@ -547,30 +489,6 @@ setInterval(() => {
 }, INTERVAL);
 
 // ==========================
-// TEST FLAG ENDPOINT (Untuk mencari flag D16 yang benar)
-// Wajib: Motor mati, propeller dilepas, drone di meja rata
-// ==========================
-app.post("/test-flag", (req, res) => {
-  const value = Number(req.body.value);
-
-  if (!Number.isInteger(value) || value < 0 || value > 255) {
-    return res.status(400).json({ error: "value harus 0-255" });
-  }
-
-  resetSticks();
-  pulseFlag(value, 1200);
-  lastCommandAt = Date.now();
-
-  console.log(`\n🧪 [Test Flag] Mencoba flag: 0x${value.toString(16).padStart(2, "0")} (${value})`);
-
-  res.json({
-    status: "ok",
-    flag_decimal: value,
-    flag_hex: `0x${value.toString(16).padStart(2, "0")}`,
-  });
-});
-
-// ==========================
 // COMMAND HANDLER
 // ==========================
 app.post("/command", (req, res) => {
@@ -623,9 +541,9 @@ app.post("/command", (req, res) => {
 
     // --- CALIBRATE GYRO ---
     case "calibrate":
-    case "calibrate_candidate":
-      resetSticks();
-      pulseFlag(CMD_CALIBRATE_CANDIDATE, 1200);
+      roll = pitch = yaw = 128;
+      throttle = 128;
+      pulseFlag(CMD_CALIBRATE);
       break;
 
     // --- JOYSTICK (continuous dari frontend, 10Hz) ---
