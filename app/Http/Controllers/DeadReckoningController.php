@@ -190,6 +190,40 @@ class DeadReckoningController extends Controller
     }
 
     /**
+     * AJAX Update — edit rule tanpa reload halaman (modal edit).
+     */
+    public function updateAjax(Request $request, DeadReckoning $deadReckoning)
+    {
+        $validated = $request->validate([
+            'aksi'         => 'required|integer|exists:drone_datasets,id',
+            'durasi'       => 'required|numeric|min:0.1',
+            'satuan_waktu' => 'required|in:menit,detik,milidetik',
+        ]);
+
+        $deadReckoning->update([
+            'drone_dataset_id' => $validated['aksi'],
+            'durasi'           => $validated['durasi'],
+            'satuan_waktu'     => $validated['satuan_waktu'],
+        ]);
+
+        $deadReckoning->load('drone_dataset');
+
+        activity()
+            ->performedOn($deadReckoning)
+            ->event('update')
+            ->causedBy(Auth::user())
+            ->log('Rule diupdate (AJAX): ' . $deadReckoning->drone_dataset->label);
+
+        return response()->json([
+            'ok'     => true,
+            'id'     => $deadReckoning->id,
+            'label'  => $deadReckoning->drone_dataset->label,
+            'durasi' => $deadReckoning->durasi,
+            'satuan' => $deadReckoning->satuan_waktu,
+        ]);
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(DeadReckoning $deadReckoning)
