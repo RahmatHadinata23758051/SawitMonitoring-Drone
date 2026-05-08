@@ -1,0 +1,408 @@
+// === BACKUP ORIGINAL — dibuat sebelum refactor movement controller ===
+// === GLOBAL ERROR TRAP (untuk debug crash tersembunyi) ===
+process.on('uncaughtException', (err) => {
+  console.error('\n[FATAL] Uncaught Exception:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled Promise Rejection:', reason);
+});
+
+const dgram = require("dgram");
+const express = require("express");
+
+const HOST = "192.168.169.1";
+const PORT = 8800;
+const INTERVAL = 100;
+
+const app = express();
+app.use(express.json());
+
+// CORS
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
+const { WebSocketServer } = require("ws");
+
+// ==========================
+// D16 VIDEO PROXY (referensi: d16-web-proxy.js)
+// ==========================
+const HTTP_PORT = 3002;
+const WS_PORT = 3003;
+const wss = new WebSocketServer({ port: WS_PORT });
+
+console.log(`🔌 [WebSocket] FPV Stream di ws://localhost:${WS_PORT}`);
+
+const INIT_PACKET = Buffer.from([0xef, 0x00, 0x04, 0x00]);
+const MJPEG_BOUNDARY = "d16-frame";
+const JPEG_HEADER = Buffer.from(
+  "ffd8ffe000104a46494600010100000100010000ffdb004300100b0c0e0c0a100e0d0e1211101318281a181616183123251d283a333d3c3933383740485c4e404457453738506d51575f626768673e4d71797064785c656763ffdb0043011112121815182f1a1a2f634238426363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363ffc00011080168028003011100021101031101ffc4001f0000010501010101010100000000000000000102030405060708090a0bffc400b5100002010303020403050504040000017d01020300041105122131410613516107227114328191a1082342b1c11552d1f02433627282090a161718191a25262728292a3435363738393a434445464748494a535455565758595a636465666768696a737475767778797a838485868788898a92939495969798999aa2a3a4a5a6a7a8a9aab2b3b4b5b6b7b8b9bac2c3c4c5c6c7c8c9cad2d3d4d5d6d7d8d9dae1e2e3e4e5e6e7e8e9eaf1f2f3f4f5f6f7f8f9faffc4001f0100030101010101010101010000000000000102030405060708090a0bffc400b51100020102040403040705040400010277000102031104052131061241510761711322328108144291a1b1c109233352f0156272d10a162434e125f11718191a262728292a35363738393a434445464748494a535455565758595a636465666768696a737475767778797a82838485868788898a92939495969798999aa2a3a4a5a6a7a8a9aab2b3b4b5b6b7b8b9bac2c3c4c5c6c7c8c9cad2d3d4d5d6d7d8d9dae2e3e4e5e6e7e8e9eaf2f3f4f5f6f7f8f9faffda000c03010002110311003f00",
+  "hex",
+);
+
+const videoApp = express();
+let lastJpeg = null;
+let mjpegClients = new Set();
+let partialFrames = new Map();
+let emittedFrameCount = 0;
+let fpsCounter = 0;
+let currentFps = 0;
+let videoPackets = 0;
+let lastPacketAt = 0;
+
+setInterval(() => { currentFps = fpsCounter; fpsCounter = 0; }, 1000);
+
+function emitJpeg(jpeg) {
+  lastJpeg = jpeg;
+  emittedFrameCount++;
+  fpsCounter++;
+  const hdr = Buffer.from(`--${MJPEG_BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: ${jpeg.length}\r\n\r\n`, "ascii");
+  for (const res of Array.from(mjpegClients)) {
+    try { res.write(hdr); res.write(jpeg); res.write(Buffer.from("\r\n", "ascii")); }
+    catch { mjpegClients.delete(res); }
+  }
+  wss.clients.forEach(c => { if (c.readyState === 1) c.send(jpeg); });
+}
+
+videoApp.use((_, res, next) => { res.setHeader("Access-Control-Allow-Origin", "*"); next(); });
+videoApp.get("/stream", (req, res) => {
+  res.writeHead(200, { "Cache-Control": "no-store", "Connection": "close", "Content-Type": `multipart/x-mixed-replace; boundary=${MJPEG_BOUNDARY}` });
+  mjpegClients.add(res);
+  if (lastJpeg) emitJpeg(lastJpeg);
+  req.on("close", () => mjpegClients.delete(res));
+});
+videoApp.get("/snapshot.jpg", (_, res) => {
+  if (!lastJpeg) return res.status(503).send("No frame");
+  res.type("image/jpeg").send(lastJpeg);
+});
+videoApp.get("/status", (_, res) => {
+  const age = lastPacketAt ? Date.now() - lastPacketAt : null;
+  res.json({
+    status: age !== null && age < 3000 ? "connected" : "waiting",
+    drone: `${HOST}:${PORT}`, packets: videoPackets, has_frame: !!lastJpeg,
+    fps: currentFps, emitted_frames: emittedFrameCount,
+    mjpeg_clients: mjpegClients.size, ws_clients: wss.clients.size,
+    last_packet_age_ms: age, uptime_s: Math.floor(process.uptime()),
+  });
+});
+videoApp.listen(HTTP_PORT, () => {
+  console.log(`🎥 [Video] D16 MJPEG: http://localhost:${HTTP_PORT}/stream`);
+  console.log(`📊 [Video] Status: http://localhost:${HTTP_PORT}/status`);
+});
+
+const client = dgram.createSocket("udp4");
+
+client.on("message", (msg, rinfo) => {
+  if (msg.length < 56 || msg[0] !== 0x93 || msg[1] !== 0x01) return;
+  videoPackets++;
+  lastPacketAt = Date.now();
+
+  const frameId = msg.readUInt32LE(40);
+  const fragIndex = msg.readUInt32LE(32);
+  const fragTotal = msg.readUInt32LE(36);
+  const width = msg.readUInt16LE(44);
+  const height = msg.readUInt16LE(46);
+  const payload = msg.subarray(56);
+
+  if (!partialFrames.has(frameId)) {
+    partialFrames.set(frameId, { 
+      width, height, total: fragTotal, fragments: new Map(), firstSeen: Date.now() 
+    });
+  }
+  const frame = partialFrames.get(frameId);
+  frame.fragments.set(fragIndex, payload);
+
+  const pct = frame.fragments.size / frame.total;
+  const ready = (pct >= 1.0) || (pct >= 0.8 && Date.now() - frame.firstSeen > 100);
+
+  if (ready && !frame.emitted && width === 640 && height === 360) {
+    frame.emitted = true;
+    const chunks = [];
+    for (let i = 0; i < frame.total; i++) {
+      const c = frame.fragments.get(i);
+      if (!c) break;
+      chunks.push(c);
+    }
+    if (chunks.length >= Math.floor(frame.total * 0.7)) {
+      const body = Buffer.concat(chunks);
+      emitJpeg(Buffer.concat([JPEG_HEADER, body, Buffer.from([0xff, 0xd9])]));
+    }
+    partialFrames.delete(frameId);
+  }
+
+  const now = Date.now();
+  for (const [fId, fData] of partialFrames.entries()) {
+    if (now - fData.firstSeen > 1000) {
+      partialFrames.delete(fId);
+    }
+  }
+});
+
+client.bind(0, () => {
+  const addr = client.address();
+
+  try {
+    client.setRecvBufferSize(4 * 1024 * 1024);
+    console.log(`📡 [UDP] Port ${addr.port} → ${HOST}:${PORT} | RecvBuf: 4MB`);
+  } catch (e) {
+    console.log(`📡 [UDP] Port ${addr.port} → ${HOST}:${PORT} | RecvBuf: default`);
+  }
+
+  function sendInit() { client.send(INIT_PACKET, PORT, HOST); }
+  sendInit();
+  setInterval(sendInit, 1000);
+
+  setInterval(sendPacket, INTERVAL);
+  console.log(`⚡ Heartbeat Kontrol: ${1000/INTERVAL}Hz`);
+
+  setInterval(() => {
+    if (currentFps > 0 || videoPackets > 0) {
+      console.log(`📊 FPS: ${currentFps} | Frames: ${emittedFrameCount}`);
+      videoPackets = 0;
+    }
+  }, 5000);
+});
+
+let roll = 128;
+let pitch = 128;
+let yaw = 128;
+let throttle = 128;
+let flags = 0;
+
+const CMD_TAKEOFF = 0x01;
+const CMD_LAND = 0x02;
+const CMD_EMERGENCY = 0x04;
+const CMD_UNLOCK_MOTOR = 0x00;
+
+const b = (v) => v & 0xff;
+
+let sequenceCounter = 0;
+let isExecutingSequence = false;
+
+function resetSticks() {
+  roll = 128;
+  pitch = 128;
+  yaw = 128;
+  throttle = 128;
+  flags = 0;
+}
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+app.post('/execute-sequence', async (req, res) => {
+  if (isExecutingSequence) {
+    return res.status(400).json({ error: "Drone sedang mengeksekusi misi lain." });
+  }
+  
+  const { sequence } = req.body;
+  if (!sequence || !Array.isArray(sequence)) {
+    return res.status(400).json({ error: "Invalid sequence payload." });
+  }
+
+  isExecutingSequence = true;
+  res.json({ message: "Eksekusi rule engine dimulai", steps: sequence.length });
+
+  resetSticks();
+  pulseFlag(0x40, 1500);
+  lastCommandAt = Date.now();
+  await sleep(2000);
+
+  resetSticks();
+  pulseFlag(CMD_TAKEOFF, 2000);
+  lastCommandAt = Date.now();
+  await sleep(4000);
+
+  for (let i = 0; i < sequence.length; i++) {
+    const step = sequence[i];
+    let durationMs = step.durasi || 1000;
+    
+    if (step.satuan_waktu === 'detik') durationMs *= 1000;
+    else if (step.satuan_waktu === 'menit') durationMs *= 60000;
+
+    const action = step.aksi.toLowerCase();
+    console.log(`👉 Step ${i+1}: ${action} (${durationMs}ms)`);
+
+    resetSticks();
+    lastCommandAt = Date.now();
+
+    if (action.includes('mendarat') || action.includes('land')) {
+      pulseFlag(CMD_LAND, Math.min(durationMs, 2000));
+    }
+    else if (action.includes('diam (darat)') || action.includes('diam')) {}
+    else if (action.includes('maju')) { pitch = 192; }
+    else if (action.includes('mundur')) { pitch = 64; }
+    else if (action.includes('naik')) { throttle = 192; }
+    else if (action.includes('turun')) { throttle = 64; }
+    else if (action.includes('roll kanan') || action.includes('belok kanan')) { roll = 192; }
+    else if (action.includes('roll kiri') || action.includes('belok kiri')) { roll = 64; }
+    else if (action.includes('rotasi kanan')) { yaw = 192; }
+    else if (action.includes('rotasi kiri')) { yaw = 64; }
+    else if (action.includes('pitch atas')) { pitch = 64; }
+    else if (action.includes('pitch bawah')) { pitch = 192; }
+
+    const steps = Math.floor(durationMs / 500);
+    for (let t = 0; t < steps; t++) {
+      await sleep(500);
+      lastCommandAt = Date.now();
+    }
+    await sleep(durationMs % 500);
+  }
+
+  const lastAction = sequence[sequence.length - 1]?.aksi?.toLowerCase() || '';
+  if (!lastAction.includes('mendarat') && !lastAction.includes('land')) {
+    resetSticks();
+    pulseFlag(CMD_LAND, 2000);
+    lastCommandAt = Date.now();
+    await sleep(3000);
+  }
+
+  resetSticks();
+  isExecutingSequence = false;
+});
+
+function buildPacket() {
+  const packet = Buffer.alloc(88, 0x00);
+  packet.writeUInt8(0xef, 0);
+  packet.writeUInt8(0x02, 1);
+  packet.writeUInt8(0x58, 2);
+  packet.writeUInt8(0x00, 3);
+  packet.writeUInt8(0x02, 4);
+  packet.writeUInt8(0x02, 5);
+  packet.writeUInt8(0x00, 6);
+  packet.writeUInt8(0x01, 7);
+  packet.writeUInt32LE(sequenceCounter, 12);
+  packet.writeUInt8(0x14, 16);
+  packet.writeUInt8(0x00, 17);
+  packet.writeUInt8(0x66, 18);
+  packet.writeUInt8(0x14, 19);
+  const headless = 0x00;
+  packet.writeUInt8(roll, 20);
+  packet.writeUInt8(pitch, 21);
+  packet.writeUInt8(throttle, 22);
+  packet.writeUInt8(yaw, 23);
+  packet.writeUInt8(flags, 24);
+  packet.writeUInt8(headless, 25);
+  const checksum = roll ^ pitch ^ throttle ^ yaw ^ flags ^ headless;
+  packet.writeUInt8(checksum, 36);
+  packet.writeUInt8(0x99, 37);
+  packet.writeUInt8(0x32, 82);
+  packet.writeUInt8(0x4b, 83);
+  packet.writeUInt8(0x14, 84);
+  packet.writeUInt8(0x2d, 85);
+  sequenceCounter++;
+  return packet;
+}
+
+function sendPacket() {
+  client.send(buildPacket(), PORT, HOST);
+}
+
+let flagTimer = null;
+function pulseFlag(flagValue, durationMs = 2000) {
+  if (flagTimer) { clearTimeout(flagTimer); flagTimer = null; }
+  flags = flagValue;
+  flagTimer = setTimeout(() => { flags = 0; flagTimer = null; }, durationMs);
+}
+
+let lastCommandAt = Date.now();
+let joystickTimer = null;
+
+function nudgeJoystick(axis, value, durationMs = 600) {
+  if (joystickTimer) clearTimeout(joystickTimer);
+  if (axis === 'pitch') pitch = value;
+  if (axis === 'roll') roll = value;
+  if (axis === 'yaw') yaw = value;
+  if (axis === 'throttle') throttle = value;
+  joystickTimer = setTimeout(() => {
+    roll = 128; pitch = 128; yaw = 128; throttle = 128;
+    joystickTimer = null;
+  }, durationMs);
+}
+
+setInterval(() => {
+  const idle = Date.now() - lastCommandAt > 3000;
+  const droneActive = throttle > 128 || flags > 0;
+  if (isExecutingSequence) return;
+  if (idle && droneActive) {
+    console.warn("[WATCHDOG] Tidak ada command 3 detik, reset ke hover");
+    roll = pitch = yaw = throttle = 128;
+    flags = 0;
+  }
+}, 500);
+
+let controlActive = false;
+
+setInterval(() => {
+  const hasStickInput = roll !== 128 || pitch !== 128 || yaw !== 128 || throttle !== 128;
+  const hasFlags = flags !== 0;
+  const shouldSend = hasStickInput || hasFlags || controlActive;
+  if (shouldSend) { sendPacket(); }
+}, INTERVAL);
+
+app.post("/command", (req, res) => {
+  const cmd = req.body.command;
+  lastCommandAt = Date.now();
+  controlActive = true;
+
+  switch (cmd) {
+    case "arm":
+      roll = pitch = yaw = throttle = 128;
+      pulseFlag(0x40, 1000);
+      break;
+    case "takeoff":
+      roll = pitch = yaw = 128; throttle = 128;
+      pulseFlag(CMD_TAKEOFF);
+      break;
+    case "land":
+      roll = pitch = yaw = 128; throttle = 128;
+      pulseFlag(CMD_LAND);
+      break;
+    case "disarm":
+      roll = pitch = yaw = 128; throttle = 0; yaw = 2;
+      pulseFlag(CMD_EMERGENCY);
+      break;
+    case "emergency":
+      roll = pitch = yaw = 128; throttle = 0; yaw = 2;
+      pulseFlag(CMD_EMERGENCY);
+      break;
+    case "joystick": {
+      const jRoll = parseInt(req.body.roll) || 128;
+      const jPitch = parseInt(req.body.pitch) || 128;
+      const jYaw = parseInt(req.body.yaw) || 128;
+      const jThrottle = parseInt(req.body.throttle) || 128;
+      roll = Math.max(0, Math.min(255, jRoll));
+      pitch = Math.max(0, Math.min(255, jPitch));
+      yaw = Math.max(0, Math.min(255, jYaw));
+      throttle = Math.max(0, Math.min(255, jThrottle));
+      return res.json({ status: "ok", command: cmd, roll, pitch, yaw, throttle });
+    }
+    case "throttle_up": nudgeJoystick('throttle', 255); break;
+    case "throttle_down": nudgeJoystick('throttle', 0); break;
+    case "roll_left": nudgeJoystick('roll', 0); break;
+    case "roll_right": nudgeJoystick('roll', 255); break;
+    case "pitch_forward": nudgeJoystick('pitch', 255); break;
+    case "pitch_backward": nudgeJoystick('pitch', 0); break;
+    case "yaw_left": nudgeJoystick('yaw', 0); break;
+    case "yaw_right": nudgeJoystick('yaw', 255); break;
+    case "reset_attitude":
+      roll = pitch = yaw = throttle = 128;
+      if (joystickTimer) clearTimeout(joystickTimer);
+      break;
+    default:
+      return res.status(400).json({ status: "unknown_command", command: cmd });
+  }
+
+  res.json({ status: "ok", command: cmd, throttle, flags, roll, pitch, yaw });
+});
+
+app.listen(3001, () => {
+  console.log("✈️  GCS Drone Server D16 Ready pada port 3001");
+  console.log(`📡 Target Drone: ${HOST}:${PORT}`);
+  console.log("⚡ Heartbeat Rate: 10Hz (100ms)");
+});
