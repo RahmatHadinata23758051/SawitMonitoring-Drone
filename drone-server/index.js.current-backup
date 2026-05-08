@@ -203,6 +203,7 @@ const CMD_TAKEOFF = 0x01;
 const CMD_LAND = 0x02;
 const CMD_EMERGENCY = 0x04;
 const CMD_UNLOCK_MOTOR = 0x00; // Not explicitly used in D16 byte command
+const CMD_CALIBRATE = 0x80;
 
 const b = (v) => v & 0xff;
 
@@ -223,6 +224,40 @@ function resetSticks() {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// ==========================
+// SOFT LANDING (Gradual Throttle Decrease)
+// Turunkan throttle perlahan dari hover (128) → nilai rendah (50) lalu kirim CMD_LAND
+// Ini mencegah drone "jatuh" mendadak saat mendarat
+// ==========================
+async function softLand() {
+  console.log(`🛬 [SoftLand] Menurunkan throttle perlahan untuk smooth landing...`);
+  const START_THROTTLE = 128;  // Posisi hover
+  const END_THROTTLE   = 50;   // Nilai rendah sebelum cut
+  const DESCENT_MS     = 2500; // Total durasi penurunan (2.5 detik)
+  const STEPS          = 25;   // Jumlah langkah penurunan (per 100ms)
+  const stepDelay      = Math.floor(DESCENT_MS / STEPS);
+  const stepSize       = (START_THROTTLE - END_THROTTLE) / STEPS;
+
+  // Reset attitude — stik netral, hanya throttle yang dimanipulasi
+  roll = 128; pitch = 128; yaw = 128;
+  flags = 0;
+
+  for (let s = 0; s <= STEPS; s++) {
+    throttle = Math.round(START_THROTTLE - s * stepSize);
+    lastCommandAt = Date.now();
+    console.log(`  ↓ Throttle: ${throttle} (${Math.round((s / STEPS) * 100)}%)`);
+    await sleep(stepDelay);
+  }
+
+  // Kirim flag landing setelah throttle rendah
+  throttle = 128; // Kembalikan ke netral sebelum CMD_LAND
+  pulseFlag(CMD_LAND, 2000);
+  lastCommandAt = Date.now();
+  await sleep(3000); // Tunggu drone benar-benar di tanah
+  resetSticks();
+  console.log(`✅ [SoftLand] Selesai.`);
+}
+
 app.post('/execute-sequence', async (req, res) => {
   if (isExecutingSequence) {
     return res.status(400).json({ error: "Drone sedang mengeksekusi misi lain." });
@@ -238,8 +273,16 @@ app.post('/execute-sequence', async (req, res) => {
 
   console.log(`\n🚀 [Rule Engine] Memulai eksekusi ${sequence.length} instruksi...`);
 
+  // === FASE 0: KALIBRASI GYRO ===
+  // Kirim CMD_CALIBRATE dulu agar sensor di-zero sebelum terbang
+  // Ini kunci konsistensi antar misi (mencegah gyro thermal drift)
+  console.log(`🧭 [Rule Engine] Fase 0 — Kalibrasi sensor gyro...`);
+  resetSticks();
+  pulseFlag(CMD_CALIBRATE, 1000); // 0x80 = calibrate
+  lastCommandAt = Date.now();
+  await sleep(3000); // Beri waktu gyro settle di posisi diam
+
   // === FASE 1: ARM ===
-  // Kirim sinyal unlock motor ke drone
   console.log(`🔓 [Rule Engine] Fase 1 — ARM (unlock motor)...`);
   resetSticks();
   pulseFlag(0x40, 1500);
@@ -248,12 +291,11 @@ app.post('/execute-sequence', async (req, res) => {
 
   // === FASE 2: TAKEOFF ===
   // KRITIS: Drone D16 WAJIB menerima TAKEOFF sebelum merespon throttle/pitch/roll!
-  // Tanpa ini, semua perintah gerak diabaikan.
-  console.log(`🛫 [Rule Engine] Fase 2 — TAKEOFF, tunggu drone stabil 4 detik...`);
+  console.log(`🛫 [Rule Engine] Fase 2 — TAKEOFF, tunggu drone stabil 5 detik...`);
   resetSticks();
   pulseFlag(CMD_TAKEOFF, 2000);
   lastCommandAt = Date.now();
-  await sleep(4000); // Tunggu drone naik & stabil di udara
+  await sleep(5000); // Diperpanjang 4→5 detik agar drone lebih stabil
 
   // === FASE 3: EKSEKUSI INSTRUKSI USER ===
   for (let i = 0; i < sequence.length; i++) {
@@ -332,6 +374,16 @@ app.post('/execute-sequence', async (req, res) => {
   isExecutingSequence = false;
 });
 
+// ==========================
+// TRIM KOREKSI DRIFT HARDWARE
+// Sesuaikan nilai ini jika drone selalu drift ke satu arah saat hover
+// Positif = dorong ke kanan/maju, Negatif = dorong ke kiri/mundur
+// Range: -20 sampai +20 (hati-hati jangan terlalu besar)
+// ==========================
+let TRIM_ROLL  = -10; // Drone drift KANAN → trim ke kiri
+let TRIM_PITCH =  25; // Drone drift BELAKANG → trim ke depan (max test)
+let TRIM_YAW   =  0;  // Tidak ada drift rotasi
+
 function buildPacket() {
   const packet = Buffer.alloc(88, 0x00);
 
@@ -356,17 +408,21 @@ function buildPacket() {
   packet.writeUInt8(0x66, 18);
   packet.writeUInt8(0x14, 19);
 
-  // Controls
-  const headless = 0x00; // Matikan Headless Mode (0x02 -> 0x00) agar orientasi normal
-  packet.writeUInt8(roll, 20);
-  packet.writeUInt8(pitch, 21);
-  packet.writeUInt8(throttle, 22);
-  packet.writeUInt8(yaw, 23);
-  packet.writeUInt8(flags, 24); // flags variable stores the command
-  packet.writeUInt8(headless, 25);
+  // Controls (dengan trim koreksi drift hardware)
+  const headless = 0x00;
+  const b = (v) => Math.max(0, Math.min(255, Math.round(v)));
+  packet.writeUInt8(b(roll     + TRIM_ROLL),  20);
+  packet.writeUInt8(b(pitch    + TRIM_PITCH), 21);
+  packet.writeUInt8(b(throttle),              22); // Throttle tidak perlu trim
+  packet.writeUInt8(b(yaw      + TRIM_YAW),   23);
+  packet.writeUInt8(flags,                    24);
+  packet.writeUInt8(headless,                 25);
 
-  // Checksum
-  const checksum = roll ^ pitch ^ throttle ^ yaw ^ flags ^ headless;
+  // Checksum (gunakan nilai SETELAH trim)
+  const finalRoll  = b(roll  + TRIM_ROLL);
+  const finalPitch = b(pitch + TRIM_PITCH);
+  const finalYaw   = b(yaw   + TRIM_YAW);
+  const checksum = finalRoll ^ finalPitch ^ throttle ^ finalYaw ^ flags ^ headless;
   packet.writeUInt8(checksum, 36);
 
   // Static suffix
@@ -492,11 +548,11 @@ app.post("/command", (req, res) => {
       break;
 
     // --- LANDING ---
-    // Auto landing — drone turun perlahan
+    // Soft landing — drone turun perlahan dengan throttle gradual
     case "land":
-      roll = pitch = yaw = 128; // reset attitude sebelum landing
-      throttle = 128;
-      pulseFlag(CMD_LAND);
+      (async () => {
+        await softLand();
+      })();
       break;
 
     // --- DISARM ---
@@ -515,6 +571,13 @@ app.post("/command", (req, res) => {
       throttle = 0; // Throttle 0
       yaw = 2; // Yaw 2 (kiri bawah)
       pulseFlag(CMD_EMERGENCY);
+      break;
+
+    // --- CALIBRATE GYRO ---
+    case "calibrate":
+      roll = pitch = yaw = 128;
+      throttle = 128;
+      pulseFlag(CMD_CALIBRATE);
       break;
 
     // --- JOYSTICK (continuous dari frontend, 10Hz) ---
