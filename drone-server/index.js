@@ -239,16 +239,8 @@ app.post('/execute-sequence', async (req, res) => {
 
   console.log(`\n🚀 [Rule Engine] Memulai eksekusi ${sequence.length} instruksi...`);
 
-  // === FASE 0: KALIBRASI GYRO ===
-  // Kirim CMD_CALIBRATE dulu agar sensor di-zero sebelum terbang
-  // Ini kunci konsistensi antar misi (mencegah gyro thermal drift)
-  console.log(`🧭 [Rule Engine] Fase 0 — Kalibrasi sensor gyro...`);
-  resetSticks();
-  pulseFlag(CMD_CALIBRATE, 1000); // 0x80 = calibrate
-  lastCommandAt = Date.now();
-  await sleep(3000); // Beri waktu gyro settle di posisi diam
-
   // === FASE 1: ARM ===
+  // Kirim sinyal unlock motor ke drone
   console.log(`🔓 [Rule Engine] Fase 1 — ARM (unlock motor)...`);
   resetSticks();
   pulseFlag(0x40, 1500);
@@ -257,11 +249,12 @@ app.post('/execute-sequence', async (req, res) => {
 
   // === FASE 2: TAKEOFF ===
   // KRITIS: Drone D16 WAJIB menerima TAKEOFF sebelum merespon throttle/pitch/roll!
-  console.log(`🛫 [Rule Engine] Fase 2 — TAKEOFF, tunggu drone stabil 5 detik...`);
+  // Tanpa ini, semua perintah gerak diabaikan.
+  console.log(`🛫 [Rule Engine] Fase 2 — TAKEOFF, tunggu drone stabil 4 detik...`);
   resetSticks();
   pulseFlag(CMD_TAKEOFF, 2000);
   lastCommandAt = Date.now();
-  await sleep(5000); // Diperpanjang 4→5 detik agar drone lebih stabil
+  await sleep(4000); // Tunggu drone naik & stabil di udara
 
   // === FASE 3: EKSEKUSI INSTRUKSI USER ===
   for (let i = 0; i < sequence.length; i++) {
@@ -340,16 +333,6 @@ app.post('/execute-sequence', async (req, res) => {
   isExecutingSequence = false;
 });
 
-// ==========================
-// TRIM KOREKSI DRIFT HARDWARE
-// Sesuaikan nilai ini jika drone selalu drift ke satu arah saat hover
-// Positif = dorong ke kanan/maju, Negatif = dorong ke kiri/mundur
-// Range: -20 sampai +20 (hati-hati jangan terlalu besar)
-// ==========================
-let TRIM_ROLL  = -5;  // Drone drift KANAN → trim ke kiri
-let TRIM_PITCH =  8;  // Drone drift BELAKANG → trim ke depan
-let TRIM_YAW   =  0;  // Tidak ada drift rotasi
-
 function buildPacket() {
   const packet = Buffer.alloc(88, 0x00);
 
@@ -374,21 +357,17 @@ function buildPacket() {
   packet.writeUInt8(0x66, 18);
   packet.writeUInt8(0x14, 19);
 
-  // Controls (dengan trim koreksi drift hardware)
-  const headless = 0x00;
-  const b = (v) => Math.max(0, Math.min(255, Math.round(v)));
-  packet.writeUInt8(b(roll     + TRIM_ROLL),  20);
-  packet.writeUInt8(b(pitch    + TRIM_PITCH), 21);
-  packet.writeUInt8(b(throttle),              22); // Throttle tidak perlu trim
-  packet.writeUInt8(b(yaw      + TRIM_YAW),   23);
-  packet.writeUInt8(flags,                    24);
-  packet.writeUInt8(headless,                 25);
+  // Controls
+  const headless = 0x00; // Matikan Headless Mode (0x02 -> 0x00) agar orientasi normal
+  packet.writeUInt8(roll, 20);
+  packet.writeUInt8(pitch, 21);
+  packet.writeUInt8(throttle, 22);
+  packet.writeUInt8(yaw, 23);
+  packet.writeUInt8(flags, 24); // flags variable stores the command
+  packet.writeUInt8(headless, 25);
 
-  // Checksum (gunakan nilai SETELAH trim)
-  const finalRoll  = b(roll  + TRIM_ROLL);
-  const finalPitch = b(pitch + TRIM_PITCH);
-  const finalYaw   = b(yaw   + TRIM_YAW);
-  const checksum = finalRoll ^ finalPitch ^ throttle ^ finalYaw ^ flags ^ headless;
+  // Checksum
+  const checksum = roll ^ pitch ^ throttle ^ yaw ^ flags ^ headless;
   packet.writeUInt8(checksum, 36);
 
   // Static suffix
