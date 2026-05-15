@@ -227,110 +227,123 @@ app.post('/execute-sequence', async (req, res) => {
   if (isExecutingSequence) {
     return res.status(400).json({ error: "Drone sedang mengeksekusi misi lain." });
   }
-  
+
   const { sequence } = req.body;
-  if (!sequence || !Array.isArray(sequence)) {
-    return res.status(400).json({ error: "Invalid sequence payload." });
+  if (!sequence || !Array.isArray(sequence) || sequence.length === 0) {
+    return res.status(400).json({ error: "Sequence kosong atau tidak valid." });
   }
 
   isExecutingSequence = true;
+  controlActive = true; // Bug fix #4: pastikan heartbeat aktif
   res.json({ message: "Eksekusi rule engine dimulai", steps: sequence.length });
 
   console.log(`\n🚀 [Rule Engine] Memulai eksekusi ${sequence.length} instruksi...`);
 
-  // === FASE 1: ARM ===
-  // Kirim sinyal unlock motor ke drone
-  console.log(`🔓 [Rule Engine] Fase 1 — ARM (unlock motor)...`);
-  resetSticks();
-  pulseFlag(0x40, 1500);
-  lastCommandAt = Date.now();
-  await sleep(2000);
-
-  // === FASE 2: TAKEOFF ===
-  // KRITIS: Drone D16 WAJIB menerima TAKEOFF sebelum merespon throttle/pitch/roll!
-  // Tanpa ini, semua perintah gerak diabaikan.
-  console.log(`🛫 [Rule Engine] Fase 2 — TAKEOFF, tunggu drone stabil 4 detik...`);
-  resetSticks();
-  pulseFlag(CMD_TAKEOFF, 2000);
-  lastCommandAt = Date.now();
-  await sleep(4000); // Tunggu drone naik & stabil di udara
-
-  // === FASE 3: EKSEKUSI INSTRUKSI USER ===
-  for (let i = 0; i < sequence.length; i++) {
-    const step = sequence[i];
-    let durationMs = step.durasi || 1000;
-    
-    // Konversi satuan waktu ke milidetik
-    if (step.satuan_waktu === 'detik') durationMs *= 1000;
-    else if (step.satuan_waktu === 'menit') durationMs *= 60000;
-
-    const action = step.aksi.toLowerCase();
-    console.log(`👉 Step ${i+1}: ${action} (${durationMs}ms)`);
-
+  try {
+    // === FASE 1: ARM ===
+    console.log(`🔓 [Rule Engine] Fase 1 — ARM (unlock motor)...`);
     resetSticks();
     lastCommandAt = Date.now();
+    pulseFlag(0x40, 1500);
+    await sleep(2000);
 
-    // === Mapping Dataset label → Telemetri D16 ===
-    if (action.includes('mendarat') || action.includes('land')) {
-      pulseFlag(CMD_LAND, Math.min(durationMs, 2000));
-    }
-    else if (action.includes('diam (darat)') || action.includes('diam')) {
-      // Hover — stik tetap di tengah (128), drone melayang
-    }
-    else if (action.includes('maju')) {
-      pitch = 192;
-    }
-    else if (action.includes('mundur')) {
-      pitch = 64;
-    }
-    else if (action.includes('naik')) {
-      throttle = 192;
-    }
-    else if (action.includes('turun')) {
-      throttle = 64;
-    }
-    else if (action.includes('roll kanan') || action.includes('belok kanan')) {
-      roll = 192;
-    }
-    else if (action.includes('roll kiri') || action.includes('belok kiri')) {
-      roll = 64;
-    }
-    else if (action.includes('rotasi kanan')) {
-      yaw = 192;
-    }
-    else if (action.includes('rotasi kiri')) {
-      yaw = 64;
-    }
-    else if (action.includes('pitch atas')) {
-      pitch = 64;  // Tilt ke atas (nose up = gerak mundur/naik)
-    }
-    else if (action.includes('pitch bawah')) {
-      pitch = 192; // Tilt ke bawah (nose down = gerak maju)
-    }
+    // === FASE 2: TAKEOFF ===
+    console.log(`🛫 [Rule Engine] Fase 2 — TAKEOFF, tunggu drone stabil 4 detik...`);
+    resetSticks();
+    lastCommandAt = Date.now();
+    pulseFlag(CMD_TAKEOFF, 2000);
+    await sleep(4000);
 
-    // Refresh lastCommandAt tiap 500ms agar WATCHDOG tidak cut in
-    const steps = Math.floor(durationMs / 500);
-    for (let t = 0; t < steps; t++) {
-      await sleep(500);
+    // === FASE 3: EKSEKUSI INSTRUKSI USER ===
+    for (let i = 0; i < sequence.length; i++) {
+      const step = sequence[i];
+
+      // Bug fix #3: guard aksi undefined
+      if (!step || !step.aksi) {
+        console.warn(`[Rule Engine] Step ${i+1} tidak punya aksi, dilewati.`);
+        continue;
+      }
+
+      let durationMs = parseFloat(step.durasi) || 1000;
+
+      // Bug fix #2: handle semua satuan waktu
+      if (step.satuan_waktu === 'detik') durationMs *= 1000;
+      else if (step.satuan_waktu === 'menit') durationMs *= 60000;
+      // milidetik → gunakan as-is
+
+      // Batas minimal 200ms, maksimal 60 detik per step
+      durationMs = Math.max(200, Math.min(60000, durationMs));
+
+      const action = step.aksi.toLowerCase().trim();
+      console.log(`👉 Step ${i+1}/${sequence.length}: "${action}" (${durationMs}ms)`);
+
+      resetSticks();
       lastCommandAt = Date.now();
+
+      // === Mapping aksi → kontrol D16 ===
+      if (action.includes('mendarat') || action.includes('land')) {
+        pulseFlag(CMD_LAND, Math.min(durationMs, 2000));
+      } else if (action.includes('diam') || action.includes('hover')) {
+        // Hover — stik netral, drone melayang
+      } else if (action.includes('maju')) {
+        pitch = 192;
+      } else if (action.includes('mundur')) {
+        pitch = 64;
+      } else if (action.includes('naik')) {
+        throttle = 192;
+      } else if (action.includes('turun')) {
+        throttle = 64;
+      } else if (action.includes('roll kanan') || action.includes('belok kanan')) {
+        roll = 192;
+      } else if (action.includes('roll kiri') || action.includes('belok kiri')) {
+        roll = 64;
+      } else if (action.includes('rotasi kanan')) {
+        yaw = 192;
+      } else if (action.includes('rotasi kiri')) {
+        yaw = 64;
+      } else if (action.includes('pitch atas')) {
+        pitch = 64;
+      } else if (action.includes('pitch bawah')) {
+        pitch = 192;
+      } else {
+        console.warn(`[Rule Engine] Aksi tidak dikenal: "${action}", hover saja.`);
+      }
+
+      // Refresh lastCommandAt & controlActive tiap 400ms agar watchdog tidak reset
+      const chunks = Math.floor(durationMs / 400);
+      for (let t = 0; t < chunks; t++) {
+        await sleep(400);
+        lastCommandAt = Date.now();
+        controlActive = true;
+      }
+      await sleep(durationMs % 400);
     }
-    await sleep(durationMs % 500); // Sisa waktu
-  }
 
-  // === FASE 4: AUTO-LAND (jika user tidak mendefinisikan mendarat di akhir) ===
-  const lastAction = sequence[sequence.length - 1]?.aksi?.toLowerCase() || '';
-  if (!lastAction.includes('mendarat') && !lastAction.includes('land')) {
-    console.log(`🛬 [Rule Engine] Fase 4 — Auto-LAND (step terakhir bukan mendarat)...`);
+    // === FASE 4: AUTO-LAND ===
+    const lastAction = (sequence[sequence.length - 1]?.aksi || '').toLowerCase();
+    if (!lastAction.includes('mendarat') && !lastAction.includes('land')) {
+      console.log(`🛬 [Rule Engine] Fase 4 — Auto-LAND...`);
+      resetSticks();
+      lastCommandAt = Date.now();
+      pulseFlag(CMD_LAND, 2000);
+      await sleep(3000);
+    }
+
+    console.log(`✅ [Rule Engine] Misi selesai.`);
+
+  } catch (err) {
+    // Bug fix #1: selalu reset state meski error
+    console.error(`[Rule Engine] Error:`, err.message);
     resetSticks();
-    pulseFlag(CMD_LAND, 2000);
-    lastCommandAt = Date.now();
-    await sleep(3000); // Tunggu drone mendarat
+    pulseFlag(CMD_LAND, 1500); // emergency land
+  } finally {
+    // Bug fix #1: isExecutingSequence SELALU di-reset
+    isExecutingSequence = false;
+    controlActive = false;
+    console.log(`[Rule Engine] State di-reset.`);
   }
-
-  console.log(`✅ [Rule Engine] Misi selesai.`);
-  resetSticks();
-  isExecutingSequence = false;
 });
+
 
 function buildPacket() {
   const packet = Buffer.alloc(88, 0x00);

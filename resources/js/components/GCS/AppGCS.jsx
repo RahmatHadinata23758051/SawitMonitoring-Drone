@@ -443,20 +443,20 @@ const AppGCS = () => {
         body: JSON.stringify({ command }),
       });
       const data = await res.json();
-      // Drone server offline → status: 'offline'
-      if (data?.status === 'offline') {
-        setCockpitWarning('⚠️ Drone server offline! Perintah tidak terkirim.');
-        setTimeout(() => setCockpitWarning(''), 4000);
-        return;
-      }
-      if (data?.status === 'error') {
-        setCockpitWarning('⚠️ ' + (data.message ?? 'Drone error'));
-        setTimeout(() => setCockpitWarning(''), 4000);
-        return;
-      }
-      // Success
-      if (command === 'arm') setDroneFlightState('FLYING');
 
+      // index.js lama: unknown command → 400 + {status: 'unknown_command'}
+      if (data?.status === 'unknown_command') {
+        console.warn('[GCS] Unknown command:', command);
+        return; // Tidak perlu warning ke user untuk unknown
+      }
+      // Server offline (via GCSController 503)
+      if (!res.ok && !data?.status) {
+        setCockpitWarning('⚠️ Drone server tidak dapat dijangkau.');
+        setTimeout(() => setCockpitWarning(''), 4000);
+        return;
+      }
+      // Update flight state berdasarkan command yang berhasil
+      if (command === 'arm') setDroneFlightState('FLYING');
       if (['land', 'disarm', 'emergency'].includes(command)) setDroneFlightState('DISARMED');
     } catch (err) {
       setCockpitWarning('Gagal kirim perintah ke drone!');

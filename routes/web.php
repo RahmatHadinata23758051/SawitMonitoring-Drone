@@ -45,7 +45,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/cuaca/desa', [CuacaController::class, 'getVillages'])->name('cuaca.desa');
     Route::get('/gcs', [GCSController::class, 'index'])->name('gcs.index');
     Route::post('/drone/control', [GCSController::class, 'control'])->name('drone.control');
+    Route::post('/drone/execute-sequence', [GCSController::class, 'executeSequence'])->name('drone.executeSequence');
     Route::resource('dataset/drone', DroneDatasetController::class)->except('show')->names([
+
         'index' => 'drone-dataset.index',
         'create' => 'drone-dataset.create',
         'store' => 'drone-dataset.store',

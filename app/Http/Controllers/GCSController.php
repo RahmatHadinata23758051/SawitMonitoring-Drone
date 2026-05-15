@@ -23,27 +23,40 @@ class GCSController extends Controller
                 'command' => $command,
             ]);
 
-            if ($response->successful()) {
-                return response()->json($response->json() ?? [
-                    'status'  => 'ok',
-                    'command' => $command,
-                    'source'  => 'drone-server',
-                ]);
-            }
-
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Drone server responded with status ' . $response->status(),
-                'command' => $command,
-            ], 502);
+            // Pass-through Node response (termasuk 400 unknown_command)
+            return response()->json($response->json(), $response->status());
 
         } catch (\Exception $e) {
-            // Drone server tidak running / tidak bisa dijangkau
             return response()->json([
                 'status'  => 'offline',
                 'message' => 'Drone server tidak dapat dijangkau: ' . $e->getMessage(),
                 'command' => $command,
-            ], 200); // 200 agar React tidak throw, hanya log saja
+            ], 503);
+        }
+    }
+
+    /**
+     * Proxy POST /drone/execute-sequence → Node /execute-sequence
+     */
+    public function executeSequence(Request $request)
+    {
+        $sequence = $request->input('sequence');
+
+        if (!$sequence || !is_array($sequence)) {
+            return response()->json(['error' => 'Invalid sequence payload.'], 400);
+        }
+
+        try {
+            $response = Http::timeout(5)->post('http://127.0.0.1:3001/execute-sequence', [
+                'sequence' => $sequence,
+            ]);
+
+            return response()->json($response->json(), $response->status());
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Drone server tidak dapat dijangkau: ' . $e->getMessage(),
+            ], 503);
         }
     }
 }

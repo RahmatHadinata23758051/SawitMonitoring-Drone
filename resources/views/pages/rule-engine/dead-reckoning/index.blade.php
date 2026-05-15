@@ -522,14 +522,15 @@
                 if (!seqData.sequence?.length) {
                     return Swal.fire({ icon:'warning', title:'Tidak ada sequence.', customClass:{popup:'rounded-2xl'} });
                 }
-                const execRes  = await fetch('http://127.0.0.1:3001/execute-sequence', {
+                // Gunakan proxy Laravel agar tidak hardcode port 3001
+                const execRes  = await fetch('/drone/execute-sequence', {
                     method:'POST',
-                    headers:{'Content-Type':'application/json'},
+                    headers:{'Content-Type':'application/json', 'X-CSRF-TOKEN': CSRF},
                     body: JSON.stringify({ sequence: seqData.sequence }),
                 });
                 const execData = await execRes.json();
                 execRes.ok
-                    ? Swal.fire({ icon:'success', title:'Misi Dimulai! 🚀', html:`<p>${execData.steps} instruksi sedang dieksekusi.</p><small class="text-slate-400">Drone akan mendarat otomatis setelah selesai.</small>`,
+                    ? Swal.fire({ icon:'success', title:'Misi Dimulai! 🚀', html:`<p>${execData.steps ?? seqData.sequence.length} instruksi sedang dieksekusi.</p><small class="text-slate-400">Drone akan ARM, Takeoff, lalu menjalankan instruksi otomatis.</small>`,
                         timer:4000, timerProgressBar:true, showConfirmButton:false, customClass:{popup:'rounded-2xl'} })
                     : Swal.fire({ icon:'error', title:'Gagal Memulai', text: execData.error || 'Server drone tidak merespon.', customClass:{popup:'rounded-2xl'} });
             } catch {
@@ -539,6 +540,7 @@
                 btn.innerHTML = '<i class="fa-solid fa-rocket"></i> Jalankan Misi';
             }
         });
+
     })();
     </script>
     @endpush

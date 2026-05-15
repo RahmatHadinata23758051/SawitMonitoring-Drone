@@ -14,6 +14,7 @@ let passed = 0;
 let failed = 0;
 
 function test(name, fn) {
+  s
   try {
     fn();
     console.log(`  ✅ ${name}`);
