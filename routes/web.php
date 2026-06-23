@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/cuaca/kota', [CuacaController::class, 'getCities'])->name('cuaca.kota');
     Route::post('/cuaca/kecamatan', [CuacaController::class, 'getDistricts'])->name('cuaca.kecamatan');
     Route::post('/cuaca/desa', [CuacaController::class, 'getVillages'])->name('cuaca.desa');
+    Route::post('/cuaca/match-region', [CuacaController::class, 'matchRegion'])->name('cuaca.match-region');
     Route::get('/gcs', [GCSController::class, 'index'])->name('gcs.index');
     Route::post('/drone/control', [GCSController::class, 'control'])->name('drone.control');
     Route::post('/drone/execute-sequence', [GCSController::class, 'executeSequence'])->name('drone.executeSequence');
@@ -72,10 +73,10 @@ Route::middleware('auth')->group(function () {
         'destroy' => 'kebun-dataset.destroy',
     ])->parameters(['kebun' => 'kebunDataset']);
     Route::resource('rule-engine/dead-reckoning', DeadReckoningController::class)->except('show');
-    Route::delete('/rule-engine/dead-reckoning/{deadReckoning}/ajax', [DeadReckoningController::class, 'destroyAjax'])->name('dead-reckoning.destroyAjax');
+    Route::delete('/rule-engine/dead-reckoning/{dead_reckoning}/ajax', [DeadReckoningController::class, 'destroyAjax'])->name('dead-reckoning.destroyAjax');
     Route::post('/rule-engine/dead-reckoning/reorder', [DeadReckoningController::class, 'reorder'])->name('dead-reckoning.reorder');
     Route::post('/rule-engine/dead-reckoning/store-ajax', [DeadReckoningController::class, 'storeAjax'])->name('dead-reckoning.storeAjax');
-    Route::put('/rule-engine/dead-reckoning/{deadReckoning}/ajax', [DeadReckoningController::class, 'updateAjax'])->name('dead-reckoning.updateAjax');
+    Route::put('/rule-engine/dead-reckoning/{dead_reckoning}/ajax', [DeadReckoningController::class, 'updateAjax'])->name('dead-reckoning.updateAjax');
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/log-penerbangan/export/{format}', [FlightLogController::class, 'export'])->name('laporan.log-penerbangan.export');
     Route::get('/laporan/log-penerbangan', [FlightLogController::class, 'logPenerbangan'])->name('laporan.log-penerbangan');
