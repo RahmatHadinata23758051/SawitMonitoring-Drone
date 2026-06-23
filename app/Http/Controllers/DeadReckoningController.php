@@ -116,6 +116,7 @@ class DeadReckoningController extends Controller
         return response()->json([
             'ok'        => true,
             'id'        => $rule->id,
+            'aksi_id'   => $rule->drone_dataset_id,
             'label'     => $rule->drone_dataset->label,
             'durasi'    => $rule->durasi,
             'satuan'    => $rule->satuan_waktu,

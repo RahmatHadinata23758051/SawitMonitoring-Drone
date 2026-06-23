@@ -55,8 +55,8 @@
                 </div>
                 <div id="form-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"></div>
                 <div class="flex gap-2 pt-1">
-                    <button type="button" id="modal-btn-cancel" class="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">Batal</button>
-                    <button type="submit" id="modal-btn-submit" class="flex-1 rounded-xl bg-primary text-white py-2.5 text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-2">
+                    <button type="button" id="modal-btn-cancel" class="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all hover:-translate-y-0.5 active:translate-y-0">Batal</button>
+                    <button type="submit" id="modal-btn-submit" class="flex-1 rounded-xl bg-primary hover:bg-blue-800 text-white py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-sm shadow-blue-900/10 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-plus"></i> <span id="modal-btn-submit-text">Tambah</span>
                     </button>
                 </div>
@@ -80,11 +80,11 @@
                             class="pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-40 transition">
                     </div>
                     <button id="btn-run"
-                        class="inline-flex items-center gap-2 bg-emerald-600 text-white rounded-xl py-2 px-4 text-sm font-semibold hover:bg-emerald-700 transition shadow-sm">
+                        class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 px-5 text-sm font-bold transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-sm shadow-emerald-600/10">
                         <i class="fa-solid fa-rocket"></i> Jalankan Misi
                     </button>
                     <button id="page-btn-add"
-                        class="inline-flex items-center gap-2 bg-primary text-white rounded-xl py-2 px-4 text-sm font-semibold hover:opacity-90 transition shadow-sm">
+                        class="inline-flex items-center gap-2 bg-primary hover:bg-blue-800 text-white rounded-xl py-2.5 px-5 text-sm font-bold transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-sm shadow-blue-900/10">
                         <i class="fa-solid fa-plus"></i> Tambah Rule
                     </button>
                 </div>
@@ -96,12 +96,12 @@
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-slate-200 bg-slate-50/80">
-                                <th class="w-10 px-3 py-3.5 text-slate-300"><i class="fa-solid fa-grip-vertical text-xs"></i></th>
-                                <th class="w-10 px-3 py-3.5 text-xs font-semibold text-slate-400 uppercase tracking-widest text-left">#</th>
-                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Aksi Drone</th>
-                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Durasi</th>
-                                <th class="text-left px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Satuan</th>
-                                <th class="text-right px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-widest">Aksi</th>
+                                <th class="w-10 px-3 py-3 text-slate-300"><i class="fa-solid fa-grip-vertical text-xs"></i></th>
+                                <th class="w-10 px-3 py-3 text-[10px] tracking-[.08em] uppercase font-bold text-left text-slate-400" style="font-family: 'JetBrains Mono', monospace;">#</th>
+                                <th class="text-left px-5 py-3 text-[10px] tracking-[.08em] uppercase font-bold text-slate-400" style="font-family: 'JetBrains Mono', monospace;">Aksi Drone</th>
+                                <th class="text-left px-5 py-3 text-[10px] tracking-[.08em] uppercase font-bold text-slate-400" style="font-family: 'JetBrains Mono', monospace;">Durasi</th>
+                                <th class="text-left px-5 py-3 text-[10px] tracking-[.08em] uppercase font-bold text-slate-400" style="font-family: 'JetBrains Mono', monospace;">Satuan</th>
+                                <th class="text-right px-5 py-3 text-[10px] tracking-[.08em] uppercase font-bold text-slate-400" style="font-family: 'JetBrains Mono', monospace;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="rule-body" class="divide-y divide-slate-100">
@@ -435,7 +435,7 @@
             <td class="px-5 py-4">
                 <div class="flex items-center justify-end gap-2">
                     <button type="button" class="btn-edit inline-flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500 text-white hover:bg-sky-600 transition shadow-sm"
-                        data-id="${json.id}" data-aksi-id="" data-durasi="${json.durasi}" data-satuan="${json.satuan}" title="Edit">
+                        data-id="${json.id}" data-aksi-id="${json.aksi_id}" data-durasi="${json.durasi}" data-satuan="${json.satuan}" title="Edit">
                         <i class="fa fa-pen text-xs"></i></button>
                     <button type="button" class="btn-delete inline-flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500 text-white hover:bg-rose-600 transition shadow-sm"
                         data-id="${json.id}" data-label="${json.label}" data-url="${json.delete_url}" title="Hapus">
