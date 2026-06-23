@@ -1,11 +1,57 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Map, Grid, Plane, Crosshair, PlaneTakeoff, BrainCircuit, 
-  Activity, History, Cloud, Wind, Droplets, CloudRain, 
-  Trees, CheckCircle, Clock, Users, Rocket, FileText, Leaf, 
-  Cpu, MapPin, ArrowRight, PlaneTakeoff as PlaneTakeoffIcon,
-  HelpCircle, Clock3, ChevronRight, Zap, Info, BarChart3, CloudLightning, Maximize, Play
+import {
+  Map, Plane, Trees, BrainCircuit, Cloud, Wind, Droplets,
+  CloudRain, CheckCircle, Clock, MapPin, ArrowRight, PlaneTakeoff,
+  Clock3, Rocket, Crosshair, History, BarChart3, Users
 } from 'lucide-react';
+
+// ---------------------------------------------------------------------------
+// Design tokens — selaras dengan skema warna global aplikasi:
+//   • Page bg   : gray-100 (#f3f4f6)   → sama dengan app.blade.php
+//   • Card bg   : white (#ffffff)       → sama dengan semua halaman lain
+//   • Text      : slate-900 (#0f172a)   → sama dengan body & navbar
+//   • Border    : slate-200 (#e2e8f0)   → sama dengan header & footer
+//   • Accent    : blue-600 (#2563eb)    → sama dengan navbar active & CTA
+//   • Secondary : green-700 (#15803d)   → selaras dengan sidebar brand green-800
+//   • Muted     : slate-500 (#64748b)   → sama dengan app.css body color
+// ---------------------------------------------------------------------------
+const tk = {
+  // Backgrounds
+  pageBg:     '#f3f4f6',   // gray-100 — sama persis dengan app.blade main-layout-container
+  card:       '#ffffff',   // white — semua card halaman lain
+  cardHover:  '#f8fafc',   // slate-50 — hover state ringan
+
+  // Text
+  textPrimary:   '#0f172a',  // slate-900
+  textSecondary: '#475569',  // slate-600
+  textMuted:     '#94a3b8',  // slate-400
+
+  // Borders & dividers
+  border:    '#e2e8f0',   // slate-200 — sama dengan header/footer border
+  borderLight: '#f1f5f9', // slate-100 — divider halus
+
+  // Accent — Blue (selaras dengan navbar active state bg-blue-600)
+  accentBlue:       '#2563eb',  // blue-600
+  accentBlueLight:  '#eff6ff',  // blue-50 — background subtle
+  accentBlueMid:    '#dbeafe',  // blue-100
+  accentBlueMuted:  '#93c5fd',  // blue-300
+  accentBlueDark:   '#1d4ed8',  // blue-700
+
+  // Secondary — Green (selaras dengan sidebar bg-green-800 & scrollbar #10b981)
+  accentGreen:      '#15803d',  // green-700
+  accentGreenLight: '#f0fdf4',  // green-50
+  accentGreenMid:   '#dcfce7',  // green-100
+  accentGreenMuted: '#86efac',  // green-300
+
+  // Amber — untuk status/warning saja (label kematangan)
+  amber:       '#d97706',  // amber-600
+  amberLight:  '#fffbeb',  // amber-50
+  amberMid:    '#fef3c7',  // amber-100
+};
+
+const fontDisplay = "'Manrope', sans-serif";
+const fontMono    = "'JetBrains Mono', monospace";  // sesuai app.css code override
+const fontBody    = "'Inter', sans-serif";
 
 const AppDashboard = ({
   countLahan, countKebun, countPerangkat, countUser,
@@ -15,359 +61,464 @@ const AppDashboard = ({
   avgAccuracy, recentFlights
 }) => {
   const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
-  // Helpers
-  const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num || 0);
-  const matangPct = totalSampel > 0 ? ((totalMatang / totalSampel) * 100).toFixed(1) : 0;
-  const belumPct = totalSampel > 0 ? (100 - matangPct).toFixed(1) : 0;
+  useEffect(() => { setMounted(true); }, []);
+
+  const fmt = (n) => new Intl.NumberFormat('id-ID').format(n || 0);
+  const matangPct = totalSampel > 0 ? (totalMatang / totalSampel) * 100 : 0;
+
+  // SVG ripeness arc
+  const dialR = 72;
+  const circ  = 2 * Math.PI * dialR;
+  const arc   = mounted ? circ * (matangPct / 100) : 0;
 
   return (
-    <div className={`relative w-full bg-slate-50 min-h-screen text-slate-900 font-sans transition-opacity duration-1000 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-      
-      {/* Premium Hero Section with Image Background */}
-      <section className="relative w-full bg-slate-900 overflow-hidden pb-32 pt-12 md:pt-20 border-b border-slate-800 shadow-2xl">
-        <div className="absolute inset-0">
-            <img 
-              src="https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&q=80&w=2000" 
-              alt="Drone over plantation" 
-              className="w-full h-full object-cover opacity-20 mix-blend-luminosity transform scale-105 animate-[pulse_20s_ease-in-out_infinite_alternate]"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/90 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent opacity-80"></div>
-        </div>
+    <div
+      className={`min-h-screen transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}
+      style={{ background: tk.pageBg, color: tk.textPrimary, fontFamily: fontBody }}
+    >
+      {/* ── Fonts fallback (sudah ada di app.blade tapi sebagai cadangan) ── */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+      `}</style>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center justify-between gap-10">
-          <div className="max-w-3xl transform transition-all duration-1000 translate-y-0 opacity-100">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold mb-6 border border-blue-500/20 backdrop-blur-sm animate-[pulse_3s_infinite]">
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></div>
-              Sistem Terintegrasi AI Aktif
+      {/* ============================================================
+          HERO SECTION
+          Warna: white card di atas gray-100, accent blue sesuai navbar
+          ============================================================ */}
+      <section
+        className="border-b"
+        style={{ background: '#ffffff', borderColor: tk.border }}
+      >
+        <div className="max-w-7xl mx-auto px-6 py-10 lg:py-12 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+
+          {/* Left — headline & CTA */}
+          <div className="max-w-2xl">
+            {/* breadcrumb / system label */}
+            <div className="flex items-center gap-2 mb-4">
+              <span className="flex h-2 w-2 relative">
+                <span
+                  className="absolute inline-flex h-full w-full rounded-full animate-ping opacity-60"
+                  style={{ background: tk.accentGreen }}
+                />
+                <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: tk.accentGreen }} />
+              </span>
+              <span
+                className="text-[11px] font-semibold tracking-[.12em] uppercase"
+                style={{ color: tk.accentGreen, fontFamily: fontMono }}
+              >
+                Sistem Aktif
+              </span>
+              <span className="text-[11px]" style={{ color: tk.textMuted }}>·</span>
+              <span className="text-[11px]" style={{ color: tk.textMuted, fontFamily: fontMono }}>
+                IPB University — Drone CPS
+              </span>
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white mb-5 leading-tight">
-              Pusat Kendali <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Drone Cerdas</span>
+
+            <h1
+              className="text-3xl lg:text-[2.25rem] font-extrabold leading-tight mb-3"
+              style={{ fontFamily: fontDisplay, color: tk.textPrimary, letterSpacing: '-0.03em' }}
+            >
+              Monitoring Kebun Sawit<br />
+              <span style={{ color: tk.accentBlue }}>Berbasis Drone & AI</span>
             </h1>
-            <p className="text-lg md:text-xl text-slate-300 leading-relaxed font-medium mb-8 max-w-2xl border-l-4 border-emerald-500 pl-4">
-              Monitoring perkebunan kelapa sawit presisi tinggi. Menggabungkan telemetri <strong className="text-white">Real-time</strong> dan deteksi kematangan visual melalui <strong className="text-white">Artificial Intelligence</strong>.
+
+            <p className="text-[15px] leading-relaxed mb-7 max-w-lg" style={{ color: tk.textSecondary }}>
+              Platform GCS untuk pemetaan otomatis kebun kelapa sawit, telemetri
+              drone real-time, dan deteksi kematangan buah menggunakan computer vision.
             </p>
-            
-            <div className="flex flex-wrap gap-4">
-              <a href="/gcs" className="group relative inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-blue-600 text-white rounded-xl font-bold text-sm overflow-hidden transition-all hover:bg-blue-500 hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:-translate-y-1">
-                <PlaneTakeoff className="w-5 h-5 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" /> 
-                <span>Luncurkan GCS</span>
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href="/gcs"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90 shadow-md"
+                style={{ background: tk.accentBlue, boxShadow: `0 4px 14px ${tk.accentBlue}40` }}
+              >
+                <PlaneTakeoff className="w-4 h-4" />
+                Luncurkan GCS
               </a>
-              <a href="/laporan" className="group inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-slate-800 border border-slate-700 text-white rounded-xl font-bold text-sm transition-all hover:bg-slate-700 hover:border-slate-500 hover:shadow-lg hover:-translate-y-1">
-                <BarChart3 className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" /> Laporan Analisis
+              <a
+                href="/laporan"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all hover:bg-slate-50 border"
+                style={{ color: tk.textSecondary, borderColor: tk.border, background: '#ffffff' }}
+              >
+                Laporan Analisis
+                <ArrowRight className="w-3.5 h-3.5" />
               </a>
             </div>
           </div>
-          
-          <div className="hidden lg:block relative w-full max-w-md perspective-1000 transform transition-all duration-1000 delay-300 translate-y-0 opacity-100">
-            <div className="relative rounded-2xl bg-slate-800/50 border border-slate-700/50 backdrop-blur-md p-6 shadow-2xl rotate-y-[-10deg] rotate-x-[5deg] hover:rotate-y-0 hover:rotate-x-0 transition-transform duration-700 ease-out">
-                <div className="flex items-center justify-between border-b border-slate-700 pb-4 mb-4">
-                    <span className="text-slate-300 font-semibold flex items-center gap-2"><Activity className="w-4 h-4 text-blue-400" /> Status Koneksi</span>
-                    <span className="text-xs font-bold px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-md">1 Terhubung</span>
-                </div>
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-400">Satelit GPS</span>
-                        <span className="text-sm font-mono text-white font-bold">12 Lock</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-sm text-slate-400">Latensi Video</span>
-                        <span className="text-sm font-mono text-emerald-400 font-bold">42ms</span>
-                    </div>
-                    <div className="w-full bg-slate-700/50 h-2 rounded-full overflow-hidden mt-2">
-                        <div className="bg-emerald-500 w-[95%] h-full animate-pulse"></div>
-                    </div>
-                </div>
+
+          {/* Right — status telemetry panel */}
+          <div
+            className="w-full lg:w-[264px] rounded-2xl p-5 flex-none"
+            style={{ background: tk.accentBlueLight, border: `1px solid ${tk.accentBlueMid}` }}
+          >
+            <div
+              className="flex items-center justify-between pb-3 mb-4"
+              style={{ borderBottom: `1px solid ${tk.accentBlueMid}` }}
+            >
+              <span className="text-sm font-bold" style={{ color: tk.accentBlueDark, fontFamily: fontDisplay }}>
+                Status Sistem
+              </span>
+              <span
+                className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                style={{ background: tk.accentGreenMid, color: tk.accentGreen, fontFamily: fontMono }}
+              >
+                ONLINE
+              </span>
+            </div>
+            <div className="space-y-3" style={{ fontFamily: fontMono }}>
+              <StatusRow label="Drone Terdaftar"  value={`${fmt(countPerangkat)} unit`}   color={tk.accentBlue} />
+              <StatusRow label="Total Lahan"       value={`${fmt(countLahan)} area`}        color={tk.accentBlue} />
+              <StatusRow label="Total Misi"         value={`${fmt(countMissions)} misi`}    color={tk.accentBlue} />
+              <StatusRow label="Akurasi AI"
+                value={avgAccuracy > 0 ? `${Number(avgAccuracy).toFixed(1)}%` : '—'}
+                color={tk.amber}
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Floating Stats Grid */}
-      <section className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          <div className="bg-white rounded-2xl p-6 shadow-xl shadow-slate-200/50 border border-slate-200 transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl group flex flex-col justify-between h-36 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500">
-              <Map className="w-16 h-16 text-blue-600" />
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shadow-sm relative z-10">
-              <Map className="w-5 h-5" />
-            </div>
-            <div className="relative z-10 mt-auto pt-4 border-t border-slate-100">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Lahan</p>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">{formatNumber(countLahan)} <span className="text-sm font-semibold text-slate-400">Area</span></p>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl p-6 shadow-xl shadow-slate-200/50 border border-slate-200 transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl group flex flex-col justify-between h-36 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500">
-              <Trees className="w-16 h-16 text-emerald-600" />
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100 shadow-sm relative z-10">
-              <Trees className="w-5 h-5" />
-            </div>
-            <div className="relative z-10 mt-auto pt-4 border-t border-slate-100">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Pohon Master</p>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">{formatNumber(countPohon)} <span className="text-sm font-semibold text-slate-400">Pohon</span></p>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl p-6 shadow-xl shadow-slate-200/50 border border-slate-200 transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl group flex flex-col justify-between h-36 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500">
-              <Plane className="w-16 h-16 text-orange-600" />
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100 shadow-sm relative z-10">
-              <Plane className="w-5 h-5" />
-            </div>
-            <div className="relative z-10 mt-auto pt-4 border-t border-slate-100">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Drone Aktif</p>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">{formatNumber(countPerangkat)} <span className="text-sm font-semibold text-slate-400">Unit</span></p>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-2xl p-6 shadow-xl shadow-slate-200/50 border border-slate-200 transform transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl group flex flex-col justify-between h-36 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500">
-              <BrainCircuit className="w-16 h-16 text-indigo-600" />
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-sm relative z-10">
-              <BrainCircuit className="w-5 h-5" />
-            </div>
-            <div className="relative z-10 mt-auto pt-4 border-t border-slate-100">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Akurasi Rata-rata</p>
-              <p className="text-3xl font-black text-slate-900 tracking-tight">{avgAccuracy > 0 ? `${Number(avgAccuracy).toFixed(1)}%` : '--'}</p>
-            </div>
-          </div>
+      {/* ============================================================
+          STAT STRIP
+          White cards dengan blue/green accent icons
+          ============================================================ */}
+      <section className="max-w-7xl mx-auto px-6 py-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard icon={Map}          label="Total Lahan"   value={fmt(countLahan)}      unit="area"  accent={tk.accentBlue} />
+          <StatCard icon={Trees}        label="Total Pohon"   value={fmt(countPohon)}      unit="pohon" accent={tk.accentGreen} />
+          <StatCard icon={Plane}        label="Drone Aktif"   value={fmt(countPerangkat)}  unit="unit"  accent={tk.accentBlue} />
+          <StatCard icon={BrainCircuit} label="Akurasi Rata"
+            value={avgAccuracy > 0 ? `${Number(avgAccuracy).toFixed(1)}%` : '—'}
+            accent={tk.amber}
+          />
         </div>
       </section>
 
-      {/* Main Content Areas */}
-      <section className="py-12 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* Left Column */}
-            <div className="lg:col-span-2 flex flex-col gap-8">
-              
-              {/* Scan Summary Card - Elevated Design */}
-              <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-                <div className="border-b border-slate-100 p-6 flex items-center justify-between bg-slate-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                      <ScanIcon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-slate-900">Performa Pemindaian AI</h2>
-                      <p className="text-sm text-slate-500 font-medium">Akumulasi hasil deteksi kematangan buah</p>
-                    </div>
+      {/* ============================================================
+          MAIN CONTENT GRID
+          ============================================================ */}
+      <section className="pb-12">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* ── Left column (2/3) ── */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
+
+            {/* Ripeness Analytics Panel */}
+            <Panel
+              icon={Crosshair}
+              title="Analisis Kematangan Buah (AI)"
+              subtitle="Akumulasi hasil deteksi dari seluruh penerbangan"
+              action={{ href: '/laporan/log-penerbangan', label: 'Log Penerbangan' }}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-8 items-center">
+
+                {/* Gauge */}
+                <div className="relative w-[160px] h-[160px] mx-auto md:mx-0 flex-none">
+                  <svg viewBox="0 0 200 200" className="w-full h-full">
+                    {/* Track */}
+                    <circle cx="100" cy="100" r={dialR}
+                      fill="none" stroke={tk.borderLight} strokeWidth="14" />
+                    {/* Arc */}
+                    <circle cx="100" cy="100" r={dialR}
+                      fill="none" stroke={tk.amber} strokeWidth="14"
+                      strokeLinecap="round"
+                      strokeDasharray={`${arc} ${circ}`}
+                      transform="rotate(-90 100 100)"
+                      style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(.16,.8,.3,1)' }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-[26px] font-extrabold leading-none"
+                      style={{ fontFamily: fontDisplay, color: tk.textPrimary }}>
+                      {matangPct.toFixed(0)}%
+                    </span>
+                    <span className="text-[9px] tracking-[.14em] uppercase mt-1 font-semibold"
+                      style={{ fontFamily: fontMono, color: tk.amber }}>
+                      Matang
+                    </span>
                   </div>
-                  <a href="/laporan/log-penerbangan" className="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors">
-                    Log Lengkap <ArrowRight className="w-4 h-4" />
-                  </a>
                 </div>
 
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="relative p-5 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 overflow-hidden">
-                      <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/10 rounded-full blur-xl"></div>
-                      <p className="text-sm font-bold text-slate-500 mb-1 uppercase tracking-wider">Total Terdeteksi</p>
-                      <p className="text-4xl font-black text-slate-900">{formatNumber(totalSampel)}</p>
-                    </div>
-                    
-                    <div className="relative p-5 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 overflow-hidden">
-                      <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/20 rounded-full blur-xl"></div>
-                      <p className="text-sm font-bold text-emerald-700 mb-1 uppercase tracking-wider flex items-center gap-2"><CheckCircle className="w-4 h-4"/> Buah Matang</p>
-                      <p className="text-4xl font-black text-emerald-800">{formatNumber(totalMatang)}</p>
-                    </div>
-                    
-                    <div className="relative p-5 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200 overflow-hidden">
-                      <div className="absolute -right-4 -top-4 w-16 h-16 bg-amber-500/20 rounded-full blur-xl"></div>
-                      <p className="text-sm font-bold text-amber-700 mb-1 uppercase tracking-wider flex items-center gap-2"><Clock className="w-4 h-4"/> Buah Mentah</p>
-                      <p className="text-4xl font-black text-amber-800">{formatNumber(totalBelum)}</p>
-                    </div>
-                  </div>
-
-                  {totalSampel > 0 && (
-                    <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-xs font-bold text-slate-600 uppercase tracking-widest flex items-center gap-2"><BarChart3 className="w-4 h-4"/> Rasio Kematangan</span>
-                        <span className="text-sm font-black text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full">{matangPct}% Matang</span>
-                      </div>
-                      <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden flex shadow-inner">
-                        <div className="bg-emerald-500 transition-all duration-1000 ease-out relative" style={{ width: `${matangPct}%` }}>
-                          <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]"></div>
-                        </div>
-                        <div className="bg-amber-400 transition-all duration-1000 ease-out" style={{ width: `${belumPct}%` }}></div>
-                      </div>
-                    </div>
-                  )}
+                {/* Metric tiles */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <MetricTile label="Total Sampel"  value={fmt(totalSampel)}  />
+                  <MetricTile label="Buah Matang"   value={fmt(totalMatang)}  accent={tk.amber}        icon={CheckCircle} />
+                  <MetricTile label="Buah Mentah"   value={fmt(totalBelum)}   accent={tk.accentGreen}  icon={Clock} />
                 </div>
               </div>
+            </Panel>
 
-              {/* Recent Flights Table */}
-              <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
-                <div className="border-b border-slate-100 p-6 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-                      <History className="w-5 h-5" />
-                    </div>
-                    <h2 className="text-lg font-bold text-slate-900">Riwayat Misi Terkini</h2>
-                  </div>
+            {/* Recent Flights */}
+            <Panel icon={History} title="Riwayat Misi Terkini">
+              {!recentFlights || recentFlights.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12" style={{ color: tk.textMuted }}>
+                  <Plane className="w-8 h-8 mb-3 opacity-30" />
+                  <p className="text-sm font-medium">Belum ada misi penerbangan.</p>
                 </div>
-
-                {!recentFlights || recentFlights.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 bg-slate-50/50">
-                    <img src="https://illustrations.popsy.co/amber/shipped.svg" alt="Empty" className="w-32 h-32 mb-4 opacity-50 grayscale" />
-                    <p className="text-slate-500 font-semibold">Belum ada misi penerbangan terbaru.</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
-                        <tr>
-                          <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Informasi Misi</th>
-                          <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs">Model AI</th>
-                          <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-right">Deteksi</th>
-                          <th className="px-6 py-4 font-bold uppercase tracking-wider text-xs text-right">Akurasi</th>
+              ) : (
+                <div className="overflow-x-auto -mx-6">
+                  <table className="w-full text-sm text-left">
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${tk.border}` }}>
+                        <Th className="pl-6">Informasi Misi</Th>
+                        <Th>Model AI</Th>
+                        <Th align="right">Deteksi</Th>
+                        <Th align="right" className="pr-6">Akurasi</Th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentFlights.map((fl) => (
+                        <tr key={fl.id} className="hover:bg-slate-50 transition-colors"
+                          style={{ borderBottom: `1px solid ${tk.borderLight}` }}>
+                          <td className="pl-6 py-3.5">
+                            <div className="font-semibold text-[13px]" style={{ color: tk.textPrimary }}>
+                              {fl.mission_name}
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-[11px]"
+                              style={{ fontFamily: fontMono, color: tk.textMuted }}>
+                              <Clock3 className="w-3 h-3" />
+                              {new Date(fl.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                            </div>
+                          </td>
+                          <td className="py-3.5">
+                            <span
+                              className="inline-block text-[10px] font-bold px-2.5 py-1 rounded-full"
+                              style={{
+                                fontFamily: fontMono,
+                                background: tk.accentBlueLight,
+                                color: tk.accentBlue,
+                                border: `1px solid ${tk.accentBlueMid}`,
+                              }}
+                            >
+                              {(fl.scan_mode || '-').toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="py-3.5 text-right font-semibold text-[13px]"
+                            style={{ fontFamily: fontMono, color: tk.textPrimary }}>
+                            {fmt(fl.samples_count)}
+                          </td>
+                          <td className="pr-6 py-3.5 text-right font-bold text-[13px]"
+                            style={{ fontFamily: fontMono, color: tk.accentGreen }}>
+                            {Number(fl.accuracy).toFixed(1)}%
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {recentFlights.map((fl) => (
-                          <tr key={fl.id} className="hover:bg-slate-50/80 transition-colors group">
-                            <td className="px-6 py-4">
-                              <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{fl.mission_name}</div>
-                              <div className="text-xs text-slate-500 mt-1 font-medium flex items-center gap-1.5">
-                                <Clock3 className="w-3.5 h-3.5" />
-                                {new Date(fl.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-widest">
-                                {fl.scan_mode || '-'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <span className="font-mono text-sm font-bold text-slate-700">
-                                {formatNumber(fl.samples_count)}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <span className={`font-black text-sm ${fl.accuracy >= 90 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                {Number(fl.accuracy).toFixed(1)}%
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Panel>
+          </div>
+
+          {/* ── Right column (1/3) ── */}
+          <div className="flex flex-col gap-6">
+
+            {/* Weather Card */}
+            <div
+              className="rounded-2xl p-6"
+              style={{ background: tk.card, border: `1px solid ${tk.border}` }}
+            >
+              <div className="flex items-center gap-2 mb-5">
+                <Cloud className="w-4 h-4" style={{ color: tk.accentBlue }} />
+                <h2 className="text-[11px] tracking-[.12em] uppercase font-bold"
+                  style={{ fontFamily: fontMono, color: tk.textSecondary }}>
+                  Cuaca Kebun
+                </h2>
               </div>
+
+              {cuaca ? (
+                <>
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-[42px] font-extrabold leading-none"
+                      style={{ fontFamily: fontDisplay, color: tk.textPrimary }}>
+                      {cuaca.temperature ?? '--'}
+                    </span>
+                    <span className="text-lg font-medium" style={{ color: tk.textMuted }}>°C</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm mb-6" style={{ color: tk.textSecondary }}>
+                    <MapPin className="w-3.5 h-3.5" style={{ color: tk.accentBlue }} />
+                    {(cuaca.desa || '')} {(cuaca.kabupaten_kota || '-')}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pt-4"
+                    style={{ borderTop: `1px solid ${tk.border}` }}>
+                    <WeatherCell icon={Wind}      value={cuaca.wind_speed} unit="km/h"  />
+                    <WeatherCell icon={Droplets}  value={cuaca.humidity}   unit="lembab" />
+                    <WeatherCell icon={CloudRain} value={cuaca.rainfall}   unit="curah"  />
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center text-center py-8" style={{ color: tk.textMuted }}>
+                  <Cloud className="w-7 h-7 mb-2 opacity-30" />
+                  <p className="text-sm">Data cuaca tidak tersedia.</p>
+                </div>
+              )}
             </div>
 
-            {/* Right Column */}
-            <div className="flex flex-col gap-8">
-              
-              {/* Weather Card - Beautiful Image BG */}
-              <div className="relative rounded-2xl shadow-md border border-slate-200 overflow-hidden bg-slate-900 group">
-                <div className="absolute inset-0">
-                  <img src="https://images.unsplash.com/photo-1501426026826-31c667bdf23d?auto=format&fit=crop&q=80&w=600" className="w-full h-full object-cover opacity-40 group-hover:scale-110 transition-transform duration-700" alt="Weather Background" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-slate-900/40"></div>
-                </div>
-                
-                <div className="relative p-6 z-10">
-                  <div className="flex items-center gap-2 mb-6 text-blue-300">
-                    <CloudLightning className="w-5 h-5" />
-                    <h2 className="text-lg font-bold">Kondisi Lapangan</h2>
-                  </div>
-                  
-                  {cuaca ? (
-                    <>
-                      <div className="flex items-center justify-between mb-8">
-                        <div>
-                          <p className="text-6xl font-light text-white tracking-tighter">
-                            {cuaca.temperature ?? '--'}<span className="text-4xl text-blue-300">°</span>
-                          </p>
-                          <p className="text-sm font-medium text-slate-300 mt-2 flex items-center gap-1.5">
-                            <MapPin className="w-4 h-4 text-blue-400" />
-                            {(cuaca.desa || '')} {(cuaca.kabupaten_kota || '-')}
-                          </p>
-                        </div>
-                        {cuaca.image && (
-                          <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20">
-                            <img src={cuaca.image} alt="Cuaca" className="w-12 h-12 object-contain drop-shadow-lg" />
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-3 gap-3 text-center border-t border-white/10 pt-5">
-                        <div className="bg-black/20 backdrop-blur-sm rounded-xl py-3 border border-white/5">
-                          <Wind className="w-4 h-4 text-blue-300 mx-auto mb-1.5" />
-                          <p className="text-base font-bold text-white">{cuaca.wind_speed ?? '--'}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">km/h</p>
-                        </div>
-                        <div className="bg-black/20 backdrop-blur-sm rounded-xl py-3 border border-white/5">
-                          <Droplets className="w-4 h-4 text-blue-300 mx-auto mb-1.5" />
-                          <p className="text-base font-bold text-white">{cuaca.humidity ?? '--'}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Lembab %</p>
-                        </div>
-                        <div className="bg-black/20 backdrop-blur-sm rounded-xl py-3 border border-white/5">
-                          <CloudRain className="w-4 h-4 text-blue-300 mx-auto mb-1.5" />
-                          <p className="text-base font-bold text-white">{cuaca.rainfall ?? '--'}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Curah</p>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-10 text-center">
-                      <Cloud className="w-10 h-10 text-slate-500 mb-3" />
-                      <p className="text-sm font-semibold text-slate-400">Data cuaca tidak tersedia.</p>
-                    </div>
-                  )}
-                </div>
+            {/* Inventory Summary */}
+            <Panel icon={BarChart3} title="Ringkasan Inventaris">
+              <div className="space-y-3">
+                <InventoryRow label="Lahan Terdaftar"  value={fmt(countLahan)}      icon={Map}    />
+                <InventoryRow label="Kebun Aktif"       value={fmt(countKebun)}      icon={Trees}  />
+                <InventoryRow label="Drone Terdaftar"   value={fmt(countPerangkat)}  icon={Plane}  />
+                <InventoryRow label="Pengguna Sistem"   value={fmt(countUser)}       icon={Users}  />
               </div>
+            </Panel>
 
-              {/* Quick Actions / Shortcuts */}
-              <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
-                <div className="border-b border-slate-100 p-5 flex items-center gap-3 bg-slate-50/50">
-                    <Rocket className="w-5 h-5 text-rose-500" />
-                    <h2 className="text-lg font-bold text-slate-900">Akses Cepat</h2>
-                </div>
-                <div className="p-5 grid grid-cols-2 gap-4">
-                  <a href="/gcs" className="bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl p-4 flex flex-col items-center justify-center text-center transition-all group">
-                    <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 group-hover:text-blue-600 transition-transform"><PlaneTakeoffIcon size={20} /></div>
-                    <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Mulai GCS</p>
-                  </a>
-                  <a href="/lahan" className="bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl p-4 flex flex-col items-center justify-center text-center transition-all group">
-                    <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 group-hover:scale-110 group-hover:text-emerald-600 transition-transform"><Map size={20} /></div>
-                    <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Pemetaan</p>
-                  </a>
-                </div>
+            {/* Quick Actions */}
+            <Panel icon={Rocket} title="Akses Cepat">
+              <div className="grid grid-cols-2 gap-3">
+                <QuickAction href="/gcs"    icon={PlaneTakeoff} label="Mulai GCS"   primary />
+                <QuickAction href="/lahan"  icon={Map}          label="Peta Lahan"  />
               </div>
-
-            </div>
+            </Panel>
           </div>
         </div>
       </section>
-
     </div>
   );
 };
 
-// Simple scan icon component
-const ScanIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
-    <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
-    <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
-    <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
-    <rect x="7" y="7" width="10" height="10" rx="1"></rect>
-  </svg>
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+const StatusRow = ({ label, value, color }) => (
+  <div className="flex justify-between text-xs">
+    <span style={{ color: '#64748b' }}>{label}</span>
+    <span className="font-bold" style={{ color, fontFamily: "'JetBrains Mono', monospace" }}>{value}</span>
+  </div>
+);
+
+const StatCard = ({ icon: Icon, label, value, unit, accent }) => (
+  <div
+    className="rounded-2xl p-5 transition-shadow hover:shadow-md"
+    style={{ background: '#ffffff', border: `1px solid #e2e8f0` }}
+  >
+    <div
+      className="w-8 h-8 rounded-xl flex items-center justify-center mb-4"
+      style={{ background: accent + '18' }}
+    >
+      <Icon className="w-4 h-4" style={{ color: accent }} />
+    </div>
+    <p className="text-[10.5px] tracking-[.08em] uppercase font-semibold mb-1"
+      style={{ fontFamily: "'JetBrains Mono', monospace", color: '#94a3b8' }}>
+      {label}
+    </p>
+    <p className="text-2xl font-extrabold" style={{ fontFamily: "'Manrope', sans-serif", color: '#0f172a' }}>
+      {value}{unit && <span className="text-sm font-medium ml-1" style={{ color: '#94a3b8' }}>{unit}</span>}
+    </p>
+  </div>
+);
+
+const Panel = ({ icon: Icon, title, subtitle, action, children }) => (
+  <div
+    className="rounded-2xl p-6 transition-shadow hover:shadow-md"
+    style={{ background: '#ffffff', border: `1px solid #e2e8f0` }}
+  >
+    <div className="flex items-start justify-between mb-5 gap-4">
+      <div className="flex items-center gap-3">
+        <div
+          className="w-8 h-8 rounded-xl flex items-center justify-center flex-none"
+          style={{ background: '#eff6ff' }}
+        >
+          <Icon className="w-4 h-4" style={{ color: '#2563eb' }} />
+        </div>
+        <div>
+          <h2 className="text-[13px] font-bold" style={{ fontFamily: "'Manrope', sans-serif", color: '#0f172a' }}>
+            {title}
+          </h2>
+          {subtitle && <p className="text-[12px] mt-0.5" style={{ color: '#94a3b8' }}>{subtitle}</p>}
+        </div>
+      </div>
+      {action && (
+        <a
+          href={action.href}
+          className="text-[12px] font-bold flex items-center gap-1 flex-none transition-colors hover:opacity-70"
+          style={{ color: '#2563eb' }}
+        >
+          {action.label} <ArrowRight className="w-3 h-3" />
+        </a>
+      )}
+    </div>
+    {children}
+  </div>
+);
+
+const MetricTile = ({ label, value, accent, icon: Icon }) => (
+  <div
+    className="rounded-xl p-4"
+    style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}
+  >
+    <p className="text-[10px] tracking-[.07em] uppercase font-bold mb-2 flex items-center gap-1.5"
+      style={{ fontFamily: "'JetBrains Mono', monospace", color: accent || '#94a3b8' }}>
+      {Icon && <Icon className="w-3.5 h-3.5" />}
+      {label}
+    </p>
+    <p className="text-xl font-extrabold" style={{ fontFamily: "'Manrope', sans-serif", color: '#0f172a' }}>
+      {value}
+    </p>
+  </div>
+);
+
+const Th = ({ children, align = 'left', className = '' }) => (
+  <th
+    className={`py-3 text-[10px] tracking-[.08em] uppercase font-bold ${className}`}
+    style={{ fontFamily: "'JetBrains Mono', monospace", color: '#94a3b8', textAlign: align }}
+  >
+    {children}
+  </th>
+);
+
+const WeatherCell = ({ icon: Icon, value, unit }) => (
+  <div className="rounded-xl py-3 text-center" style={{ background: '#f8fafc', border: '1px solid #f1f5f9' }}>
+    <Icon className="w-4 h-4 mx-auto mb-1.5" style={{ color: '#2563eb' }} />
+    <p className="text-sm font-bold" style={{ color: '#0f172a', fontFamily: "'JetBrains Mono', monospace" }}>
+      {value ?? '--'}
+    </p>
+    <p className="text-[9px] tracking-[.08em] uppercase mt-0.5"
+      style={{ color: '#94a3b8', fontFamily: "'JetBrains Mono', monospace" }}>
+      {unit}
+    </p>
+  </div>
+);
+
+const InventoryRow = ({ label, value, icon: Icon }) => (
+  <div
+    className="flex items-center justify-between py-2.5 px-3 rounded-xl"
+    style={{ background: '#f8fafc' }}
+  >
+    <div className="flex items-center gap-2.5">
+      <div className="w-6 h-6 rounded-lg flex items-center justify-center"
+        style={{ background: '#eff6ff' }}>
+        <Icon className="w-3.5 h-3.5" style={{ color: '#2563eb' }} />
+      </div>
+      <span className="text-[13px] font-medium" style={{ color: '#475569' }}>{label}</span>
+    </div>
+    <span className="text-[13px] font-bold"
+      style={{ fontFamily: "'JetBrains Mono', monospace", color: '#0f172a' }}>
+      {value}
+    </span>
+  </div>
+);
+
+const QuickAction = ({ href, icon: Icon, label, primary }) => (
+  <a
+    href={href}
+    className="rounded-xl p-4 flex flex-col items-center justify-center text-center transition-all hover:opacity-90"
+    style={primary
+      ? { background: '#2563eb', boxShadow: '0 4px 14px #2563eb30' }
+      : { background: '#f8fafc', border: '1px solid #e2e8f0' }
+    }
+  >
+    <Icon className="w-5 h-5 mb-2" style={{ color: primary ? '#ffffff' : '#2563eb' }} />
+    <p className="text-[10px] tracking-[.07em] uppercase font-bold"
+      style={{ fontFamily: "'JetBrains Mono', monospace", color: primary ? '#ffffff' : '#475569' }}>
+      {label}
+    </p>
+  </a>
 );
 
 export default AppDashboard;
