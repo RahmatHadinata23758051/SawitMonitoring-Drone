@@ -16,7 +16,8 @@
         'flashError' => session('error'),
         'routes' => [
             'store' => route('cuaca.store'),
-            'refresh' => route('cuaca.refresh')
+            'refresh' => route('cuaca.refresh'),
+            'matchRegion' => route('cuaca.match-region')
         ]
     ]) }}"></div>
 
