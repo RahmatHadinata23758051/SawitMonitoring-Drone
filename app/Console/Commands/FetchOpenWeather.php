@@ -65,7 +65,9 @@ class FetchOpenWeather extends Command
             if ($response->successful()) {
                 $data = $response->json();
 
-                $cuaca->kabupaten_kota = $data['name'] ?? $cityName;
+                if (empty($cuaca->kabupaten_kota)) {
+                    $cuaca->kabupaten_kota = $data['name'] ?? $cityName;
+                }
                 $cuaca->temperature    = round($data['main']['temp'] ?? 0);
                 $cuaca->humidity       = $data['main']['humidity'] ?? '--';
                 $cuaca->wind_speed     = round(($data['wind']['speed'] ?? 0) * 3.6, 1); // m/s → km/h
