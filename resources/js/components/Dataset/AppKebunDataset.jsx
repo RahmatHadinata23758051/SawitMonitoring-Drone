@@ -2,6 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, PenLine, Trash2, Leaf, Trees, Ruler, ArrowLeftRight, Database } from 'lucide-react';
 import ConfirmModal from '../UI/ConfirmModal';
 
+// ---------------------------------------------------------------------------
+// Design tokens — aligned with global theme
+// ---------------------------------------------------------------------------
+const tk = {
+  pageBg:        '#f3f4f6',  // gray-100
+  card:          '#ffffff',
+  textPrimary:   '#0f172a',  // slate-900
+  textSecondary: '#475569',  // slate-600
+  textMuted:     '#94a3b8',  // slate-400
+  border:        '#e2e8f0',  // slate-200
+  borderLight:   '#f1f5f9',  // slate-100
+  accentBlue:    '#2563eb',  // blue-600
+  accentBlueLight: '#eff6ff', // blue-50
+  accentBlueMid:  '#dbeafe',  // blue-100
+  accentGreen:   '#15803d',  // green-700
+  accentGreenLight: '#f0fdf4', // green-50
+  accentGreenMid: '#dcfce7'
+};
+
+const fontDisplay = "'Manrope', sans-serif";
+const fontMono    = "'JetBrains Mono', monospace";
+const fontBody    = "'Inter', sans-serif";
+
 const AppKebunDataset = ({ dataset = [], routes = {}, csrfToken, flashSuccess }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [confirmState, setConfirmState] = useState({ open: false, item: null, formEl: null });
@@ -28,85 +51,190 @@ const AppKebunDataset = ({ dataset = [], routes = {}, csrfToken, flashSuccess })
 
     return (
         <>
-        <div className="pt-6 pb-12 w-full">
-            <div className="max-w-full mx-auto px-6 lg:px-10 flex flex-col gap-6">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div 
+            className="py-6 w-full min-h-screen"
+            style={{ background: tk.pageBg, color: tk.textPrimary, fontFamily: fontBody }}
+        >
+            {/* Fonts Load check */}
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+            `}</style>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-6">
+                
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-                            <div className="bg-emerald-100 text-emerald-600 p-2 rounded-xl"><Leaf size={24} /></div>
+                        <h1 
+                            className="text-2xl font-extrabold tracking-tight flex items-center gap-2"
+                            style={{ fontFamily: fontDisplay, color: tk.textPrimary, letterSpacing: '-0.02em' }}
+                        >
                             Dataset Kebun
                         </h1>
-                        <p className="text-sm text-slate-500 mt-2 font-medium">Data parameter fisik kebun untuk navigasi drone</p>
+                        <p className="text-sm mt-0.5" style={{ color: tk.textSecondary }}>
+                            Data parameter fisik kebun untuk navigasi drone.
+                        </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
-                        <div className="relative w-full sm:w-auto">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                            <input type="text" placeholder="Cari dataset..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                                className="w-full sm:w-64 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all shadow-sm bg-white" />
+                    
+                    <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto">
+                        {/* Search Input */}
+                        <div className="relative w-full sm:w-64">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                            <input 
+                                type="text" 
+                                placeholder="Cari dataset..." 
+                                value={searchTerm} 
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm bg-white"
+                                style={{ color: tk.textPrimary }}
+                            />
                         </div>
-                        <a href={routes.create} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-500 text-white rounded-xl py-2.5 px-5 text-sm font-bold hover:bg-emerald-600 transition shadow-sm shadow-emerald-500/20">
-                            <Plus size={18} /> Tambah Dataset
+                        
+                        {/* Add Button */}
+                        <a 
+                            href={routes.create} 
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-5 text-sm font-bold text-white transition-all hover:opacity-90 shadow-sm"
+                            style={{ background: tk.accentBlue }}
+                        >
+                            <Plus size={15} /> Tambah Dataset
                         </a>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                {/* Table Section */}
+                <div 
+                    className="rounded-xl shadow-sm border overflow-hidden bg-white"
+                    style={{ borderColor: tk.border }}
+                >
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-sm text-left">
                             <thead>
-                                <tr className="border-b border-slate-200 bg-slate-50/80">
-                                    <th className="text-left px-5 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                                        <div className="flex items-center gap-2"><Trees size={14} className="text-emerald-500" /> Kebun</div>
+                                <tr className="border-b" style={{ borderColor: tk.border, background: '#f8fafc' }}>
+                                    <th 
+                                        className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider"
+                                        style={{ fontFamily: fontMono, color: tk.textSecondary }}
+                                    >
+                                        Kebun
                                     </th>
-                                    <th className="text-left px-5 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Jumlah Pohon</th>
-                                    <th className="text-left px-5 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                                        <div className="flex items-center gap-2"><Ruler size={14} className="text-slate-400" /> Tinggi Pohon (m)</div>
+                                    <th 
+                                        className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider"
+                                        style={{ fontFamily: fontMono, color: tk.textSecondary }}
+                                    >
+                                        Jumlah Pohon
                                     </th>
-                                    <th className="text-left px-5 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Jarak Sejalur (m)</th>
-                                    <th className="text-left px-5 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                                        <div className="flex items-center gap-2"><ArrowLeftRight size={14} className="text-slate-400" /> Jarak Samping (m)</div>
+                                    <th 
+                                        className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider"
+                                        style={{ fontFamily: fontMono, color: tk.textSecondary }}
+                                    >
+                                        Tinggi Pohon
                                     </th>
-                                    <th className="text-right px-5 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest">Aksi</th>
+                                    <th 
+                                        className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider"
+                                        style={{ fontFamily: fontMono, color: tk.textSecondary }}
+                                    >
+                                        Jarak Sejalur
+                                    </th>
+                                    <th 
+                                        className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider"
+                                        style={{ fontFamily: fontMono, color: tk.textSecondary }}
+                                    >
+                                        Jarak Samping
+                                    </th>
+                                    <th 
+                                        className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider text-right"
+                                        style={{ fontFamily: fontMono, color: tk.textSecondary }}
+                                    >
+                                        Aksi
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y" style={{ borderColor: tk.borderLight }}>
                                 {filtered.length > 0 ? filtered.map(item => (
-                                    <tr key={item.id} className="hover:bg-emerald-50/30 transition-colors">
-                                        <td className="px-5 py-4">
-                                            <span className="font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg text-sm">{item.kebun?.nama || '-'}</span>
+                                    <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                                        
+                                        {/* Kebun */}
+                                        <td className="px-5 py-4 align-middle">
+                                            <div className="flex items-center gap-2.5">
+                                                <div 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
+                                                    style={{ background: tk.accentGreenLight, color: tk.accentGreen, borderColor: tk.accentGreenMid }}
+                                                >
+                                                    <Leaf className="w-4 h-4" />
+                                                </div>
+                                                <span className="font-bold text-sm text-slate-800">{item.kebun?.nama || '-'}</span>
+                                            </div>
                                         </td>
-                                        <td className="px-5 py-4">
-                                            <span className="font-black text-slate-800 text-lg">{item.jumlah_pohon}</span>
-                                            <span className="text-slate-400 text-xs ml-1 font-medium">pohon</span>
+
+                                        {/* Jumlah Pohon */}
+                                        <td className="px-5 py-4 align-middle">
+                                            <span className="font-extrabold text-slate-800 text-sm">{item.jumlah_pohon}</span>
+                                            <span className="text-slate-400 text-xs ml-1">pohon</span>
                                         </td>
-                                        <td className="px-5 py-4 font-mono font-bold text-slate-700">{parseFloat(item.tinggi_pohon).toFixed(1)} m</td>
-                                        <td className="px-5 py-4 font-mono font-bold text-slate-700">{parseFloat(item.interval_pohon_sejalur).toFixed(1)} m</td>
-                                        <td className="px-5 py-4 font-mono font-bold text-slate-700">{parseFloat(item.interval_pohon_menyamping).toFixed(1)} m</td>
-                                        <td className="px-5 py-4">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <a href={`${routes.editBase}/${item.id}/edit`} className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-sky-500 hover:text-white transition-all shadow-sm" title="Edit">
-                                                    <PenLine size={16} />
+
+                                        {/* Tinggi Pohon */}
+                                        <td className="px-5 py-4 align-middle font-mono text-sm text-slate-700 font-semibold">
+                                            {parseFloat(item.tinggi_pohon).toFixed(1)} m
+                                        </td>
+
+                                        {/* Jarak Sejalur */}
+                                        <td className="px-5 py-4 align-middle font-mono text-sm text-slate-700 font-semibold">
+                                            {parseFloat(item.interval_pohon_sejalur).toFixed(1)} m
+                                        </td>
+
+                                        {/* Jarak Samping */}
+                                        <td className="px-5 py-4 align-middle font-mono text-sm text-slate-700 font-semibold">
+                                            {parseFloat(item.interval_pohon_menyamping).toFixed(1)} m
+                                        </td>
+
+                                        {/* Aksi */}
+                                        <td className="px-5 py-4 align-middle text-right">
+                                            <div className="inline-flex items-center justify-end gap-1.5">
+                                                <a 
+                                                    href={`${routes.editBase}/${item.id}/edit`} 
+                                                    className="inline-flex p-1.5 items-center justify-center rounded-lg transition-all border"
+                                                    style={{ background: tk.card, borderColor: tk.border, color: tk.textSecondary }}
+                                                    onMouseEnter={e => { e.currentTarget.style.color = tk.accentBlue; e.currentTarget.style.background = tk.accentBlueLight; e.currentTarget.style.borderColor = tk.accentBlueMid; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.color = tk.textSecondary; e.currentTarget.style.background = tk.card; e.currentTarget.style.borderColor = tk.border; }}
+                                                    title="Edit Dataset"
+                                                >
+                                                    <PenLine size={14} />
                                                 </a>
-                                                <form action={`${routes.destroyBase}/${item.id}`} method="POST" onSubmit={e => handleDelete(e, item)}>
+                                                <form action={`${routes.destroyBase}/${item.id}`} method="POST" onSubmit={e => handleDelete(e, item)} className="inline">
                                                     <input type="hidden" name="_token" value={csrfToken} />
                                                     <input type="hidden" name="_method" value="DELETE" />
-                                                    <button type="submit" className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm" title="Hapus">
-                                                        <Trash2 size={16} />
+                                                    <button 
+                                                        type="submit" 
+                                                        className="inline-flex p-1.5 items-center justify-center rounded-lg transition-all border"
+                                                        style={{ background: tk.card, borderColor: tk.border, color: tk.textSecondary }}
+                                                        onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.borderColor = '#fca5a5'; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.color = tk.textSecondary; e.currentTarget.style.background = tk.card; e.currentTarget.style.borderColor = tk.border; }}
+                                                        title="Hapus Dataset"
+                                                    >
+                                                        <Trash2 size={14} />
                                                     </button>
                                                 </form>
                                             </div>
                                         </td>
                                     </tr>
                                 )) : (
-                                    <tr><td colSpan="6" className="px-5 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-3 text-slate-400">
-                                            <div className="w-20 h-20 rounded-full bg-slate-50 border-4 border-white shadow-sm flex items-center justify-center"><Database size={32} className="text-slate-300" /></div>
-                                            <div>
-                                                <p className="text-lg font-black text-slate-500">{searchTerm ? 'Tidak ada hasil' : 'Belum ada dataset kebun'}</p>
-                                                <p className="text-sm text-slate-400 mt-1">{searchTerm ? `Pencarian "${searchTerm}" tidak ditemukan.` : 'Tambah dataset kebun untuk navigasi drone.'}</p>
+                                    <tr>
+                                        <td colSpan="6" className="px-5 py-12 text-center">
+                                            <div className="flex flex-col items-center justify-center gap-3 text-slate-400">
+                                                <div 
+                                                    className="w-11 h-11 rounded-full flex items-center justify-center border"
+                                                    style={{ background: tk.accentGreenLight, borderColor: tk.accentGreenMid, color: tk.accentGreen }}
+                                                >
+                                                    <Trees size={18} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold" style={{ color: tk.textPrimary }}>Tidak ada hasil ditemukan</p>
+                                                    <p className="text-xs text-slate-400 mt-1">
+                                                        {searchTerm ? `Pencarian "${searchTerm}" tidak membuahkan hasil.` : 'Belum ada dataset kebun.'}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td></tr>
+                                        </td>
+                                    </tr>
                                 )}
                             </tbody>
                         </table>
