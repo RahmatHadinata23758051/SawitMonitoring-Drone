@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   X, Settings, Cpu, Radio, Video, Plane, ListTree, Bot,
-  ChevronDown, Power, MonitorPlay, Palette, Sun,
+  ChevronDown, Power, MonitorPlay, Palette, Sun, Moon,
   Save, Edit, Trash2, Loader2, SendHorizontal, Download,
 } from 'lucide-react';
 
@@ -25,27 +25,27 @@ const GCSSettingsModal = ({
 
   return (
     <div className="fixed inset-0 z-[60] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="border border-slate-200 rounded-xl shadow-2xl w-[820px] max-w-full h-[580px] flex flex-col overflow-hidden bg-white">
+      <div className={`border rounded-xl shadow-2xl w-[820px] max-w-full h-[580px] flex flex-col overflow-hidden ${t('border-slate-800 bg-slate-900 text-slate-100', 'border-slate-200 bg-white text-slate-800')}`}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50 shrink-0">
-          <div className="flex items-center gap-2 text-blue-700">
+        <div className={`flex items-center justify-between px-5 py-3.5 border-b shrink-0 ${t('border-slate-800 bg-slate-950/40 text-slate-100', 'border-slate-200 bg-slate-50 text-slate-800')}`}>
+          <div className={`flex items-center gap-2 ${t('text-blue-400', 'text-blue-700')}`}>
             <Settings className="w-4 h-4" />
             <span className="font-extrabold text-sm uppercase tracking-widest">Pengaturan Sistem GCS</span>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-rose-500 transition rounded-lg p-1 hover:bg-rose-50">
+          <button onClick={onClose} className={`transition rounded-lg p-1 ${t('text-slate-500 hover:text-rose-400 hover:bg-rose-500/10', 'text-slate-400 hover:text-rose-500 hover:bg-rose-50')}`}>
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
           {/* Tree Nav */}
-          <div className="w-[200px] shrink-0 border-r border-slate-200 p-4 flex flex-col gap-5 overflow-y-auto bg-slate-50">
+          <div className={`w-[200px] shrink-0 border-r p-4 flex flex-col gap-5 overflow-y-auto ${t('border-slate-800 bg-slate-950/40', 'border-slate-200 bg-slate-50')}`}>
             <div>
               <div className="flex items-center gap-1.5 text-[9px] font-extrabold mb-2 uppercase tracking-widest text-slate-400">
                 <ChevronDown className="w-3.5 h-3.5" /> UMUM & KONEKSI
               </div>
-              <div className="pl-4 flex flex-col gap-0.5 border-l border-slate-200 ml-2">
+              <div className={`pl-4 flex flex-col gap-0.5 border-l ml-2 ${t('border-slate-800', 'border-slate-200')}`}>
                 {[
                   ['mode', Cpu, 'Sistem & Tampilan'],
                   ['telemetry', Radio, 'Telemetri Data'],
@@ -58,8 +58,8 @@ const GCSSettingsModal = ({
                     onClick={() => setActiveSettingNode(key)}
                     className={`text-left text-[10px] px-3 py-2 rounded-lg transition ${
                       activeSettingNode === key
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200 font-bold'
-                        : 'text-slate-600 hover:bg-slate-200'
+                        ? t('bg-blue-900/30 text-blue-400 border border-blue-800/50 font-bold', 'bg-blue-50 text-blue-700 border border-blue-200 font-bold')
+                        : t('text-slate-400 hover:bg-slate-800/50', 'text-slate-600 hover:bg-slate-200')
                     }`}
                   >
                     <div className="flex items-center gap-2"><Icon className="w-3.5 h-3.5 shrink-0" /> {label}</div>
@@ -71,13 +71,13 @@ const GCSSettingsModal = ({
               <div className="flex items-center gap-1.5 text-[9px] font-extrabold mb-2 uppercase tracking-widest text-slate-400">
                 <ChevronDown className="w-3.5 h-3.5" /> KECERDASAN BUATAN
               </div>
-              <div className="pl-4 flex flex-col gap-0.5 border-l border-slate-200 ml-2">
+              <div className={`pl-4 flex flex-col gap-0.5 border-l ml-2 ${t('border-slate-800', 'border-slate-200')}`}>
                 <button
                   onClick={() => setActiveSettingNode('ai')}
                   className={`text-left text-[10px] px-3 py-2 rounded-lg transition ${
                     activeSettingNode === 'ai'
-                      ? 'bg-orange-50 text-orange-700 border border-orange-200 font-bold'
-                      : 'text-slate-600 hover:bg-slate-200'
+                      ? t('bg-orange-950/30 text-orange-400 border border-orange-900/50 font-bold', 'bg-orange-50 text-orange-700 border border-orange-200 font-bold')
+                      : t('text-slate-400 hover:bg-slate-800/50', 'text-slate-600 hover:bg-slate-200')
                   }`}
                 >
                   <div className="flex items-center gap-2"><Bot className="w-3.5 h-3.5" /> AI Assistant</div>
@@ -87,7 +87,7 @@ const GCSSettingsModal = ({
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-6 overflow-y-auto bg-white text-slate-800">
+          <div className={`flex-1 p-6 overflow-y-auto ${t('bg-slate-900 text-slate-100', 'bg-white text-slate-800')}`}>
 
             {/* Sistem & Tampilan */}
             {activeSettingNode === 'mode' && (
@@ -118,15 +118,33 @@ const GCSSettingsModal = ({
                     </div>
                   ))}
                 </div>
-                <div className="pt-5 border-t border-slate-100">
-                  <h2 className="text-sm font-extrabold flex items-center gap-2 mb-3 text-slate-900"><Palette className="w-4 h-4 text-purple-500" /> Tema Antarmuka</h2>
+                <div className={`pt-5 border-t ${t('border-slate-800', 'border-slate-100')}`}>
+                  <h2 className={`text-sm font-extrabold flex items-center gap-2 mb-3 ${t('text-white', 'text-slate-900')}`}><Palette className="w-4 h-4 text-purple-500" /> Tema Antarmuka</h2>
                   <div className="flex gap-3">
-                    <div className="cursor-pointer border rounded-xl p-3 flex items-center gap-2 bg-blue-50 border-blue-300 ring-2 ring-blue-100">
+                    <button
+                      onClick={() => setTheme('light')}
+                      className={`cursor-pointer border rounded-xl p-3 flex items-center gap-2 transition ${
+                        theme === 'light'
+                          ? t('bg-blue-950/30 border-blue-800/80 ring-2 ring-blue-900 text-blue-400 font-bold', 'bg-blue-50 border-blue-300 ring-2 ring-blue-100 text-blue-700 font-bold')
+                          : t('bg-slate-950/30 border-slate-800 text-slate-400 hover:bg-slate-800', 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100')
+                      }`}
+                    >
                       <Sun className="w-5 h-5 text-blue-600" />
-                      <span className="font-bold text-xs text-blue-700">Light Mode (Aktif)</span>
-                    </div>
+                      <span className="text-xs">Light Mode</span>
+                    </button>
+                    <button
+                      onClick={() => setTheme('dark')}
+                      className={`cursor-pointer border rounded-xl p-3 flex items-center gap-2 transition ${
+                        theme === 'dark'
+                          ? t('bg-slate-800/60 border-slate-600 ring-2 ring-slate-700 text-white font-bold', 'bg-blue-50 border-blue-300 ring-2 ring-blue-100 text-blue-700 font-bold')
+                          : t('bg-slate-950/30 border-slate-800 text-slate-400 hover:bg-slate-800', 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100')
+                      }`}
+                    >
+                      <Moon className="w-5 h-5 text-slate-500" />
+                      <span className="text-xs">Dark Mode</span>
+                    </button>
                   </div>
-                  <p className="text-[9px] text-slate-400 mt-2">Tema UI saat ini terkunci ke Light Mode untuk tampilan profesional.</p>
+                  <p className="text-[9px] text-slate-400 mt-2">Pilih tema antarmuka GCS yang paling nyaman sesuai kondisi pencahayaan di lapangan.</p>
                 </div>
               </div>
             )}

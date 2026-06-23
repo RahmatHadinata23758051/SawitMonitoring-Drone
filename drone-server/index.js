@@ -169,13 +169,9 @@ client.bind(0, () => {
   sendInit();
   setInterval(sendInit, 1000);
 
-  // =========================================================
-  // HEARTBEAT KONTROL — 10Hz (100ms)
-  // KRITIS: Tanpa ini, drone tidak akan merespon APAPUN!
-  // Paket 88-byte dikirim terus-menerus ke drone.
-  // =========================================================
-  setInterval(sendPacket, INTERVAL);
-  console.log(`⚡ Heartbeat Kontrol: ${1000/INTERVAL}Hz`);
+  // Heartbeat kontrol kontinu dinonaktifkan di sini karena menggunakan
+  // HEARTBEAT (ON-DEMAND) di bawah agar tidak membekukan FPV Video stream.
+  console.log(`⚡ Heartbeat Kontrol: On-Demand (10Hz)`);
 
   // FPS monitor
   setInterval(() => {
@@ -234,12 +230,21 @@ app.post('/execute-sequence', async (req, res) => {
   }
 
   isExecutingSequence = true;
-  controlActive = true; // Bug fix #4: pastikan heartbeat aktif
+  markControlActive(60000); // Pastikan heartbeat aktif
   res.json({ message: "Eksekusi rule engine dimulai", steps: sequence.length });
 
   console.log(`\n🚀 [Rule Engine] Memulai eksekusi ${sequence.length} instruksi...`);
 
   try {
+    // === FASE 0: BIND & CALIBRATE ===
+    console.log(`🎬 [Rule Engine] Fase 0 — Auto-Binding & Kalibrasi...`);
+    await runBindSequence();
+    
+    // Gyro Calibration
+    resetSticks();
+    pulseFlag(0x80, 1000); // 0x80 = calibrate
+    await sleep(2000);
+
     // === FASE 1: ARM ===
     console.log(`🔓 [Rule Engine] Fase 1 — ARM (unlock motor)...`);
     resetSticks();
@@ -309,12 +314,12 @@ app.post('/execute-sequence', async (req, res) => {
         console.warn(`[Rule Engine] Aksi tidak dikenal: "${action}", hover saja.`);
       }
 
-      // Refresh lastCommandAt & controlActive tiap 400ms agar watchdog tidak reset
+      // Refresh lastCommandAt & heartbeat tiap 400ms agar watchdog tidak reset
       const chunks = Math.floor(durationMs / 400);
       for (let t = 0; t < chunks; t++) {
         await sleep(400);
         lastCommandAt = Date.now();
-        controlActive = true;
+        markControlActive(1500);
       }
       await sleep(durationMs % 400);
     }
@@ -339,7 +344,7 @@ app.post('/execute-sequence', async (req, res) => {
   } finally {
     // Bug fix #1: isExecutingSequence SELALU di-reset
     isExecutingSequence = false;
-    controlActive = false;
+    controlActiveUntil = 0;
     console.log(`[Rule Engine] State di-reset.`);
   }
 });
@@ -467,12 +472,16 @@ setInterval(() => {
 // Paket control 88-byte (0xef 0x02...) MENGHENTIKAN video stream jika dikirim terus.
 // Hanya kirim control saat ada command aktif (stick bukan netral, atau flag aktif).
 // ==========================
-let controlActive = false;
+let controlActiveUntil = 0;
+
+function markControlActive(ms = 1000) {
+  controlActiveUntil = Date.now() + ms;
+}
 
 setInterval(() => {
   const hasStickInput = roll !== 128 || pitch !== 128 || yaw !== 128 || throttle !== 128;
   const hasFlags = flags !== 0;
-  const shouldSend = hasStickInput || hasFlags || controlActive;
+  const shouldSend = hasStickInput || hasFlags || Date.now() < controlActiveUntil;
 
   if (shouldSend) {
     sendPacket();
@@ -480,19 +489,62 @@ setInterval(() => {
 }, INTERVAL);
 
 // ==========================
+// AUTO-BIND FLOW ON START / ARM
+// Toy drone D16 membutuhkan sweep Throttle UP -> DOWN -> NEUTRAL untuk pairing
+// ==========================
+async function runBindSequence() {
+  console.log("🎬 [Bind] Memulai handshake pairing drone...");
+  
+  // 1. Pastikan stick di tengah
+  roll = 128; pitch = 128; yaw = 128; throttle = 128;
+  flags = 0;
+  markControlActive(5000); // Biarkan control loop mengirim paket selama 5 detik ke depan
+  await sleep(500);
+
+  // 2. Throttle UP (255)
+  console.log("   ↑ Throttle UP (255) - Handshake");
+  throttle = 255;
+  await sleep(800);
+
+  // 3. Throttle NEUTRAL (128)
+  console.log("   - Throttle NEUTRAL (128)");
+  throttle = 128;
+  await sleep(300);
+
+  // 4. Throttle DOWN (0)
+  console.log("   ↓ Throttle DOWN (0) - Pairing lock");
+  throttle = 0;
+  await sleep(800);
+
+  // 5. Kembalikan ke NEUTRAL
+  console.log("   - Throttle NEUTRAL (128) - Pairing selesai");
+  throttle = 128;
+  await sleep(1000);
+}
+
+// ==========================
 // COMMAND HANDLER
 // ==========================
 app.post("/command", (req, res) => {
   const cmd = req.body.command;
   lastCommandAt = Date.now();
-  controlActive = true; // Aktifkan heartbeat selama ada command
+  markControlActive(1500); // Aktifkan heartbeat selama 1.5 detik sejak command diterima
 
   switch (cmd) {
     // --- ARM ---
-    // Menyala tanpa terbang (Unlock Motor)
+    // Menyala tanpa terbang (Unlock Motor + Auto Bind jika belum)
     case "arm":
-      roll = pitch = yaw = throttle = 128;
-      pulseFlag(0x40, 1000); // 0x40 adalah standar byte Unlock Motor untuk wifi_uav
+      (async () => {
+        try {
+          await runBindSequence();
+          console.log("   🔓 Mengirim sinyal UNLOCK MOTOR (0x40)...");
+          pulseFlag(0x40, 1500);
+          await sleep(1500);
+          console.log("✅ [Arming Flow] Drone berhasil di-ARM dan siap terbang!");
+        } catch (err) {
+          console.error("❌ Error during arming:", err);
+        }
+      })();
       break;
 
     // --- TAKEOFF ---

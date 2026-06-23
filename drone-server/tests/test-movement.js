@@ -3,7 +3,7 @@
 // Uses node:assert/strict (no external deps needed)
 // ============================================================
 const assert = require("node:assert/strict");
-const mc = require("./d16MovementController");
+const mc = require("../archive/d16MovementController");
 
 let sentPackets = [];
 mc.init((packet, port, host) => {
@@ -14,7 +14,6 @@ let passed = 0;
 let failed = 0;
 
 function test(name, fn) {
-  s
   try {
     fn();
     console.log(`  ✅ ${name}`);

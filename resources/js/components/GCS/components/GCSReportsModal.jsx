@@ -25,26 +25,26 @@ const GCSReportsModal = ({ isOpen, onClose, flightLogs, setFlightLogs, handleExp
 
   return (
     <div className="fixed inset-0 z-[60] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="border border-slate-200 rounded-2xl shadow-2xl w-[980px] max-w-[95%] h-[88vh] flex flex-col overflow-hidden bg-white">
+      <div className={`border rounded-2xl shadow-2xl w-[980px] max-w-[95%] h-[88vh] flex flex-col overflow-hidden ${t('border-slate-800 bg-slate-900 text-slate-100', 'border-slate-200 bg-white text-slate-800')}`}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50 shrink-0">
+        <div className={`flex items-center justify-between px-5 py-3.5 border-b shrink-0 ${t('border-slate-800 bg-slate-950/40 border-slate-800', 'border-slate-200 bg-slate-50 border-slate-200')}`}>
           <div className="flex items-center gap-2 text-orange-600">
             <FileText className="w-4 h-4" />
             <span className="font-extrabold uppercase text-xs tracking-widest">Dashboard Analisis Misi & Evaluasi Algoritma</span>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-rose-500 transition rounded-lg p-1 hover:bg-rose-50">
+          <button onClick={onClose} className={`transition rounded-lg p-1 ${t('text-slate-500 hover:text-rose-400 hover:bg-rose-500/10', 'text-slate-400 hover:text-rose-500 hover:bg-rose-50')}`}>
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5 bg-slate-50">
+        <div className={`flex-1 overflow-y-auto p-5 flex flex-col gap-5 ${t('bg-slate-950', 'bg-slate-50')}`}>
 
           {/* Summary Cards */}
           <div className="grid grid-cols-4 gap-3 shrink-0">
             {summaryCards.map(({ label, value, color, bg, Icon, iconColor }) => (
-              <div key={label} className={`p-4 rounded-xl border shadow-sm ${bg} bg-white`}>
+              <div key={label} className={`p-4 rounded-xl border shadow-sm ${t('bg-slate-900 border-slate-800 text-white', 'bg-white border-slate-200 text-slate-800')}`}>
                 <span className={`text-[9px] font-extrabold tracking-widest flex items-center gap-1.5 mb-2 text-slate-400`}>
                   <Icon className={`w-3.5 h-3.5 ${iconColor}`} /> {label}
                 </span>
@@ -55,28 +55,28 @@ const GCSReportsModal = ({ isOpen, onClose, flightLogs, setFlightLogs, handleExp
 
           {/* Analisis Komparatif */}
           {flightLogs.length > 0 && (
-            <div className="p-5 rounded-xl border bg-blue-50 border-blue-200 shadow-sm">
+            <div className={`p-5 rounded-xl border shadow-sm ${t('bg-blue-950/30 border-blue-900/40 text-blue-300', 'bg-blue-50 border-blue-200 text-slate-700')}`}>
               <div className="text-[11px] font-extrabold tracking-widest mb-3 flex items-center gap-2 uppercase text-blue-700">
                 <Activity className="w-4 h-4" /> Kesimpulan Analitik ({flightLogs.length} Trip)
               </div>
-              <p className="text-[13px] leading-relaxed mb-4 text-slate-700">
+              <p className={`text-[13px] leading-relaxed mb-4 ${t('text-slate-300', 'text-slate-700')}`}>
                 Secara kumulatif, <strong>Mode QLV</strong> menghemat waktu{' '}
                 <strong className="text-orange-600 text-xl mx-1">{Math.max(0, totalTradTime - totalQlvTime).toFixed(0)} detik</strong>
                 dan daya{' '}
                 <strong className="text-orange-600 text-xl mx-1">{Math.max(0, totalTradBat - totalQlvBat).toFixed(2)}%</strong>
                 vs Tradisional.
               </p>
-              <div className="text-xs font-bold p-4 rounded-lg border bg-emerald-50 border-emerald-200 text-emerald-700">
+              <div className={`text-xs font-bold p-4 rounded-lg border ${t('bg-emerald-950/30 border-emerald-900/40 text-emerald-400', 'bg-emerald-50 border-emerald-200 text-emerald-700')}`}>
                 REKOMENDASI: Gunakan "Hybrid" + "QLV" untuk efisiensi area luas, atau "Hybrid" + "Tradisional" untuk inspeksi kematangan detail.
               </div>
             </div>
           )}
 
           {/* Log Table */}
-          <div className="flex-1 border border-slate-200 rounded-xl overflow-hidden flex flex-col min-h-[250px] bg-white shadow-sm">
+          <div className={`flex-1 border rounded-xl overflow-hidden flex flex-col min-h-[250px] shadow-sm ${t('bg-slate-900 border-slate-800', 'bg-white border-slate-200')}`}>
             <div className="overflow-y-auto flex-1">
               <table className="w-full text-[10px]">
-                <thead className="sticky top-0 border-b bg-slate-100 text-slate-600 border-slate-200">
+                <thead className={`sticky top-0 border-b ${t('bg-slate-800 text-slate-300 border-slate-700', 'bg-slate-100 text-slate-600 border-slate-200')}`}>
                   <tr>
                     <th className="p-3 text-left">WAKTU</th>
                     <th className="p-3 text-left">ID MISI</th>
@@ -89,7 +89,7 @@ const GCSReportsModal = ({ isOpen, onClose, flightLogs, setFlightLogs, handleExp
                     <th className="p-3 text-center text-orange-500">MATANG</th>
                   </tr>
                 </thead>
-                <tbody className="text-slate-700">
+                <tbody className={t('text-slate-300', 'text-slate-700')}>
                   {flightLogs.length === 0 ? (
                     <tr>
                       <td colSpan="9" className="text-center p-8 italic text-slate-400">
@@ -97,7 +97,7 @@ const GCSReportsModal = ({ isOpen, onClose, flightLogs, setFlightLogs, handleExp
                       </td>
                     </tr>
                   ) : flightLogs.map(log => (
-                    <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50">
+                    <tr key={log.id} className={`border-b hover:bg-slate-800/20 ${t('border-slate-800/50', 'border-slate-100 hover:bg-slate-50')}`}>
                       <td className="p-3 text-slate-400 font-mono text-[9px]">{log.date}</td>
                       <td className="p-3 font-bold text-blue-700">{log.name}</td>
                       <td className="p-3 text-center text-blue-600 font-bold">{log.nav === 'live_reckoning' ? 'Live' : log.nav === 'dead_reckoning' ? 'Dead Rec.' : 'Hybrid'}</td>
@@ -116,13 +116,13 @@ const GCSReportsModal = ({ isOpen, onClose, flightLogs, setFlightLogs, handleExp
         </div>
 
         {/* Footer */}
-        <div className="p-3 flex justify-between items-center shrink-0 border-t border-slate-200 bg-white">
+        <div className={`p-3 flex justify-between items-center shrink-0 border-t ${t('border-slate-800 bg-slate-900', 'border-slate-200 bg-white')}`}>
           <span className="text-[9px] font-mono text-slate-400">*Log diperbarui otomatis setiap drone selesai Landing.</span>
           <div className="flex gap-2">
             <button
               onClick={() => setFlightLogs([])}
               disabled={!flightLogs.length}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10px] font-bold disabled:opacity-50 border bg-white hover:bg-rose-50 text-rose-600 border-rose-200 transition"
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[10px] font-bold disabled:opacity-50 border transition ${t('bg-slate-900 border-slate-800 hover:bg-rose-950/30 text-rose-400', 'bg-white border-rose-200 hover:bg-rose-50 text-rose-600')}`}
             >
               <Trash2 className="w-3.5 h-3.5" /> CLEAR LOG
             </button>

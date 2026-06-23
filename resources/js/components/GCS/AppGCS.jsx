@@ -32,7 +32,7 @@ const AppGCS = () => {
   // Tema & Fullscreen
   const [theme, setTheme] = useState('light');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const t = (darkClass, lightClass) => lightClass; // always light mode
+  const t = (darkClass, lightClass) => theme === 'dark' ? darkClass : lightClass;
   const toggleFullScreen = () => setIsFullscreen(!isFullscreen);
 
   // PiP Camera floating state
@@ -133,6 +133,18 @@ const AppGCS = () => {
   // Algoritma & Mode Scan
   const [navAlgorithm, setNavAlgorithm] = useState('');
   const [scanMode, setScanMode] = useState('');
+
+  // ── Dead Reckoning Mission State ──
+  const [drSequence, setDrSequence]       = useState([]);   // instruksi dari DB
+  const [drLoading, setDrLoading]         = useState(false); // fetch loading
+  const [drRunning, setDrRunning]         = useState(false); // misi berjalan
+  const [drCurrentStep, setDrCurrentStep] = useState(-1);   // index step aktif
+  const [drError, setDrError]             = useState('');
+  // Posisi animasi drone di SVG map (0–1 normalized)
+  const [droneAnimPos, setDroneAnimPos]   = useState({ x: 0.5, y: 0.5, yawDeg: 0 });
+  const [droneTrail, setDroneTrail]       = useState([]);    // [{x,y}] jejak path
+  const drAnimTimerRef                    = useRef(null);
+  const drRunningRef                      = useRef(false);   // ref agar accessible di closure
 
   // Waypoints & Mission
   const [waypoints, setWaypoints] = useState([]);
@@ -465,6 +477,124 @@ const AppGCS = () => {
     }
   };
   const formatTime = formatFlightTime;
+
+  // ============================================================
+  // DEAD RECKONING — fetch sequence + execute + animasi
+  // ============================================================
+  const handleStartDeadReckoning = useCallback(async () => {
+    if (drRunningRef.current) {
+      setCockpitWarning('⚠ Misi dead reckoning sedang berjalan!');
+      setTimeout(() => setCockpitWarning(''), 3000);
+      return;
+    }
+
+    setDrError('');
+    setDrLoading(true);
+
+    try {
+      // 1. Ambil sequence dari DB
+      const seqRes  = await fetch('/api/dead-reckoning/sequence');
+      const seqData = await seqRes.json();
+      const seq     = seqData?.sequence ?? [];
+
+      if (!seq.length) {
+        setDrError('Sequence kosong. Buat instruksi di halaman Rule Engine terlebih dahulu.');
+        setDrLoading(false);
+        return;
+      }
+      setDrSequence(seq);
+      setDrLoading(false);
+
+      // 2. Kirim ke drone (jika mode real)
+      if (droneMode === 'real') {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+        const execRes = await fetch('/drone/execute-sequence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+          body: JSON.stringify({ sequence: seq }),
+        });
+        const execData = await execRes.json();
+        if (!execRes.ok) {
+          setDrError(execData?.error ?? 'Gagal memulai misi di drone server.');
+          return;
+        }
+      }
+
+      // 3. Mulai animasi di GCS (simultan, independent dari drone fisik)
+      drRunningRef.current = true;
+      setDrRunning(true);
+      setDrCurrentStep(0);
+
+      // Reset posisi drone ke tengah SVG, trail kosong
+      const startPos = { x: 0.5, y: 0.85, yawDeg: 0 };
+      setDroneAnimPos(startPos);
+      setDroneTrail([{ x: startPos.x, y: startPos.y }]);
+
+      // Helper: hitung durasi step dalam ms
+      const stepMs = (step) => {
+        const raw = parseFloat(step.durasi) || 1;
+        if (step.satuan_waktu === 'menit')  return Math.min(raw * 60000, 30000); // cap 30s untuk animasi
+        if (step.satuan_waktu === 'detik')  return Math.min(raw * 1000,  15000);
+        return Math.min(raw, 10000); // milidetik as-is
+      };
+
+      // Map aksi → delta posisi & yaw pada SVG (y inverted: maju = y kecil = naik di SVG)
+      const STEP_SIZE = 0.08; // besar gerak per detik efektif
+      const actionDelta = (action) => {
+        const a = (action || '').toLowerCase();
+        if (a.includes('maju'))                return { dx: 0,          dy: -STEP_SIZE, dyaw: 0   };
+        if (a.includes('mundur'))              return { dx: 0,          dy:  STEP_SIZE, dyaw: 0   };
+        if (a.includes('roll kanan') || a.includes('belok kanan')) return { dx:  STEP_SIZE, dy: 0, dyaw: 0 };
+        if (a.includes('roll kiri')  || a.includes('belok kiri'))  return { dx: -STEP_SIZE, dy: 0, dyaw: 0 };
+        if (a.includes('rotasi kanan'))        return { dx: 0, dy: 0, dyaw:  45 };
+        if (a.includes('rotasi kiri'))         return { dx: 0, dy: 0, dyaw: -45 };
+        if (a.includes('naik') || a.includes('turun')) return { dx: 0, dy: 0, dyaw: 0 }; // altitude only
+        return { dx: 0, dy: 0, dyaw: 0 }; // diam/hover
+      };
+
+      let posX = startPos.x, posY = startPos.y, yaw = 0;
+
+      // Jalankan setiap step satu per satu (async sequential)
+      for (let i = 0; i < seq.length; i++) {
+        if (!drRunningRef.current) break; // stop jika dibatalkan
+        setDrCurrentStep(i);
+        const step = seq[i];
+        const durationMs = stepMs(step);
+        const { dx, dy, dyaw } = actionDelta(step.aksi);
+
+        // Animasikan gerakan selama durationMs dengan update tiap 200ms
+        const frames = Math.max(1, Math.round(durationMs / 200));
+        for (let f = 0; f < frames; f++) {
+          if (!drRunningRef.current) break;
+          await new Promise(res => setTimeout(res, 200));
+          posX = Math.max(0.05, Math.min(0.95, posX + dx / frames));
+          posY = Math.max(0.05, Math.min(0.95, posY + dy / frames));
+          yaw  = (yaw + dyaw / frames + 360) % 360;
+          const snap = { x: posX, y: posY };
+          setDroneAnimPos({ x: posX, y: posY, yawDeg: yaw });
+          setDroneTrail(prev => [...prev.slice(-60), snap]); // simpan max 60 titik trail
+        }
+      }
+
+    } catch (err) {
+      setDrError('Error: ' + err.message);
+      console.error('[DR]', err);
+    } finally {
+      drRunningRef.current = false;
+      setDrRunning(false);
+      setDrCurrentStep(-1);
+      setDrLoading(false);
+    }
+  }, [droneMode]);
+
+  // Stop misi DR paksa
+  const handleStopDeadReckoning = useCallback(() => {
+    drRunningRef.current = false;
+    setDrRunning(false);
+    setDrCurrentStep(-1);
+    if (droneMode === 'real') handleDroneCommand('emergency');
+  }, [droneMode, handleDroneCommand]);
+
 
   // --- GEMINI AI ASSISTANT ---
   const handleAskGemini = async () => {
@@ -870,9 +1000,13 @@ const AppGCS = () => {
   // --- FLIGHT CONTROLS ---
   const handleStartFlight = () => {
     if (!droneMode) { setCockpitWarning('Pilih Mode Sistem!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
-    if (!navAlgorithm || !scanMode) { setCockpitWarning('Algoritma Scan Kosong!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
-    if (scanMode === 'traditional' && waypoints.length !== 3) { setCockpitWarning('Pilih 3 Pohon (Awal L1, Akhir L1, Lajur 2)!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
-    if (scanMode === 'qlv' && waypoints.length === 0) { setCockpitWarning('Pilih 1 Pohon Awal untuk QLV!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
+    if (!navAlgorithm) { setCockpitWarning('Pilih Algoritma Navigasi!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
+    // Dead Reckoning tidak butuh scanMode — dikendalikan oleh rule engine
+    if (navAlgorithm !== 'dead_reckoning') {
+      if (!scanMode) { setCockpitWarning('Pilih Mode Scan!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
+      if (scanMode === 'traditional' && waypoints.length !== 3) { setCockpitWarning('Pilih 3 Pohon (Awal L1, Akhir L1, Lajur 2)!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
+      if (scanMode === 'qlv' && waypoints.length === 0) { setCockpitWarning('Pilih 1 Pohon Awal untuk QLV!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
+    }
     const path = scanMode === 'qlv' ? qlvPath : scanMode === 'traditional' ? tradPath : waypoints;
     activePathRef.current = path;
     // Simpan data misi untuk auto-save saat landing
@@ -958,6 +1092,28 @@ const AppGCS = () => {
   };
 
   const handleSaveMission = async () => {
+    // Dead Reckoning tidak butuh waypoints/scanMode — validasi berbeda
+    if (navAlgorithm === 'dead_reckoning') {
+      // Untuk DR: cukup punya missionName dan navAlgorithm
+      const localData = {
+        name: missionName || 'Misi Dead Reckoning',
+        wpCount: 'Rule Engine',
+        algorithm: navAlgorithm,
+        scan: 'dead_reckoning',
+        date: new Date().toLocaleTimeString(),
+        waypointsData: [],
+        configData: { ...config }
+      };
+      const nm = { id: `MSN-${Date.now()}`, ...localData };
+      setSavedMissions(prev => [nm, ...prev]);
+      setSelectedMissionId(nm.id);
+      setIsMissionSaved(true); setIsMapActive(false); setEditingMissionId(null); setActiveTab('history');
+      setWarning('Misi Dead Reckoning tersimpan ke rekap!');
+      setTimeout(() => setWarning(''), 3000);
+      return;
+    }
+
+    // Validasi untuk algoritma lain (traditional / qlv)
     if (scanMode === 'traditional' && waypoints.length !== 3) { setWarning('Pilih tepat 3 pohon!'); setTimeout(() => setWarning(''), 3000); return; }
     if (scanMode === 'qlv' && waypoints.length === 0) { setWarning('Pilih 1 Pohon Awal!'); setTimeout(() => setWarning(''), 3000); return; }
     if (!navAlgorithm || !scanMode) return;
@@ -1159,6 +1315,10 @@ const AppGCS = () => {
           droneFlightState={droneFlightState}
           flightStatusUI={flightStatusUI}
           t={t}
+          drRunning={drRunning}
+          drCurrentStep={drCurrentStep}
+          drSequence={drSequence}
+          handleStopDeadReckoning={handleStopDeadReckoning}
         />
 
         {/* CENTER + RIGHT — existing panel */}
@@ -1176,6 +1336,17 @@ const AppGCS = () => {
           setNavAlgorithm={setNavAlgorithm}
           scanMode={scanMode}
           setScanMode={setScanMode}
+
+          drSequence={drSequence}
+          drLoading={drLoading}
+          drRunning={drRunning}
+          drCurrentStep={drCurrentStep}
+          drError={drError}
+          handleStartDeadReckoning={handleStartDeadReckoning}
+          handleStopDeadReckoning={handleStopDeadReckoning}
+
+          droneAnimPos={droneAnimPos}
+          droneTrail={droneTrail}
 
           missionName={missionName}
           setMissionName={setMissionName}

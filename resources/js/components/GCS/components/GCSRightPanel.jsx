@@ -3,7 +3,7 @@ import {
   TreeDeciduous, Navigation, MousePointerClick, Save, Edit,
   Camera, BarChart3, Send, Trash2, Database, TableProperties,
   MapPin, CheckSquare, Map as MapIcon, Download, Archive,
-  CheckCircle2, Activity, Layers, Cpu,
+  CheckCircle2, Activity, Layers, Cpu, Play, Square, Lock, Loader2,
 } from 'lucide-react';
 import { homeWP } from '../utils/gcsConstants';
 
@@ -20,6 +20,11 @@ const GCSRightPanel = ({
   // Algoritma & Scan
   navAlgorithm, setNavAlgorithm,
   scanMode, setScanMode,
+
+  // Dead Reckoning
+  drSequence, drLoading, drRunning, drCurrentStep, drError,
+  handleStartDeadReckoning, handleStopDeadReckoning,
+  droneAnimPos, droneTrail,
 
   // Misi & Waypoints
   missionName, setMissionName,
@@ -161,6 +166,36 @@ const GCSRightPanel = ({
                     </g>
                   );
                 })}
+
+                {/* ✈ Dead Reckoning Drone Trail + Animated Icon */}
+                {droneTrail && droneTrail.length > 1 && (() => {
+                  const W = max_x + 50; const H = max_y + 40;
+                  const toSvg = (p) => ({ x: p.x * W - 35, y: p.y * H - 20 });
+                  const trailPts = droneTrail.map(toSvg).map(p => `${p.x},${p.y}`).join(' ');
+                  const cur = toSvg(droneAnimPos);
+                  return (
+                    <g>
+                      {/* Trail path */}
+                      <polyline points={trailPts} fill="none" stroke="#3b82f6" strokeWidth="1.2"
+                        strokeDasharray="2 1" opacity="0.55" strokeLinecap="round" />
+                      {/* Drone icon */}
+                      <g transform={`translate(${cur.x}, ${cur.y}) rotate(${droneAnimPos?.yawDeg ?? 0})`}>
+                        {/* Glow pulse */}
+                        <circle r="5" fill="#3b82f6" opacity="0.15" className="animate-ping" style={{transformOrigin:'0 0'}} />
+                        {/* Body */}
+                        <polygon points="0,-4 3,3 0,1.5 -3,3" fill="#2563eb" stroke="#fff" strokeWidth="0.6" />
+                        <circle r="1.2" fill="#facc15" />
+                        {/* Arms */}
+                        {[[-3,-3],[3,-3],[-3,3],[3,3]].map(([ax,ay],i) => (
+                          <g key={i}>
+                            <line x1="0" y1="0" x2={ax} y2={ay} stroke="#94a3b8" strokeWidth="0.6" />
+                            <circle cx={ax} cy={ay} r="1.2" fill="#1e40af" stroke="#bfdbfe" strokeWidth="0.4" />
+                          </g>
+                        ))}
+                      </g>
+                    </g>
+                  );
+                })()}
 
                 {/* HOME Point */}
                 <g transform={`translate(${homeWP.x}, ${homeWP.y})`}>
@@ -327,23 +362,128 @@ const GCSRightPanel = ({
                 <h3 className="text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 text-blue-700">
                   <Navigation className="w-3.5 h-3.5" /> Navigasi & Mode Scan
                 </h3>
+
+                {/* Algoritma Selector */}
                 <div>
                   <label className="text-[8px] font-bold tracking-widest block mb-1 text-slate-400">ALGORITMA <span className="text-rose-500">*</span></label>
-                  <select value={navAlgorithm} onChange={(e) => setNavAlgorithm(e.target.value)} disabled={isMissionSaved} className="w-full border border-slate-200 rounded-lg p-2 text-[10px] font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 text-slate-800 bg-white">
-                    <option value="">Pilih Algoritma...</option>
-                    <option value="dead_reckoning">Dead Reckoning</option>
-                    <option value="live_reckoning">Live Reckoning</option>
-                    <option value="hybrid">Hybrid System</option>
-                  </select>
+                  <div className="flex flex-col gap-1">
+                    {/* Dead Reckoning — AKTIF */}
+                    <button
+                      onClick={() => setNavAlgorithm('dead_reckoning')}
+                      disabled={drRunning}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg border text-[10px] font-semibold transition ${
+                        navAlgorithm === 'dead_reckoning'
+                          ? 'bg-blue-600 border-blue-500 text-white shadow-md'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Navigation className="w-3.5 h-3.5" />
+                        Dead Reckoning
+                      </span>
+                      {navAlgorithm === 'dead_reckoning' && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </button>
+
+                    {/* Coming Soon algorithms */}
+                    {[{val:'live_reckoning', label:'Live Reckoning'}, {val:'hybrid', label:'Hybrid System'}].map(alg => (
+                      <div key={alg.val}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg border border-slate-100 bg-slate-50 text-[10px] text-slate-400 cursor-not-allowed"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Lock className="w-3 h-3" />
+                          {alg.label}
+                        </span>
+                        <span className="text-[8px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Segera Hadir</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[8px] font-bold tracking-widest block mb-1 text-slate-400">MODE SCAN <span className="text-rose-500">*</span></label>
-                  <select value={scanMode} onChange={(e) => setScanMode(e.target.value)} disabled={isMissionSaved} className="w-full border border-slate-200 rounded-lg p-2 text-[10px] font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 text-slate-800 bg-white">
-                    <option value="">Pilih Mode Scan...</option>
-                    <option value="traditional">Traditional Scan</option>
-                    <option value="qlv">QLV (Koridor)</option>
-                  </select>
-                </div>
+
+                {/* Mode Scan — hanya untuk algoritma non-DR */}
+                {navAlgorithm !== 'dead_reckoning' && (
+                  <div>
+                    <label className="text-[8px] font-bold tracking-widest block mb-1 text-slate-400">MODE SCAN <span className="text-rose-500">*</span></label>
+                    <select value={scanMode} onChange={(e) => setScanMode(e.target.value)} disabled={isMissionSaved} className="w-full border border-slate-200 rounded-lg p-2 text-[10px] font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 text-slate-800 bg-white">
+                      <option value="">Pilih Mode Scan...</option>
+                      <option value="traditional">Traditional Scan</option>
+                      <option value="qlv">QLV (Koridor)</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Panel Dead Reckoning — preview + kontrol misi */}
+                {navAlgorithm === 'dead_reckoning' && (
+                  <div className="flex flex-col gap-2">
+
+                    {/* Error */}
+                    {drError && (
+                      <div className="text-[9px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 font-semibold">
+                        ⚠ {drError}
+                      </div>
+                    )}
+
+                    {/* Progress saat running */}
+                    {drRunning && drCurrentStep >= 0 && drSequence.length > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-bold text-blue-700">🚁 MISI BERJALAN</span>
+                          <span className="text-[9px] font-mono text-blue-600">{drCurrentStep + 1} / {drSequence.length}</span>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="w-full bg-blue-100 rounded-full h-1.5">
+                          <div
+                            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                            style={{ width: `${((drCurrentStep + 1) / drSequence.length) * 100}%` }}
+                          />
+                        </div>
+                        {/* Step aktif */}
+                        <div className="text-[9px] text-blue-600 font-medium truncate">
+                          ▶ {drSequence[drCurrentStep]?.aksi} ({drSequence[drCurrentStep]?.durasi} {drSequence[drCurrentStep]?.satuan_waktu})
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview sequence (tidak running) */}
+                    {!drRunning && drSequence.length > 0 && (
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 max-h-28 overflow-y-auto">
+                        <div className="text-[8px] font-bold text-slate-500 mb-1 tracking-widest">PREVIEW INSTRUKSI ({drSequence.length} STEP)</div>
+                        {drSequence.map((s, i) => (
+                          <div key={s.id} className="flex items-center gap-1.5 py-0.5 text-[9px] text-slate-600">
+                            <span className="font-bold text-slate-400 w-4">{i+1}.</span>
+                            <span className="truncate">{s.aksi}</span>
+                            <span className="ml-auto text-slate-400 shrink-0">{s.durasi}{s.satuan_waktu.slice(0,1)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Tombol Jalankan / Hentikan */}
+                    {!drRunning ? (
+                      <button
+                        onClick={handleStartDeadReckoning}
+                        disabled={drLoading}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-bold transition bg-emerald-600 hover:bg-emerald-500 text-white shadow-md disabled:opacity-50"
+                      >
+                        {drLoading
+                          ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Memuat sequence...</>
+                          : <><Play className="w-3.5 h-3.5" /> Jalankan Dead Reckoning</>
+                        }
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleStopDeadReckoning}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-bold transition bg-rose-600 hover:bg-rose-500 text-white shadow-md animate-pulse"
+                      >
+                        <Square className="w-3.5 h-3.5" /> Hentikan Misi
+                      </button>
+                    )}
+
+                    <p className="text-[8px] text-slate-400 leading-relaxed">
+                      Instruksi diambil dari <strong>Rule Engine Dead Reckoning</strong>.
+                      Drone akan ARM, Takeoff, lalu menjalankan urutan instruksi secara otomatis.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* 3. Identitas & Kontrol Misi */}
@@ -357,12 +497,24 @@ const GCSRightPanel = ({
                   disabled={isMapActive || isMissionSaved}
                   className="w-full border border-slate-200 rounded-lg p-2 text-[10px] font-bold focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 disabled:opacity-50 disabled:bg-slate-50 text-slate-800 bg-white"
                 />
-                {!isMapActive && !isMissionSaved && (
+                {/* Dead Reckoning: langsung tampilkan simpan tanpa perlu aktifkan peta */}
+                {navAlgorithm === 'dead_reckoning' && !isMissionSaved && (
+                  <button
+                    onClick={handleSaveMission}
+                    disabled={!missionName.trim()}
+                    className="w-full flex items-center justify-center gap-1.5 p-2.5 rounded-lg text-[9px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 transition shadow-md"
+                  >
+                    <Save className="w-3 h-3" /> SIMPAN KE REKAP
+                  </button>
+                )}
+
+                {/* Algoritma lain: perlu aktifkan peta & klik waypoint dulu */}
+                {navAlgorithm !== 'dead_reckoning' && !isMapActive && !isMissionSaved && (
                   <button onClick={handleStartWaypoint} className="w-full flex items-center justify-center gap-1.5 p-2.5 rounded-lg text-[9px] font-bold bg-blue-600 hover:bg-blue-500 text-white transition shadow-md">
                     <MapPin className="w-3.5 h-3.5" /> AKTIFKAN PETA / BUAT MISI
                   </button>
                 )}
-                {isMapActive && (
+                {navAlgorithm !== 'dead_reckoning' && isMapActive && (
                   <div className={`border p-2.5 rounded-lg flex flex-col gap-2 ${editingMissionId ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'}`}>
                     <span className={`text-[9px] font-bold flex items-center gap-1 ${editingMissionId ? 'text-amber-700' : 'text-blue-700'}`}>
                       {editingMissionId ? <Edit className="w-3 h-3" /> : <MousePointerClick className="w-3 h-3" />}
@@ -377,6 +529,7 @@ const GCSRightPanel = ({
                     </button>
                   </div>
                 )}
+
               </div>
 
               {/* 4. Upload & Reset */}

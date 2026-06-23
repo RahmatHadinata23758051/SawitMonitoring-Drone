@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   GaugeCircle, Minimize2, Maximize2, Battery, Clock,
   AlertTriangle, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
-  RotateCcw, RotateCw, Shield, Play, Home
+  RotateCcw, RotateCw, Shield, Play, Home, Square, Navigation
 } from 'lucide-react';
 
 /**
@@ -17,6 +17,8 @@ const GCSLeftPanel = ({
   telemetry, flightTime, cockpitWarning, formatTime,
   handleStartFlight, handleRTH, handleDroneCommand, droneFlightState,
   t,
+  // Dead Reckoning
+  drRunning, drCurrentStep, drSequence, handleStopDeadReckoning,
   // Unused props (kept for interface compat)
   isVideoConnected, webcamStream, videoRef, liveStreamUrl,
   setIsVideoConnected, setAlertPopup, isPipVisible, setIsPipVisible,
@@ -126,6 +128,51 @@ const GCSLeftPanel = ({
       {uiAlert && (
         <div className="bg-amber-50 border border-amber-300 rounded-lg px-3 py-2 text-[10px] font-semibold text-amber-800">
           {uiAlert}
+        </div>
+      )}
+
+      {/* ── Dead Reckoning Mission Status ── */}
+      {drRunning && drSequence && drSequence.length > 0 && (
+        <div className="bg-blue-600 text-white rounded-lg overflow-hidden shadow-lg">
+          {/* Header */}
+          <div className="flex items-center justify-between px-3 py-2 bg-blue-700">
+            <span className="text-[10px] font-bold flex items-center gap-1.5">
+              <Navigation className="w-3.5 h-3.5 animate-pulse" />
+              DEAD RECKONING AKTIF
+            </span>
+            <span className="text-[9px] font-mono bg-blue-800 px-2 py-0.5 rounded-full">
+              {(drCurrentStep ?? 0) + 1} / {drSequence.length}
+            </span>
+          </div>
+
+          {/* Content */}
+          <div className="px-3 py-2 flex flex-col gap-2">
+            {/* Step name */}
+            {drCurrentStep >= 0 && drSequence[drCurrentStep] && (
+              <div className="text-[11px] font-semibold">
+                ▶ {drSequence[drCurrentStep].aksi}
+                <span className="text-blue-200 text-[9px] ml-1.5">
+                  ({drSequence[drCurrentStep].durasi} {drSequence[drCurrentStep].satuan_waktu})
+                </span>
+              </div>
+            )}
+
+            {/* Progress bar */}
+            <div className="w-full bg-blue-800 rounded-full h-1.5">
+              <div
+                className="bg-white h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${(((drCurrentStep ?? 0) + 1) / drSequence.length) * 100}%` }}
+              />
+            </div>
+
+            {/* Stop button */}
+            <button
+              onClick={handleStopDeadReckoning}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[9px] font-bold bg-rose-600 hover:bg-rose-500 transition"
+            >
+              <Square className="w-3 h-3" /> Hentikan Misi Darurat
+            </button>
+          </div>
         </div>
       )}
 
