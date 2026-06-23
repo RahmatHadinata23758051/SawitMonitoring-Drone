@@ -1,31 +1,15 @@
 import React from 'react';
-import { Database, Save, X, ArrowLeft, Ruler, Trees, Map } from 'lucide-react';
+import { Save, X, ArrowLeft, Ruler, Trees, Map } from 'lucide-react';
 
 const AppKebunDatasetForm = ({ dataset = null, kebuns = [], old = {}, errors = {}, routes = {}, csrfToken }) => {
     const isEdit = !!dataset;
     const actionUrl = isEdit ? routes.update : routes.store;
 
     return (
-        <div className="pt-8 pb-16 w-full bg-slate-50 min-h-screen">
+        <div className="pt-8 pb-16 w-full min-h-screen" style={{ background: '#f3f4f6' }}>
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 
-                {/* Header Section */}
-                <div className="mb-8 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <a href={routes.index} className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all shadow-sm">
-                            <ArrowLeft size={18} />
-                        </a>
-                        <nav className="hidden sm:flex" aria-label="Breadcrumb">
-                            <ol className="flex items-center space-x-2 text-sm font-medium text-slate-500">
-                                <li>Data Master</li>
-                                <li><span className="mx-2 text-slate-300">/</span></li>
-                                <li><a href={routes.index} className="hover:text-emerald-600 transition-colors">Dataset Kebun</a></li>
-                                <li><span className="mx-2 text-slate-300">/</span></li>
-                                <li className="text-slate-800 font-bold">{isEdit ? 'Ubah Data' : 'Tambah Baru'}</li>
-                            </ol>
-                        </nav>
-                    </div>
-                </div>
+
 
                 {/* Main Split Layout */}
                 <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
@@ -33,8 +17,9 @@ const AppKebunDatasetForm = ({ dataset = null, kebuns = [], old = {}, errors = {
                     {/* Left Column: Context & Info */}
                     <div className="lg:col-span-4 flex flex-col gap-6 sticky top-8">
                         <div>
-                            <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 mb-6">
-                                <Database size={28} />
+                            <div className="w-14 h-14 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-center text-emerald-600 mb-6 relative overflow-hidden">
+                                <div className="absolute inset-0 bg-emerald-50/50" />
+                                <Trees size={26} className="relative z-10" strokeWidth={1.75} />
                             </div>
                             <h1 className="text-3xl font-black text-slate-800 tracking-tight mb-3">
                                 {isEdit ? 'Ubah Dataset Kebun' : 'Input Dataset Kebun'}
@@ -67,8 +52,7 @@ const AppKebunDatasetForm = ({ dataset = null, kebuns = [], old = {}, errors = {
                     <div className="lg:col-span-8">
                         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
                             
-                            {/* Decorative top bar */}
-                            <div className="h-2 w-full bg-gradient-to-r from-emerald-400 to-teal-600"></div>
+
                             
                             <div className="p-8 sm:p-10">
                                 <form action={actionUrl} method="POST" className="space-y-8">
@@ -145,7 +129,7 @@ const AppKebunDatasetForm = ({ dataset = null, kebuns = [], old = {}, errors = {
                                         <a href={routes.index} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-6 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
                                             <X size={18} /> Batal
                                         </a>
-                                        <button type="submit" className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-8 py-3 rounded-xl font-bold hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30 hover:-translate-y-0.5 active:translate-y-0">
+                                        <button type="submit" className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-sm shadow-emerald-600/10">
                                             <Save size={18} /> Simpan Data
                                         </button>
                                     </div>
