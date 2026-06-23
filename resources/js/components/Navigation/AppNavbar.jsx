@@ -23,7 +23,8 @@ import {
     Clock,
     Cog,
     BarChart3,
-    Cpu
+    Cpu,
+    Sprout
 } from 'lucide-react';
 
 const AppNavbar = ({ 
@@ -194,7 +195,7 @@ const AppNavbar = ({
                             <DropPanel>
                                 <DropItem href={routes.droneDataset} active={isRouteActive(['drone-dataset'])} icon={Plane}>Dataset Drone</DropItem>
                                 <DropItem href={routes.kebunDataset} active={isRouteActive(['kebun-dataset'])} icon={Leaf}>Dataset Kebun</DropItem>
-                                <DropItem href={routes.sawitDataset} active={isRouteActive(['sawit-dataset'])} icon={Database}>Dataset Sawit</DropItem>
+                                <DropItem href={routes.sawitDataset} active={isRouteActive(['sawit-dataset'])} icon={Sprout}>Dataset Sawit</DropItem>
                             </DropPanel>
                         )}
                     </div>

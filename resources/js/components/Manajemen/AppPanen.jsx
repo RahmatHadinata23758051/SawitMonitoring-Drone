@@ -48,8 +48,9 @@ const AppPanen = ({ panen = [], routes = {}, csrfToken, flashSuccess }) => {
                 {/* Header & Actions */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-500/20 mb-4">
-                            <Basket size={28} />
+                        <div className="w-14 h-14 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-center text-amber-600 mb-4 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-amber-50/50" />
+                            <Basket size={26} className="relative z-10" strokeWidth={1.75} />
                         </div>
                         <h1 className="text-3xl font-black text-slate-800 tracking-tight">Manajemen Panen</h1>
                         <p className="text-slate-500 text-sm mt-2 font-medium">Rekapitulasi riwayat, target produksi, dan realisasi hasil panen kebun.</p>
@@ -60,15 +61,14 @@ const AppPanen = ({ panen = [], routes = {}, csrfToken, flashSuccess }) => {
                             <input type="text" placeholder="Cari tanggal atau kebun..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                                 className="w-full pl-12 pr-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 transition-all shadow-sm bg-white" />
                         </div>
-                        <a href={routes.create} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl py-3 px-6 text-sm font-bold hover:from-amber-600 hover:to-orange-700 transition-all shadow-lg shadow-amber-500/30 hover:-translate-y-0.5 active:translate-y-0">
-                            <Plus size={18} /> Catat Panen Baru
+                        <a href={routes.create} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl py-2.5 px-5 text-sm font-bold transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-sm shadow-amber-600/10">
+                            <Plus size={15} /> Catat Panen Baru
                         </a>
                     </div>
                 </div>
 
                 {/* Table Card */}
-                <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden relative">
-                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 to-orange-600"></div>
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
                     
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">

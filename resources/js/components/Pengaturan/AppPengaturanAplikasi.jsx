@@ -57,13 +57,13 @@ const AppPengaturanAplikasi = ({ setting = {}, routes = {}, csrfToken, flashSucc
                 
                 {/* Header Section */}
                 <div className="mb-8 flex flex-col gap-2">
-                    <h1 className="text-3xl font-black text-slate-800 flex items-center gap-3 tracking-tight">
-                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-                            <Settings size={24} />
+                    <h1 className="text-2xl font-black text-slate-800 flex items-center gap-3 tracking-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100/50 flex items-center justify-center relative overflow-hidden">
+                            <Settings size={20} strokeWidth={1.75} />
                         </div>
                         Pengaturan Aplikasi
                     </h1>
-                    <p className="text-slate-500 text-sm font-medium pl-16">Konfigurasi informasi sistem dan visual *brand* dashboard.</p>
+                    <p className="text-slate-500 text-sm font-medium pl-13">Konfigurasi informasi sistem dan visual *brand* dashboard.</p>
                 </div>
 
                 <form action={routes.store} method="post" encType="multipart/form-data">
@@ -73,17 +73,15 @@ const AppPengaturanAplikasi = ({ setting = {}, routes = {}, csrfToken, flashSucc
                         
                         {/* Left Column: Visual Branding (Logo) */}
                         <div className="lg:col-span-4 flex flex-col gap-6">
-                            <div className="bg-white shadow-xl shadow-slate-200/40 rounded-3xl p-8 border border-slate-100 flex flex-col relative overflow-hidden">
-                                {/* Decorative top gradient */}
-                                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+                            <div className="bg-white shadow-sm rounded-2xl p-8 border border-slate-200 flex flex-col relative overflow-hidden">
                                 
-                                <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2 mb-6">
-                                    <ImageIcon size={20} className="text-purple-500" /> Identitas Visual
+                                <h3 className="font-bold text-base text-slate-800 flex items-center gap-2 mb-6" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                    <ImageIcon size={18} className="text-slate-400" /> Identitas Visual
                                 </h3>
 
                                 <div 
                                     className={`border-2 border-dashed rounded-2xl w-full aspect-square flex flex-col items-center justify-center relative overflow-hidden group transition-all duration-300
-                                        ${isDragging ? 'border-purple-500 bg-purple-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300'}
+                                        ${isDragging ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300'}
                                     `}
                                     onDragOver={handleDragOver}
                                     onDragLeave={handleDragLeave}
@@ -96,17 +94,17 @@ const AppPengaturanAplikasi = ({ setting = {}, routes = {}, csrfToken, flashSucc
                                             <img src={logoPreview} alt="Logo Preview" className="object-contain w-full h-full transform transition-transform duration-500 group-hover:scale-105" />
                                             {/* Hover Actions */}
                                             <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 backdrop-blur-sm">
-                                                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 bg-white/10 hover:bg-white text-white hover:text-indigo-600 rounded-full transition-all hover:scale-110 shadow-lg border border-white/20" title="Ganti Logo">
+                                                <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 bg-white/10 hover:bg-white text-white hover:text-blue-600 rounded-xl transition-all hover:scale-110 shadow-lg border border-white/20" title="Ganti Logo">
                                                     <Upload size={20} />
                                                 </button>
-                                                <button type="button" onClick={clearLogo} className="p-3 bg-white/10 hover:bg-rose-500 text-white rounded-full transition-all hover:scale-110 shadow-lg border border-white/20" title="Hapus Logo">
+                                                <button type="button" onClick={clearLogo} className="p-3 bg-white/10 hover:bg-rose-500 text-white rounded-xl transition-all hover:scale-110 shadow-lg border border-white/20" title="Hapus Logo">
                                                     <Trash2 size={20} />
                                                 </button>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="flex flex-col items-center gap-3 text-slate-400 p-6 text-center pointer-events-none">
-                                            <div className={`p-4 rounded-full transition-colors duration-300 ${isDragging ? 'bg-purple-100 text-purple-500' : 'bg-white shadow-sm'}`}>
+                                            <div className={`p-3 rounded-xl transition-colors duration-300 ${isDragging ? 'bg-blue-100 text-blue-500' : 'bg-white shadow-sm border border-slate-200'}`}>
                                                 <Upload size={32} />
                                             </div>
                                             <div>
@@ -121,8 +119,8 @@ const AppPengaturanAplikasi = ({ setting = {}, routes = {}, csrfToken, flashSucc
                                 {!logoPreview && <input type="hidden" name="remove_logo" value="1" />}
 
                                 {/* Info Box */}
-                                <div className="mt-6 bg-purple-50 rounded-xl p-4 flex gap-3 border border-purple-100 text-purple-700">
-                                    <Info size={20} className="shrink-0 mt-0.5" />
+                                <div className="mt-6 bg-slate-50 rounded-xl p-4 flex gap-3 border border-slate-200/60 text-slate-600">
+                                    <Info size={18} className="shrink-0 mt-0.5 text-slate-400" />
                                     <p className="text-xs leading-relaxed font-medium">Logo akan ditampilkan di halaman login dan pojok kiri atas *sidebar* aplikasi.</p>
                                 </div>
                             </div>
@@ -130,63 +128,61 @@ const AppPengaturanAplikasi = ({ setting = {}, routes = {}, csrfToken, flashSucc
 
                         {/* Right Column: Text Information */}
                         <div className="lg:col-span-8 flex flex-col gap-6">
-                            <div className="bg-white shadow-xl shadow-slate-200/40 rounded-3xl p-8 border border-slate-100 relative overflow-hidden">
-                                {/* Decorative top gradient */}
-                                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 to-sky-500"></div>
+                            <div className="bg-white shadow-sm rounded-2xl p-8 border border-slate-200 relative overflow-hidden">
 
-                                <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2 mb-8 pb-4 border-b border-slate-100">
-                                    <Laptop size={20} className="text-indigo-500" /> Detail Sistem
+                                <h3 className="font-bold text-base text-slate-850 flex items-center gap-2 mb-8 pb-4 border-b border-slate-100" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                                    <Laptop size={18} className="text-slate-400" /> Detail Sistem
                                 </h3>
                                 
                                 <div className="grid md:grid-cols-2 gap-x-8 gap-y-6">
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="nama" className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <Tag size={16} className="text-slate-400" /> Nama Website
+                                        <label htmlFor="nama" className="text-xs font-bold text-slate-500 flex items-center gap-2">
+                                            <Tag size={14} className="text-slate-400" /> Nama Website
                                         </label>
                                         <input type="text" id="nama" name="nama" defaultValue={setting.nama || ''} required
                                             placeholder="Contoh: Drone GCS IPB"
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white transition-all" />
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:bg-white transition-all duration-200" />
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="nama_tab" className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <Laptop size={16} className="text-slate-400" /> Nama Tab Browser
+                                        <label htmlFor="nama_tab" className="text-xs font-bold text-slate-500 flex items-center gap-2">
+                                            <Laptop size={14} className="text-slate-400" /> Nama Tab Browser
                                         </label>
                                         <input type="text" id="nama_tab" name="nama_tab" defaultValue={setting.nama_tab || ''} required
                                             placeholder="Contoh: Dashboard - GCS"
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white transition-all" />
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:bg-white transition-all duration-200" />
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="versi" className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <ShieldCheck size={16} className="text-slate-400" /> Versi Sistem
+                                        <label htmlFor="versi" className="text-xs font-bold text-slate-500 flex items-center gap-2">
+                                            <ShieldCheck size={14} className="text-slate-400" /> Versi Sistem
                                         </label>
                                         <input type="text" id="versi" name="versi" defaultValue={setting.versi || ''} required
                                             placeholder="Contoh: v2.1.0"
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white transition-all" />
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:bg-white transition-all duration-200" />
                                     </div>
 
                                     <div className="flex flex-col gap-2">
-                                        <label htmlFor="tahun_copyright" className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <Tag size={16} className="text-slate-400" /> Tahun Hak Cipta
+                                        <label htmlFor="tahun_copyright" className="text-xs font-bold text-slate-500 flex items-center gap-2">
+                                            <Tag size={14} className="text-slate-400" /> Tahun Hak Cipta
                                         </label>
                                         <input type="text" id="tahun_copyright" name="tahun_copyright" defaultValue={setting.tahun_copyright || ''} required
                                             placeholder="Contoh: 2024"
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white transition-all" />
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:bg-white transition-all duration-200" />
                                     </div>
 
                                     <div className="flex flex-col gap-2 md:col-span-2">
-                                        <label htmlFor="copyright" className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <Info size={16} className="text-slate-400" /> Teks Hak Cipta (Copyright Footer)
+                                        <label htmlFor="copyright" className="text-xs font-bold text-slate-500 flex items-center gap-2">
+                                            <Info size={14} className="text-slate-400" /> Teks Hak Cipta (Copyright Footer)
                                         </label>
                                         <input type="text" id="copyright" name="copyright" defaultValue={setting.copyright || ''} required
                                             placeholder="Contoh: IPB University. Hak cipta dilindungi undang-undang."
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white transition-all" />
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:bg-white transition-all duration-200" />
                                     </div>
                                 </div>
                                 
                                 <div className="mt-10 pt-6 border-t border-slate-100 flex justify-end">
-                                    <button type="submit" className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:from-indigo-500 hover:to-purple-500 transition-all hover:-translate-y-0.5 active:translate-y-0">
+                                    <button type="submit" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-xl font-bold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-sm shadow-blue-600/10">
                                         <Save size={18} /> Simpan Konfigurasi
                                     </button>
                                 </div>
