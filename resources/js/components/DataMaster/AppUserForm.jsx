@@ -9,26 +9,10 @@ const AppUserForm = ({ user = null, old = {}, errors = {}, routes = {}, csrfToke
     const [showPasswordConf, setShowPasswordConf] = useState(false);
 
     return (
-        <div className="pt-8 pb-16 w-full bg-slate-50 min-h-screen">
+        <div className="pt-8 pb-16 w-full min-h-screen" style={{ background: '#f3f4f6' }}>
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 
-                {/* Header Section */}
-                <div className="mb-8 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <a href={routes.index} className="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-all shadow-sm">
-                            <ArrowLeft size={18} />
-                        </a>
-                        <nav className="hidden sm:flex" aria-label="Breadcrumb">
-                            <ol className="flex items-center space-x-2 text-sm font-medium text-slate-500">
-                                <li>Data Master</li>
-                                <li><span className="mx-2 text-slate-300">/</span></li>
-                                <li><a href={routes.index} className="hover:text-indigo-600 transition-colors">Data User</a></li>
-                                <li><span className="mx-2 text-slate-300">/</span></li>
-                                <li className="text-slate-800 font-bold">{isEdit ? 'Ubah Data' : 'Tambah Baru'}</li>
-                            </ol>
-                        </nav>
-                    </div>
-                </div>
+
 
                 {/* Main Split Layout */}
                 <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
@@ -36,8 +20,9 @@ const AppUserForm = ({ user = null, old = {}, errors = {}, routes = {}, csrfToke
                     {/* Left Column: Context & Info */}
                     <div className="lg:col-span-4 flex flex-col gap-6 sticky top-8">
                         <div>
-                            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 mb-6">
-                                <Users size={28} />
+                            <div className="w-14 h-14 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-center text-indigo-600 mb-6 relative overflow-hidden">
+                                <div className="absolute inset-0 bg-indigo-50/50" />
+                                <Users size={26} className="relative z-10" strokeWidth={1.75} />
                             </div>
                             <h1 className="text-3xl font-black text-slate-800 tracking-tight mb-3">
                                 {isEdit ? 'Ubah Data User' : 'Tambah User Baru'}
@@ -74,8 +59,7 @@ const AppUserForm = ({ user = null, old = {}, errors = {}, routes = {}, csrfToke
                     <div className="lg:col-span-8">
                         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
                             
-                            {/* Decorative top bar */}
-                            <div className="h-2 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+
                             
                             <div className="p-8 sm:p-10">
                                 <form action={actionUrl} method="POST" className="space-y-8">
@@ -155,7 +139,7 @@ const AppUserForm = ({ user = null, old = {}, errors = {}, routes = {}, csrfToke
                                         <a href={routes.index} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-6 py-3 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm">
                                             <X size={18} /> Batal
                                         </a>
-                                        <button type="submit" className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white px-8 py-3 rounded-xl font-bold hover:from-indigo-500 hover:to-indigo-400 transition-all shadow-lg shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0">
+                                        <button type="submit" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-sm shadow-indigo-600/10">
                                             <Save size={18} /> Simpan Data
                                         </button>
                                     </div>
