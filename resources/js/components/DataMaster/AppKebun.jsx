@@ -1,7 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, PenLine, Trash2, Leaf, MapPin, TreePine, LayoutGrid, Trees } from 'lucide-react';
+import { Search, Plus, PenLine, Trash2, Leaf, MapPin, Trees } from 'lucide-react';
 import ConfirmModal from '../UI/ConfirmModal';
 import { generateIdAbbrev } from '../../utils/helpers';
+
+// ---------------------------------------------------------------------------
+// Design tokens — aligned with global theme
+// ---------------------------------------------------------------------------
+const tk = {
+  pageBg:        '#f3f4f6',  // gray-100
+  card:          '#ffffff',
+  textPrimary:   '#0f172a',  // slate-900
+  textSecondary: '#475569',  // slate-600
+  textMuted:     '#94a3b8',  // slate-400
+  border:        '#e2e8f0',  // slate-200
+  borderLight:   '#f1f5f9',  // slate-100
+  accentBlue:    '#2563eb',  // blue-600
+  accentBlueLight: '#eff6ff', // blue-50
+  accentBlueMid:  '#dbeafe',  // blue-100
+  accentGreen:   '#15803d',  // green-700
+  accentGreenLight: '#f0fdf4', // green-50
+  accentGreenMid: '#dcfce7'
+};
+
+const fontDisplay = "'Manrope', sans-serif";
+const fontMono    = "'JetBrains Mono', monospace";
+const fontBody    = "'Inter', sans-serif";
 
 const AppKebun = ({ kebun = [], routes = {}, csrfToken, flashSuccess }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -33,92 +56,204 @@ const AppKebun = ({ kebun = [], routes = {}, csrfToken, flashSuccess }) => {
 
     return (
         <>
-        <div className="pt-8 pb-16 w-full bg-slate-50 min-h-screen">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-8">
+        <div 
+            className="py-6 w-full min-h-screen"
+            style={{ background: tk.pageBg, color: tk.textPrimary, fontFamily: fontBody }}
+        >
+            {/* Fonts Load check */}
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+            `}</style>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-6">
                 
                 {/* Header & Actions */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 mb-4">
-                            <Leaf size={28} />
-                        </div>
-                        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Data Kebun</h1>
-                        <p className="text-slate-500 text-sm mt-2 font-medium">Pemetaan topologi, populasi pohon, dan area blok sawit.</p>
+                        <h1 
+                            className="text-2xl font-extrabold tracking-tight"
+                            style={{ fontFamily: fontDisplay, color: tk.textPrimary, letterSpacing: '-0.02em' }}
+                        >
+                            Data Kebun
+                        </h1>
+                        <p className="text-sm mt-0.5" style={{ color: tk.textSecondary }}>
+                            Pemetaan topologi, populasi pohon, dan area blok sawit.
+                        </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0">
-                        <div className="relative w-full sm:w-72">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                            <input type="text" placeholder="Cari nama kebun atau lahan..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm bg-white" />
+                    
+                    <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto">
+                        {/* Search Input */}
+                        <div className="relative w-full sm:w-64">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                            <input 
+                                type="text" 
+                                placeholder="Cari nama kebun atau lahan..." 
+                                value={searchTerm} 
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm bg-white"
+                                style={{ color: tk.textPrimary }}
+                            />
                         </div>
-                        <a href={routes.create} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl py-3 px-6 text-sm font-bold hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30 hover:-translate-y-0.5 active:translate-y-0">
-                            <Plus size={18} /> Pemetaan Baru
+                        
+                        {/* Add Button */}
+                        <a 
+                            href={routes.create} 
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-5 text-sm font-bold text-white transition-all hover:opacity-90 shadow-sm"
+                            style={{ background: tk.accentBlue }}
+                        >
+                            <Plus size={15} /> Tambah Kebun
                         </a>
                     </div>
                 </div>
 
                 {/* Table Card */}
-                <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden relative">
-                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-400 to-teal-600"></div>
-                    
+                <div 
+                    className="rounded-xl shadow-sm border overflow-hidden bg-white"
+                    style={{ borderColor: tk.border }}
+                >
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-sm text-left">
                             <thead>
-                                <tr className="border-b border-slate-100 bg-slate-50/50">
-                                    <th className="text-left px-8 py-5 text-xs font-black text-slate-500 uppercase tracking-widest">
-                                        <div className="flex items-center gap-2"><LayoutGrid size={16} className="text-emerald-500" /> Identitas Kebun</div>
+                                <tr className="border-b" style={{ borderColor: tk.border, background: '#f8fafc' }}>
+                                    <th 
+                                        className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider"
+                                        style={{ fontFamily: fontMono, color: tk.textSecondary }}
+                                    >
+                                        Identitas Kebun
                                     </th>
-                                    <th className="text-left px-8 py-5 text-xs font-black text-slate-500 uppercase tracking-widest">
-                                        <div className="flex items-center gap-2"><TreePine size={16} className="text-emerald-500" /> Spesifikasi Area</div>
+                                    <th 
+                                        className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider"
+                                        style={{ fontFamily: fontMono, color: tk.textSecondary }}
+                                    >
+                                        Spesifikasi Area
                                     </th>
-                                    <th className="text-left px-8 py-5 text-xs font-black text-slate-500 uppercase tracking-widest">
-                                        <div className="flex items-center gap-2"><MapPin size={16} className="text-emerald-500" /> Koordinat Geografis</div>
+                                    <th 
+                                        className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider"
+                                        style={{ fontFamily: fontMono, color: tk.textSecondary }}
+                                    >
+                                        Geografis
                                     </th>
-                                    <th className="text-right px-8 py-5 text-xs font-black text-slate-500 uppercase tracking-widest">Aksi</th>
+                                    <th 
+                                        className="px-5 py-3.5 font-bold text-xs uppercase tracking-wider text-right"
+                                        style={{ fontFamily: fontMono, color: tk.textSecondary }}
+                                    >
+                                        Aksi
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y" style={{ borderColor: tk.borderLight }}>
                                 {filtered.length > 0 ? filtered.map(item => (
-                                    <tr key={item.id} className="group hover:bg-slate-50 transition-colors">
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 font-black text-lg shrink-0 shadow-sm border border-emerald-100 group-hover:bg-emerald-100 transition-colors">
-                                                    <Leaf size={24} />
+                                    <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                                        
+                                        {/* Identitas Kebun */}
+                                        <td className="px-5 py-4 align-middle">
+                                            <div className="flex items-center gap-3">
+                                                <div 
+                                                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border"
+                                                    style={{ background: tk.accentGreenLight, color: tk.accentGreen, borderColor: tk.accentGreenMid }}
+                                                >
+                                                    <Leaf className="w-4 h-4" />
                                                 </div>
                                                 <div>
-                                                    <div className="font-bold text-slate-800 text-base">{item.nama}</div>
-                                                    <div className="font-mono text-xs text-emerald-600 font-bold mt-1 bg-emerald-50 px-2 py-0.5 rounded-md inline-block border border-emerald-100">KBN-{generateIdAbbrev(item.id)}</div>
+                                                    <div className="font-bold text-sm" style={{ color: tk.textPrimary }}>
+                                                        {item.nama}
+                                                    </div>
+                                                    <div className="text-[10px] font-bold mt-0.5 px-2 py-0.5 rounded-md border inline-block" 
+                                                         style={{ 
+                                                             fontFamily: fontMono, 
+                                                             background: tk.accentGreenLight, 
+                                                             color: tk.accentGreen, 
+                                                             borderColor: tk.accentGreenMid 
+                                                         }}>
+                                                        KBN-{generateIdAbbrev(item.id)}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-5">
-                                            <div className="flex flex-col gap-1.5">
-                                                <div className="flex items-center gap-2 text-sm text-slate-700">
-                                                    <span className="font-bold">{item.luas}</span> Ha 
-                                                    <span className="text-slate-300">|</span> 
-                                                    <span className="font-bold">{item.jumlah_pohon ?? 0}</span> Pohon
+
+                                        {/* Spesifikasi Area */}
+                                        <td className="px-5 py-4 align-middle">
+                                            <div className="flex flex-col justify-center">
+                                                <div className="text-sm font-bold" style={{ color: tk.textPrimary }}>
+                                                    {item.luas} <span className="text-xs font-normal" style={{ color: tk.textSecondary }}>Ha</span>
+                                                    <span className="mx-1.5 text-slate-300">|</span>
+                                                    {item.jumlah_pohon ?? 0} <span className="text-xs font-normal" style={{ color: tk.textSecondary }}>Pohon</span>
                                                 </div>
-                                                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                                                    <LayoutGrid size={12} /> Induk: <span className="font-bold">{item.lahan?.nama || '-'}</span>
+                                                <div className="text-xs mt-0.5" style={{ color: tk.textSecondary }}>
+                                                    Induk: <span className="font-semibold text-slate-700">{item.lahan?.nama || '-'}</span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-5">
-                                            <div className="font-mono text-xs text-slate-600 bg-slate-100/50 px-3 py-1.5 rounded-lg inline-block border border-slate-200/50">
-                                                <div className="font-semibold">{parseFloat(item.latitude).toFixed(6)}</div>
-                                                <div className="font-semibold">{parseFloat(item.longitude).toFixed(6)}</div>
+
+                                        {/* Koordinat Geografis */}
+                                        <td className="px-5 py-4 align-middle">
+                                            <div 
+                                                className="font-mono text-xs px-2.5 py-1.5 rounded-lg border inline-flex flex-col gap-0.5"
+                                                style={{ background: '#f8fafc', borderColor: tk.borderLight, color: tk.textSecondary }}
+                                            >
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="opacity-50">LAT:</span>
+                                                    <span className="font-bold">{parseFloat(item.latitude).toFixed(6)}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="opacity-50">LNG:</span>
+                                                    <span className="font-bold">{parseFloat(item.longitude).toFixed(6)}</span>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="px-8 py-5">
-                                            <div className="flex items-center justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
-                                                <a href={`${routes.editBase}/${item.id}/edit`} className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 transition-all group-hover:shadow-sm" title="Edit">
-                                                    <PenLine size={18} />
+
+                                        {/* Aksi */}
+                                        <td className="px-5 py-4 align-middle text-right">
+                                            <div className="inline-flex items-center justify-end gap-1.5">
+                                                {/* Edit Button */}
+                                                <a 
+                                                    href={`${routes.editBase}/${item.id}/edit`} 
+                                                    className="inline-flex p-1.5 items-center justify-center rounded-lg transition-all border"
+                                                    style={{ 
+                                                        background: tk.card, 
+                                                        borderColor: tk.border,
+                                                        color: tk.textSecondary
+                                                    }}
+                                                    onMouseEnter={e => {
+                                                        e.currentTarget.style.color = tk.accentBlue;
+                                                        e.currentTarget.style.background = tk.accentBlueLight;
+                                                        e.currentTarget.style.borderColor = tk.accentBlueMid;
+                                                    }}
+                                                    onMouseLeave={e => {
+                                                        e.currentTarget.style.color = tk.textSecondary;
+                                                        e.currentTarget.style.background = tk.card;
+                                                        e.currentTarget.style.borderColor = tk.border;
+                                                    }}
+                                                    title="Edit Kebun"
+                                                >
+                                                    <PenLine size={14} />
                                                 </a>
-                                                <form action={`${routes.destroyBase}/${item.id}`} method="POST" onSubmit={e => handleDelete(e, item)}>
+
+                                                {/* Delete Button */}
+                                                <form action={`${routes.destroyBase}/${item.id}`} method="POST" onSubmit={e => handleDelete(e, item)} className="inline">
                                                     <input type="hidden" name="_token" value={csrfToken} />
                                                     <input type="hidden" name="_method" value="DELETE" />
-                                                    <button type="submit" className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all group-hover:shadow-sm" title="Hapus">
-                                                        <Trash2 size={18} />
+                                                    <button 
+                                                        type="submit" 
+                                                        className="inline-flex p-1.5 items-center justify-center rounded-lg transition-all border"
+                                                        style={{ 
+                                                            background: tk.card, 
+                                                            borderColor: tk.border,
+                                                            color: tk.textSecondary
+                                                        }}
+                                                        onMouseEnter={e => {
+                                                            e.currentTarget.style.color = '#ef4444';
+                                                            e.currentTarget.style.background = '#fef2f2';
+                                                            e.currentTarget.style.borderColor = '#fca5a5';
+                                                        }}
+                                                        onMouseLeave={e => {
+                                                            e.currentTarget.style.color = tk.textSecondary;
+                                                            e.currentTarget.style.background = tk.card;
+                                                            e.currentTarget.style.borderColor = tk.border;
+                                                        }}
+                                                        title="Hapus Kebun"
+                                                    >
+                                                        <Trash2 size={14} />
                                                     </button>
                                                 </form>
                                             </div>
@@ -126,22 +261,23 @@ const AppKebun = ({ kebun = [], routes = {}, csrfToken, flashSuccess }) => {
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan="4" className="px-8 py-32 text-center">
-                                            <div className="flex flex-col items-center gap-4">
-                                                <div className="w-24 h-24 rounded-3xl bg-slate-50 border border-slate-100 shadow-inner flex items-center justify-center mb-2">
-                                                    <Trees size={40} className="text-slate-300" />
+                                        <td colSpan="4" className="px-5 py-12 text-center">
+                                            <div className="flex flex-col items-center max-w-md mx-auto">
+                                                <div 
+                                                    className="w-11 h-11 rounded-full flex items-center justify-center mb-3 border"
+                                                    style={{ background: tk.accentGreenLight, borderColor: tk.accentGreenMid, color: tk.accentGreen }}
+                                                >
+                                                    <Trees size={18} />
                                                 </div>
-                                                <div>
-                                                    <p className="text-xl font-black text-slate-700">{searchTerm ? 'Pencarian Tidak Ditemukan' : 'Belum Ada Pemetaan Kebun'}</p>
-                                                    <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
-                                                        {searchTerm ? `Kami tidak dapat menemukan kebun dengan kata kunci "${searchTerm}". Silakan periksa kembali pencarian Anda.` : 'Anda belum menambahkan data topologi kebun. Lakukan pemetaan area kebun sekarang.'}
-                                                    </p>
-                                                </div>
-                                                {!searchTerm && (
-                                                    <a href={routes.create} className="mt-4 inline-flex items-center justify-center gap-2 bg-emerald-50 text-emerald-600 rounded-xl py-2.5 px-6 text-sm font-bold hover:bg-emerald-100 transition">
-                                                        <Plus size={18} /> Buat Pemetaan Pertama
-                                                    </a>
-                                                )}
+                                                <h3 className="text-sm font-bold" style={{ fontFamily: fontDisplay, color: tk.textPrimary }}>
+                                                    {searchTerm ? 'Pencarian Tidak Ditemukan' : 'Belum Ada Pemetaan Kebun'}
+                                                </h3>
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    {searchTerm 
+                                                        ? `Tidak dapat menemukan sub-kebun dengan kata kunci "${searchTerm}".` 
+                                                        : 'Sub-kebun/blok belum didefinisikan.'
+                                                    }
+                                                </p>
                                             </div>
                                         </td>
                                     </tr>
@@ -152,6 +288,7 @@ const AppKebun = ({ kebun = [], routes = {}, csrfToken, flashSuccess }) => {
                 </div>
             </div>
         </div>
+
         <ConfirmModal
             isOpen={confirmState.open}
             title="Hapus Kebun"
