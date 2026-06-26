@@ -59,4 +59,39 @@ class GCSController extends Controller
             ], 503);
         }
     }
+
+    public function setProfile(Request $request)
+    {
+        $profile = $request->input('profile', 'd16');
+        $host = $request->input('host');
+        $port = $request->input('port');
+
+        try {
+            $response = Http::timeout(3)->post('http://127.0.0.1:3001/profile', [
+                'profile' => $profile,
+                'host' => $host,
+                'port' => $port,
+            ]);
+
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'offline',
+                'message' => 'Drone server tidak dapat dijangkau: ' . $e->getMessage(),
+            ], 503);
+        }
+    }
+
+    public function getProfile()
+    {
+        try {
+            $response = Http::timeout(3)->get('http://127.0.0.1:3001/profile');
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'offline',
+                'message' => 'Drone server tidak dapat dijangkau: ' . $e->getMessage(),
+            ], 503);
+        }
+    }
 }

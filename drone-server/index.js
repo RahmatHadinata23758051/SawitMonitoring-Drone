@@ -11,9 +11,10 @@ process.on('unhandledRejection', (reason) => {
 const dgram = require("dgram");
 const express = require("express");
 
-const HOST = "192.168.169.1";
-const PORT = 8800;
-const INTERVAL = 100;
+let droneProfile = process.env.DRONE_PROFILE || "d16";
+let HOST = process.env.DRONE_IP || (droneProfile === "e88" ? "192.168.1.1" : "192.168.169.1");
+let PORT = parseInt(process.env.DRONE_PORT || (droneProfile === "e88" ? "7099" : "8800"), 10);
+const INTERVAL = parseInt(process.env.DRONE_INTERVAL || "100", 10);
 
 const app = express();
 app.use(express.json());
@@ -351,6 +352,21 @@ app.post('/execute-sequence', async (req, res) => {
 
 
 function buildPacket() {
+  if (droneProfile === "e88") {
+    const packet = Buffer.alloc(9);
+    packet.writeUInt8(0x03, 0); // Header byte 1
+    packet.writeUInt8(0x66, 1); // Header byte 2
+    packet.writeUInt8(roll, 2);
+    packet.writeUInt8(pitch, 3);
+    packet.writeUInt8(throttle, 4);
+    packet.writeUInt8(yaw, 5);
+    packet.writeUInt8(flags, 6); // command flag
+    const checksum = roll ^ pitch ^ throttle ^ yaw ^ flags;
+    packet.writeUInt8(checksum, 7);
+    packet.writeUInt8(0x99, 8); // Footer byte
+    return packet;
+  }
+
   const packet = Buffer.alloc(88, 0x00);
 
   // Magic & Size
@@ -481,7 +497,8 @@ function markControlActive(ms = 1000) {
 setInterval(() => {
   const hasStickInput = roll !== 128 || pitch !== 128 || yaw !== 128 || throttle !== 128;
   const hasFlags = flags !== 0;
-  const shouldSend = hasStickInput || hasFlags || Date.now() < controlActiveUntil;
+  // E88 Pro selalu mengirim heartbeat secara kontinyu agar tidak disconnect/loss-control
+  const shouldSend = droneProfile === "e88" || hasStickInput || hasFlags || Date.now() < controlActiveUntil;
 
   if (shouldSend) {
     sendPacket();
@@ -493,6 +510,10 @@ setInterval(() => {
 // Toy drone D16 membutuhkan sweep Throttle UP -> DOWN -> NEUTRAL untuk pairing
 // ==========================
 async function runBindSequence() {
+  if (droneProfile === "e88") {
+    console.log("🎬 [Bind] E88 Pro tidak memerlukan throttle sweep handshake. Melewati bind sequence...");
+    return;
+  }
   console.log("🎬 [Bind] Memulai handshake pairing drone...");
   
   // 1. Pastikan stick di tengah
@@ -536,7 +557,16 @@ app.post("/command", (req, res) => {
     case "arm":
       (async () => {
         try {
-          await runBindSequence();
+          if (droneProfile === "e88") {
+            // E88 Pro: Kalibrasi gyro terlebih dahulu (0x80) untuk me-reset lock emergency / sensor
+            throttle = 0;
+            roll = pitch = yaw = 128;
+            console.log("   📐 Mengirim sinyal KALIBRASI GYRO (0x80) E88 Pro...");
+            pulseFlag(0x80, 1000);
+            await sleep(1200);
+          } else {
+            await runBindSequence();
+          }
           console.log("   🔓 Mengirim sinyal UNLOCK MOTOR (0x40)...");
           pulseFlag(0x40, 1500);
           await sleep(1500);
@@ -569,7 +599,9 @@ app.post("/command", (req, res) => {
     case "disarm":
       roll = pitch = yaw = 128;
       throttle = 0; // Tarik throttle full kebawah
-      yaw = 2; // Tarik yaw full ke kiri (kombinasi kill switch D16)
+      if (droneProfile === "d16") {
+        yaw = 2; // Tarik yaw full ke kiri (kombinasi kill switch D16)
+      }
       pulseFlag(CMD_EMERGENCY);
       break;
 
@@ -578,7 +610,9 @@ app.post("/command", (req, res) => {
     case "emergency":
       roll = pitch = yaw = 128;
       throttle = 0; // Throttle 0
-      yaw = 2; // Yaw 2 (kiri bawah)
+      if (droneProfile === "d16") {
+        yaw = 2; // Yaw 2 (kiri bawah)
+      }
       pulseFlag(CMD_EMERGENCY);
       break;
 
@@ -669,8 +703,62 @@ app.post("/command", (req, res) => {
 });
 
 // ==========================
+// DRONE PROFILE SETTINGS
+// ==========================
+app.get("/profile", (req, res) => {
+  res.json({
+    status: "ok",
+    profile: droneProfile,
+    host: HOST,
+    port: PORT,
+  });
+});
+
+app.post("/profile", (req, res) => {
+  const { profile, host, port } = req.body;
+  
+  if (profile && ["d16", "e88"].includes(profile)) {
+    const oldProfile = droneProfile;
+    droneProfile = profile;
+    
+    // Auto IP target update if still at default
+    const oldDefaultHost = oldProfile === "e88" ? "192.168.1.1" : "192.168.169.1";
+    const newDefaultHost = profile === "e88" ? "192.168.1.1" : "192.168.169.1";
+    if (HOST === oldDefaultHost) {
+      HOST = newDefaultHost;
+    }
+
+    // Auto Port target update if still at default
+    const oldDefaultPort = oldProfile === "e88" ? 7099 : 8800;
+    const newDefaultPort = profile === "e88" ? 7099 : 8800;
+    if (PORT === oldDefaultPort) {
+      PORT = newDefaultPort;
+    }
+    
+    console.log(`🔄 [Profile] Diubah dari ${oldProfile} ke ${profile}. Target: ${HOST}:${PORT}`);
+  }
+
+  if (host) {
+    HOST = host;
+    console.log(`📡 [IP Target] Diubah ke: ${HOST}`);
+  }
+
+  if (port) {
+    PORT = parseInt(port, 10);
+    console.log(`🔌 [Port Target] Diubah ke: ${PORT}`);
+  }
+
+  res.json({
+    status: "ok",
+    profile: droneProfile,
+    host: HOST,
+    port: PORT,
+  });
+});
+
+// ==========================
 app.listen(3001, () => {
-  console.log("✈️  GCS Drone Server D16 Ready pada port 3001");
+  console.log("✈️  GCS Drone Server Ready pada port 3001");
   console.log(`📡 Target Drone: ${HOST}:${PORT}`);
   console.log("⚡ Heartbeat Rate: 10Hz (100ms)");
 });

@@ -56,6 +56,9 @@ const AppGCS = () => {
   // Mode drone (simulasi / real) — default ke simulasi agar langsung bisa dipakai
   const [droneMode, setDroneMode] = useState('simulasi');
 
+  // Drone profile (d16 / e88) - default ke d16
+  const [droneProfile, setDroneProfile] = useState('d16');
+
   // Settings Modal & Laporan
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeSettingNode, setActiveSettingNode] = useState('mode');
@@ -81,6 +84,19 @@ const AppGCS = () => {
       .catch(() => setDrones([{ id: 'DRN-001', merk: 'DJI Matrice 300 RTK (Demo)', status: 'Standby' }]))
       .finally(() => setDronesLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (droneMode === 'real') {
+      fetch('/drone/profile')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data && data.profile) {
+            setDroneProfile(data.profile);
+          }
+        })
+        .catch(err => console.error("Gagal sinkronisasi profil drone:", err));
+    }
+  }, [droneMode]);
 
   // Parameter Kebun
   const [config, setConfig] = useState({
@@ -476,6 +492,40 @@ const AppGCS = () => {
       console.error('Drone control error:', err);
     }
   };
+
+  const handleUpdateDroneProfile = async (profile) => {
+    // Set locally first (optimistic update) so it's always responsive in UI
+    setDroneProfile(profile);
+
+    if (droneMode !== 'real') {
+      setCockpitWarning(`Profil (Simulasi) diubah ke: ${profile === 'e88' ? 'E88 Pro' : 'D16 Mini'}`);
+      setTimeout(() => setCockpitWarning(''), 2500);
+      return;
+    }
+
+    try {
+      const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      const csrf = csrfMeta ? csrfMeta.getAttribute('content') : '';
+      const res = await fetch('/drone/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+        body: JSON.stringify({ profile }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCockpitWarning(`Profil drone diubah ke: ${profile === 'e88' ? 'E88 Pro' : 'D16 Mini'}`);
+        setTimeout(() => setCockpitWarning(''), 3000);
+      } else {
+        setCockpitWarning(data.message || 'Gagal sinkronisasi profil ke server.');
+        setTimeout(() => setCockpitWarning(''), 3000);
+      }
+    } catch (err) {
+      console.error("Error setting drone profile:", err);
+      setCockpitWarning('Koneksi server offline. Profil diset lokal.');
+      setTimeout(() => setCockpitWarning(''), 3000);
+    }
+  };
+
   const formatTime = formatFlightTime;
 
   // ============================================================
@@ -1429,6 +1479,8 @@ const AppGCS = () => {
         setActiveSettingNode={setActiveSettingNode}
         droneMode={droneMode}
         setDroneMode={setDroneMode}
+        droneProfile={droneProfile}
+        handleUpdateDroneProfile={handleUpdateDroneProfile}
         theme={theme}
         setTheme={setTheme}
         telemBaud={telemBaud}

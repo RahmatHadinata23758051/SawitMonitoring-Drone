@@ -12,6 +12,7 @@ const GCSSettingsModal = ({
   isOpen, onClose,
   activeSettingNode, setActiveSettingNode,
   droneMode, setDroneMode,
+  droneProfile, handleUpdateDroneProfile,
   theme, setTheme,
   telemBaud, setTelemBaud, isTelemConnected, handleConnectTelemetry,
   videoIp, setVideoIp, videoProtocol, setVideoProtocol, hlsUrl, setHlsUrl,
@@ -145,6 +146,40 @@ const GCSSettingsModal = ({
                     </button>
                   </div>
                   <p className="text-[9px] text-slate-400 mt-2">Pilih tema antarmuka GCS yang paling nyaman sesuai kondisi pencahayaan di lapangan.</p>
+                </div>
+                <div className={`pt-5 border-t ${t('border-slate-800', 'border-slate-100')}`}>
+                  <h2 className={`text-sm font-extrabold flex items-center gap-2 mb-3 ${t('text-white', 'text-slate-900')}`}><Plane className="w-4 h-4 text-blue-500" /> Profil Hardware Drone</h2>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleUpdateDroneProfile('d16')}
+                      className={`cursor-pointer border rounded-xl p-3 flex items-center gap-2.5 transition ${
+                        droneProfile === 'd16'
+                          ? t('bg-blue-950/30 border-blue-800/80 ring-2 ring-blue-900 text-blue-400 font-bold', 'bg-blue-50 border-blue-300 ring-2 ring-blue-100 text-blue-700 font-bold')
+                          : t('bg-slate-950/30 border-slate-800 text-slate-400 hover:bg-slate-800', 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100')
+                      }`}
+                    >
+                      <Plane className="w-5 h-5 text-blue-600 shrink-0" />
+                      <div className="text-left">
+                        <span className="text-xs block font-bold font-sans">D16 Mini</span>
+                        <span className="text-[9px] text-slate-400 block font-normal leading-tight font-sans">88-byte Packet | Port 8800</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleUpdateDroneProfile('e88')}
+                      className={`cursor-pointer border rounded-xl p-3 flex items-center gap-2.5 transition ${
+                        droneProfile === 'e88'
+                          ? t('bg-orange-950/30 border-orange-800/80 ring-2 ring-orange-900 text-orange-400 font-bold', 'bg-orange-50 border-orange-300 ring-2 ring-orange-100 text-orange-700 font-bold')
+                          : t('bg-slate-950/30 border-slate-800 text-slate-400 hover:bg-slate-800', 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100')
+                      }`}
+                    >
+                      <Plane className="w-5 h-5 text-orange-600 shrink-0" />
+                      <div className="text-left">
+                        <span className="text-xs block font-bold font-sans">E88 Pro</span>
+                        <span className="text-[9px] text-slate-400 block font-normal leading-tight font-sans">9-byte Packet | Port 7099</span>
+                      </div>
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-slate-400 mt-2">Pilih profil sesuai model drone fisik yang Anda gunakan untuk terbang di lapangan.</p>
                 </div>
               </div>
             )}
