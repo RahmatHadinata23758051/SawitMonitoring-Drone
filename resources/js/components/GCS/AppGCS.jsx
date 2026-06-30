@@ -981,7 +981,13 @@ const AppGCS = () => {
       } else if (status !== 'STANDBY') {
         setLiveAiVision(prev => ({ ...prev, active: true, objectDetected: status === 'TAKEOFF' ? 'Sistem Vision Siap...' : 'Manuver RTH...' }));
       } else {
-        setLiveAiVision({ active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null });
+        // Jika status STANDBY, pertahankan state liveAiVision sebelumnya agar hasil snapshot uji coba manual tidak hilang!
+        setLiveAiVision(prev => {
+          if (prev.active && (prev.image_base64 || prev.left?.image_base64 || prev.right?.image_base64)) {
+            return prev; // Pertahankan gambar hasil deteksi
+          }
+          return { active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false, condition: null, confidence: 0, boxPos: { top: 30, left: 40 }, mode: 'single', image_base64: null, left: null, right: null };
+        });
       }
 
       setTelemetry(prev => {
