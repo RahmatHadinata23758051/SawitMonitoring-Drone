@@ -25,9 +25,19 @@ import tensorflow as tf
 # ============================================================
 BASE_DIR = Path(__file__).parent
 
-MODEL_PATH  = Path(r"C:\Users\user\Nata\magang\Capstone-Klasifikasi\Klasifikasi-Sawit\models\mobilenetv2_sawit_baseline.keras")
-CLASS_MAP_PATH = Path(r"C:\Users\user\Nata\magang\Capstone-Klasifikasi\Klasifikasi-Sawit\models\class_mapping.json")
-DATASET_PATH   = Path(r"C:\Users\user\Nata\magang\Capstone-Klasifikasi\Klasifikasi-Sawit\Dataset\train")
+# Coba gunakan absolute path di laptop developer, jika tidak ada fallback ke folder internal
+DEV_MODEL_PATH = Path(r"C:\Users\user\Nata\magang\Capstone-Klasifikasi\Klasifikasi-Sawit\models\mobilenetv2_sawit_baseline.keras")
+DEV_CLASS_MAP_PATH = Path(r"C:\Users\user\Nata\magang\Capstone-Klasifikasi\Klasifikasi-Sawit\models\class_mapping.json")
+DEV_DATASET_PATH   = Path(r"C:\Users\user\Nata\magang\Capstone-Klasifikasi\Klasifikasi-Sawit\Dataset\train")
+
+if DEV_MODEL_PATH.exists():
+    MODEL_PATH = DEV_MODEL_PATH
+    CLASS_MAP_PATH = DEV_CLASS_MAP_PATH
+    DATASET_PATH = DEV_DATASET_PATH
+else:
+    MODEL_PATH = BASE_DIR / "models" / "mobilenetv2_sawit_baseline.keras"
+    CLASS_MAP_PATH = BASE_DIR / "models" / "class_mapping.json"
+    DATASET_PATH = BASE_DIR / "Dataset" / "train"
 
 INPUT_SIZE = (224, 224)
 
