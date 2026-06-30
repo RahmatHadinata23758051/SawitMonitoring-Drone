@@ -200,7 +200,7 @@ const AppGCS = () => {
   const [videoIp, setVideoIp] = useState('192.168.1.100');
   const [videoProtocol, setVideoProtocol] = useState('mjpeg');
   const [hlsUrl, setHlsUrl] = useState('/streams/drone.m3u8');
-  const [d16StreamUrl, setD16StreamUrl] = useState('http://127.0.0.1:3002/stream');
+  const [d16StreamUrl, setD16StreamUrl] = useState(`http://${window.location.hostname}:3002/stream`);
   const [isVideoConnected, setIsVideoConnected] = useState(false);
   const [liveStreamUrl, setLiveStreamUrl] = useState('');
 
@@ -695,7 +695,7 @@ const AppGCS = () => {
   const radarTop = Math.max(5, Math.min(95, ((telemetry.y + 20) / mapHeight) * 100));
 
   // ✅ AI SERVER URL
-  const AI_SERVER_URL = 'http://127.0.0.1:8001';
+  const AI_SERVER_URL = `http://${window.location.hostname}:8001`;
 
   // ✅ AI Scan helper — TRAD mode (1 kamera)
   const fireAiScanTrad = () => {

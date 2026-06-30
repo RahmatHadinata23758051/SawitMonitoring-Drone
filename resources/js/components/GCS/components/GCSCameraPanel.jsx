@@ -51,7 +51,7 @@ function createShader(gl, type, source) {
   return shader;
 }
 
-const DroneCanvasStream = ({ wsUrl = 'ws://127.0.0.1:3003' }) => {
+const DroneCanvasStream = ({ wsUrl = `ws://${window.location.hostname}:3003` }) => {
   const canvasRef = useRef(null);
   const latestBitmapRef = useRef(null);
   const textureReadyRef = useRef(false);
@@ -230,7 +230,7 @@ const GCSCameraPanel = ({
       }
 
       // GPU-Accelerated Canvas Stream (60 FPS redraw, persis Android SurfaceView)
-      return <DroneCanvasStream wsUrl="ws://127.0.0.1:3003" />;
+      return <DroneCanvasStream wsUrl={`ws://${window.location.hostname}:3003`} />;
     }
 
     return (
