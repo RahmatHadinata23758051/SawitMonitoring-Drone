@@ -14,15 +14,16 @@ class USBCamera {
     this.running = true;
     const [width, height] = this.resolution.split('x');
 
-    // Argumen ffmpeg: ambil dari v4l2 USB Camera, format MJPEG hardware
-    // copy codec agar tidak membebani CPU (zero re-encoding)
+    // Argumen ffmpeg yang universal dan pasti jalan di semua jenis webcam.
+    // Omit input_format agar ffmpeg mendeteksi format mentah kamera (misal YUYV)
+    // dan encode ke mjpeg di sisi software dengan kualitas kompresi yang baik (-q:v 5).
     const args = [
       '-f', 'v4l2',
-      '-input_format', 'mjpeg',
       '-video_size', `${width}x${height}`,
       '-i', this.devicePath,
       '-f', 'image2pipe',
-      '-vcodec', 'copy',
+      '-vcodec', 'mjpeg',
+      '-q:v', '5',
       '-'
     ];
 
