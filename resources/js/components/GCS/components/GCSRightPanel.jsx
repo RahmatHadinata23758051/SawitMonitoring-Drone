@@ -687,7 +687,12 @@ const GCSRightPanel = ({
                   </h3>
                   {isVideoConnected && (
                     <button
-                      onClick={fireAiScanTrad}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        fireAiScanTrad();
+                      }}
                       className="px-2 py-0.5 text-[8.5px] font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-0.5 shadow-sm active:scale-95"
                     >
                       <Crosshair className="w-2.5 h-2.5" /> AMBIL & DETEKSI AI
