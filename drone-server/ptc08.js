@@ -1,9 +1,10 @@
 const { SerialPort } = require('serialport');
 
 class PTC08Camera {
-  constructor(portPath, baudRate, onFrame, onError) {
+  constructor(portPath, baudRate, resolution, onFrame, onError) {
     this.portPath = portPath;
     this.baudRate = parseInt(baudRate, 10) || 38400;
+    this.resolution = resolution || '640x480';
     this.onFrame = onFrame;
     this.onError = onError;
     this.port = null;
@@ -38,6 +39,16 @@ class PTC08Camera {
 
       console.log(`[PTC08] Serial camera opened on ${this.portPath} @ ${this.baudRate}`);
       
+      // Atur Resolusi terlebih dahulu
+      const resByte = this.resolution === '320x240' ? 0x11 : 0x00;
+      console.log(`[PTC08] Mengatur resolusi ke ${this.resolution} (Byte: 0x${resByte.toString(16)})`);
+      try {
+        await this.sendCommand(Buffer.from([0x56, 0x00, 0x31, 0x05, 0x04, 0x01, 0x00, 0x19, resByte]));
+        await this.sleep(200);
+      } catch (err) {
+        console.warn('[PTC08] Gagal mengatur resolusi (kamera mungkin tidak merespons perintah ini):', err.message);
+      }
+
       // Reset camera
       await this.sendCommand(Buffer.from([0x56, 0x00, 0x26, 0x00]));
       await this.sleep(1500); // Tunggu boot selesai

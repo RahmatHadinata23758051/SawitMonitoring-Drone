@@ -763,7 +763,8 @@ let ptc08Camera = null;
 let ptc08Config = {
   protocol: 'd16_proxy', // default
   port: '/dev/ttyUSB0',
-  baudRate: 38400
+  baudRate: 38400,
+  resolution: '640x480'
 };
 
 app.get("/camera/config", (req, res) => {
@@ -774,10 +775,11 @@ app.get("/camera/config", (req, res) => {
 });
 
 app.post("/camera/config", (req, res) => {
-  const { protocol, port, baudRate } = req.body;
+  const { protocol, port, baudRate, resolution } = req.body;
   if (protocol) ptc08Config.protocol = protocol;
   if (port) ptc08Config.port = port;
   if (baudRate) ptc08Config.baudRate = parseInt(baudRate, 10);
+  if (resolution) ptc08Config.resolution = resolution;
 
   console.log("🎥 [Camera Config] Diupdate:", ptc08Config);
 
@@ -795,6 +797,7 @@ app.post("/camera/config", (req, res) => {
       ptc08Camera = new PTC08Camera(
         ptc08Config.port,
         ptc08Config.baudRate,
+        ptc08Config.resolution,
         (jpeg) => {
           // Kirim frame ke stream MJPEG
           emitJpeg(jpeg);
@@ -804,7 +807,7 @@ app.post("/camera/config", (req, res) => {
         }
       );
       ptc08Camera.start();
-      console.log(`Menyalakan kamera serial PTC08 di ${ptc08Config.port}...`);
+      console.log(`Menyalakan kamera serial PTC08 di ${ptc08Config.port} (${ptc08Config.resolution})...`);
     } catch (err) {
       console.error('Gagal menginisialisasi modul kamera PTC08:', err.message);
     }

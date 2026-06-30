@@ -18,6 +18,7 @@ const GCSSettingsModal = ({
   videoIp, setVideoIp, videoProtocol, setVideoProtocol, hlsUrl, setHlsUrl,
   d16StreamUrl, setD16StreamUrl, isVideoConnected, handleConnectVideo,
   ptc08Port, setPtc08Port, ptc08BaudRate, setPtc08BaudRate,
+  ptc08Resolution, setPtc08Resolution,
   drones, setDrones, droneForm, setDroneForm, isEditingDrone, setIsEditingDrone,
   telemetryHistory, setTelemetryHistory, handleExportTelemetry,
   aiInput, setAiInput, aiHistory, isAiLoading, handleAskGemini, chatEndRef,
@@ -276,6 +277,13 @@ const GCSSettingsModal = ({
                               <option value="38400">38400 bps (Default)</option>
                               <option value="57600">57600 bps</option>
                               <option value="115200">115200 bps</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">RESOLUSI & KUALITAS</label>
+                            <select value={ptc08Resolution} onChange={(e) => setPtc08Resolution(e.target.value)} disabled={isVideoConnected} className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900">
+                              <option value="640x480">VGA 640x480 (Default - Jernih)</option>
+                              <option value="320x240">QVGA 320x240 (Responsif/Cepat)</option>
                             </select>
                           </div>
                         </div>

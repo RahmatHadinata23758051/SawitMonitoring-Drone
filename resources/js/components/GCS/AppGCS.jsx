@@ -205,6 +205,7 @@ const AppGCS = () => {
   const [liveStreamUrl, setLiveStreamUrl] = useState('');
   const [ptc08Port, setPtc08Port] = useState('/dev/ttyUSB0');
   const [ptc08BaudRate, setPtc08BaudRate] = useState('38400');
+  const [ptc08Resolution, setPtc08Resolution] = useState('640x480');
 
 
   // Flight Status Refs
@@ -401,7 +402,8 @@ const AppGCS = () => {
           body: JSON.stringify({
             protocol: 'ptc08_serial',
             port: ptc08Port,
-            baudRate: ptc08BaudRate
+            baudRate: ptc08BaudRate,
+            resolution: ptc08Resolution
           })
         }).then(r => r.json())
           .then(data => {
@@ -1536,6 +1538,8 @@ const AppGCS = () => {
         setPtc08Port={setPtc08Port}
         ptc08BaudRate={ptc08BaudRate}
         setPtc08BaudRate={setPtc08BaudRate}
+        ptc08Resolution={ptc08Resolution}
+        setPtc08Resolution={setPtc08Resolution}
         isVideoConnected={isVideoConnected}
         handleConnectVideo={handleConnectVideo}
         drones={drones}

@@ -100,12 +100,14 @@ class GCSController extends Controller
         $protocol = $request->input('protocol');
         $port = $request->input('port');
         $baudRate = $request->input('baudRate');
+        $resolution = $request->input('resolution');
 
         try {
             $response = Http::timeout(3)->post('http://127.0.0.1:3001/camera/config', [
                 'protocol' => $protocol,
                 'port' => $port,
                 'baudRate' => $baudRate,
+                'resolution' => $resolution,
             ]);
 
             return response()->json($response->json(), $response->status());
