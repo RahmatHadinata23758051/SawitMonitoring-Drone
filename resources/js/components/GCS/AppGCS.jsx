@@ -293,7 +293,7 @@ const AppGCS = () => {
   useEffect(() => { if (videoRef.current && webcamStream) videoRef.current.srcObject = webcamStream; }, [webcamStream, isSettingsOpen]);
   useEffect(() => { if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' }); }, [aiHistory]);
   useEffect(() => {
-    if (isVideoConnected && (droneMode === 'simulasi' || videoProtocol === 'dummy')) {
+    if (isVideoConnected && videoProtocol === 'dummy') {
       // getUserMedia hanya bisa berjalan di HTTPS atau localhost
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
@@ -325,7 +325,7 @@ const AppGCS = () => {
         });
     }
     if (!isVideoConnected && webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); }
-  }, [droneMode, isVideoConnected, videoProtocol]);
+  }, [isVideoConnected, videoProtocol]);
 
   useEffect(() => {
     if (!autoSavePending) return;
@@ -419,21 +419,15 @@ const AppGCS = () => {
           });
         return;
       }
-      if (droneMode === 'simulasi') {
-        setIsVideoConnected(true);
-      } else if (droneMode === 'real') {
-        if (videoProtocol === 'mjpeg') {
-          setLiveStreamUrl(`http://${videoIp}:81/stream`);
-        } else if (videoProtocol === 'hls') {
-          setLiveStreamUrl(hlsUrl);
-        } else if (videoProtocol === 'd16_proxy') {
-          setLiveStreamUrl(d16StreamUrl);
-        }
-        setIsVideoConnected(true);
-      } else {
-        setCockpitWarning('Pilih Mode Sistem Dahulu!');
-        setTimeout(() => setCockpitWarning(''), 3000);
+      // Protokol real/network lainnya
+      if (videoProtocol === 'mjpeg') {
+        setLiveStreamUrl(`http://${videoIp}:81/stream`);
+      } else if (videoProtocol === 'hls') {
+        setLiveStreamUrl(hlsUrl);
+      } else if (videoProtocol === 'd16_proxy') {
+        setLiveStreamUrl(d16StreamUrl);
       }
+      setIsVideoConnected(true);
     }
   };
   const [droneFlightState, setDroneFlightState] = useState('DISARMED'); // DISARMED | FLYING

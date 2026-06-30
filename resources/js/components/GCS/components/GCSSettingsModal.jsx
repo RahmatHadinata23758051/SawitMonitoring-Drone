@@ -298,7 +298,7 @@ const GCSSettingsModal = ({
                     className={`w-full py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 text-white transition ${isVideoConnected ? 'bg-rose-500 hover:bg-rose-400' : 'bg-orange-500 hover:bg-orange-400'}`}
                   >
                     <Power className="w-4 h-4" />
-                    {isVideoConnected ? 'STOP STREAM' : (droneMode === 'simulasi' || videoProtocol === 'dummy' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : (videoProtocol === 'd16_proxy' ? 'CONNECT D16 STREAM' : (videoProtocol === 'ptc08_serial' ? 'CONNECT PTC08 CAMERA' : 'CONNECT MJPEG STREAM'))))}
+                    {isVideoConnected ? 'STOP STREAM' : (videoProtocol === 'dummy' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : (videoProtocol === 'd16_proxy' ? 'CONNECT D16 STREAM' : (videoProtocol === 'ptc08_serial' ? 'CONNECT PTC08 CAMERA' : 'CONNECT MJPEG STREAM'))))}
                   </button>
                 </div>
               </div>
