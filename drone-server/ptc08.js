@@ -133,7 +133,7 @@ class PTC08Camera {
 
         // Response structure: 5 bytes header + len bytes data + 5 bytes footer = len + 10 bytes
         const totalLen = len + 10;
-        const frameData = await this.sendCommand(readCmd, totalLen, 5000);
+        const frameData = await this.sendCommand(readCmd, totalLen, 25000);
         
         // Ambil data JPEG asli (potong header dan footer 5 bytes)
         const jpeg = frameData.subarray(5, 5 + len);
@@ -154,6 +154,8 @@ class PTC08Camera {
         await this.sleep(500);
       } catch (err) {
         console.error('[PTC08] Error saat capture:', err.message);
+        // Bersihkan buffer agar sisa data yang menggantung terbuang
+        this.readBuffer = Buffer.alloc(0);
         // Coba kirim resume jika terjadi stuck
         try {
           await this.sendCommand(Buffer.from([0x56, 0x00, 0x36, 0x01, 0x03]), 5, 500);
