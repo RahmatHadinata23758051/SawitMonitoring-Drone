@@ -329,6 +329,16 @@ const AppGCS = () => {
   }, [isVideoConnected, videoProtocol]);
 
   useEffect(() => {
+    if (videoProtocol === 'usb_webcam' && ptc08Port.startsWith('/dev/tty')) {
+      setPtc08Port('/dev/video0');
+      setPtc08Resolution('1280x720');
+    } else if (videoProtocol === 'ptc08_serial' && ptc08Port.startsWith('/dev/video')) {
+      setPtc08Port('/dev/ttyUSB0');
+      setPtc08Resolution('640x480');
+    }
+  }, [videoProtocol]);
+
+  useEffect(() => {
     if (!autoSavePending) return;
     const payload = autoSavePending;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -372,7 +382,7 @@ const AppGCS = () => {
       setIsVideoConnected(false);
       setLiveStreamUrl('');
       if (webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); }
-      if (videoProtocol === 'ptc08_serial') {
+      if (videoProtocol === 'ptc08_serial' || videoProtocol === 'usb_webcam') {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         fetch('/drone/camera-config', {
           method: 'POST',
@@ -414,6 +424,35 @@ const AppGCS = () => {
               setTimeout(() => setCockpitWarning(''), 3000);
             } else {
               setAlertPopup({ title: 'Gagal', message: 'Gagal mengonfigurasi kamera serial: ' + (data.message || 'Error tidak diketahui') });
+            }
+          })
+          .catch(err => {
+            setAlertPopup({ title: 'Error Jaringan', message: 'Gagal terhubung ke proxy drone server.' });
+          });
+        return;
+      }
+      if (videoProtocol === 'usb_webcam') {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        fetch('/drone/camera-config', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+          },
+          body: JSON.stringify({
+            protocol: 'usb_webcam',
+            port: ptc08Port,
+            resolution: ptc08Resolution
+          })
+        }).then(r => r.json())
+          .then(data => {
+            if (data.status === 'ok') {
+              setLiveStreamUrl(`http://${window.location.hostname}:3002/stream`);
+              setIsVideoConnected(true);
+              setCockpitWarning('Kamera USB Terhubung!');
+              setTimeout(() => setCockpitWarning(''), 3000);
+            } else {
+              setAlertPopup({ title: 'Gagal', message: 'Gagal mengonfigurasi kamera USB: ' + (data.message || 'Error tidak diketahui') });
             }
           })
           .catch(err => {

@@ -244,6 +244,7 @@ const GCSSettingsModal = ({
                         <option value="hls">HLS Proxy (.m3u8)</option>
                         <option value="d16_proxy">D16 / Custom Stream URL</option>
                         <option value="ptc08_serial">PTC08 Serial Camera (USB-TTL)</option>
+                        <option value="usb_webcam">USB Webcam (UVC / /dev/video0)</option>
                       </select>
                     </div>
                     <div>
@@ -287,6 +288,21 @@ const GCSSettingsModal = ({
                             </select>
                           </div>
                         </div>
+                      ) : videoProtocol === 'usb_webcam' ? (
+                        <div className="flex flex-col gap-3">
+                          <div>
+                            <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">DEVICE PATH (UVC)</label>
+                            <input type="text" value={ptc08Port} onChange={(e) => setPtc08Port(e.target.value)} disabled={isVideoConnected} placeholder="/dev/video0" className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">RESOLUSI KAMERA</label>
+                            <select value={ptc08Resolution} onChange={(e) => setPtc08Resolution(e.target.value)} disabled={isVideoConnected} className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900">
+                              <option value="640x480">VGA (640x480)</option>
+                              <option value="1280x720">HD 720p (1280x720 - Rekomendasi)</option>
+                              <option value="1920x1080">Full HD 1080p (1920x1080)</option>
+                            </select>
+                          </div>
+                        </div>
                       ) : (
                         <div className="flex items-center h-full pt-4">
                           <span className="text-xs text-slate-400 italic">Menggunakan kamera bawaan perangkat.</span>
@@ -306,7 +322,7 @@ const GCSSettingsModal = ({
                     className={`w-full py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 text-white transition ${isVideoConnected ? 'bg-rose-500 hover:bg-rose-400' : 'bg-orange-500 hover:bg-orange-400'}`}
                   >
                     <Power className="w-4 h-4" />
-                    {isVideoConnected ? 'STOP STREAM' : (videoProtocol === 'dummy' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : (videoProtocol === 'd16_proxy' ? 'CONNECT D16 STREAM' : (videoProtocol === 'ptc08_serial' ? 'CONNECT PTC08 CAMERA' : 'CONNECT MJPEG STREAM'))))}
+                    {isVideoConnected ? 'STOP STREAM' : (videoProtocol === 'dummy' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : (videoProtocol === 'd16_proxy' ? 'CONNECT D16 STREAM' : (videoProtocol === 'ptc08_serial' ? 'CONNECT PTC08 CAMERA' : (videoProtocol === 'usb_webcam' ? 'CONNECT USB CAMERA' : 'CONNECT MJPEG STREAM')))))}
                   </button>
                 </div>
               </div>

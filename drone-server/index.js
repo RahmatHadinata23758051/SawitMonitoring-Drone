@@ -757,9 +757,10 @@ app.post("/profile", (req, res) => {
 });
 
 // ==========================
-// PTC08 SERIAL CAMERA INTEGRATION
+// PTC08 SERIAL & USB CAMERA INTEGRATION
 // ==========================
 let ptc08Camera = null;
+let usbCamera = null;
 let ptc08Config = {
   protocol: 'd16_proxy', // default
   port: '/dev/ttyUSB0',
@@ -783,11 +784,18 @@ app.post("/camera/config", (req, res) => {
 
   console.log("🎥 [Camera Config] Diupdate:", ptc08Config);
 
-  // Matikan kamera yang aktif jika ada
+  // Matikan kamera serial yang aktif jika ada
   if (ptc08Camera) {
     console.log("Menghentikan kamera serial PTC08...");
     ptc08Camera.stop();
     ptc08Camera = null;
+  }
+
+  // Matikan kamera USB yang aktif jika ada
+  if (usbCamera) {
+    console.log("Menghentikan kamera USB...");
+    usbCamera.stop();
+    usbCamera = null;
   }
 
   // Jika memilih protokol PTC08 Serial, jalankan kameranya
@@ -810,6 +818,28 @@ app.post("/camera/config", (req, res) => {
       console.log(`Menyalakan kamera serial PTC08 di ${ptc08Config.port} (${ptc08Config.resolution})...`);
     } catch (err) {
       console.error('Gagal menginisialisasi modul kamera PTC08:', err.message);
+    }
+  }
+
+  // Jika memilih protokol USB Webcam (UVC)
+  if (ptc08Config.protocol === 'usb_webcam') {
+    try {
+      const USBCamera = require('./usb_camera');
+      usbCamera = new USBCamera(
+        ptc08Config.port, // misal '/dev/video0'
+        ptc08Config.resolution,
+        (jpeg) => {
+          // Kirim frame ke stream MJPEG
+          emitJpeg(jpeg);
+        },
+        (err) => {
+          console.error('[USBCamera] Event error kamera USB:', err.message);
+        }
+      );
+      usbCamera.start();
+      console.log(`Menyalakan kamera USB di ${ptc08Config.port} (${ptc08Config.resolution})...`);
+    } catch (err) {
+      console.error('Gagal menginisialisasi modul kamera USB:', err.message);
     }
   }
 
