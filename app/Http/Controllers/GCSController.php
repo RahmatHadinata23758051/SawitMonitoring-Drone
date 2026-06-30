@@ -94,4 +94,39 @@ class GCSController extends Controller
             ], 503);
         }
     }
+
+    public function setCameraConfig(Request $request)
+    {
+        $protocol = $request->input('protocol');
+        $port = $request->input('port');
+        $baudRate = $request->input('baudRate');
+
+        try {
+            $response = Http::timeout(3)->post('http://127.0.0.1:3001/camera/config', [
+                'protocol' => $protocol,
+                'port' => $port,
+                'baudRate' => $baudRate,
+            ]);
+
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'offline',
+                'message' => 'Drone server tidak dapat dijangkau: ' . $e->getMessage(),
+            ], 503);
+        }
+    }
+
+    public function getCameraConfig()
+    {
+        try {
+            $response = Http::timeout(3)->get('http://127.0.0.1:3001/camera/config');
+            return response()->json($response->json(), $response->status());
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'offline',
+                'message' => 'Drone server tidak dapat dijangkau: ' . $e->getMessage(),
+            ], 503);
+        }
+    }
 }

@@ -757,6 +757,66 @@ app.post("/profile", (req, res) => {
 });
 
 // ==========================
+// PTC08 SERIAL CAMERA INTEGRATION
+// ==========================
+let ptc08Camera = null;
+let ptc08Config = {
+  protocol: 'd16_proxy', // default
+  port: '/dev/ttyUSB0',
+  baudRate: 38400
+};
+
+app.get("/camera/config", (req, res) => {
+  res.json({
+    status: 'ok',
+    config: ptc08Config
+  });
+});
+
+app.post("/camera/config", (req, res) => {
+  const { protocol, port, baudRate } = req.body;
+  if (protocol) ptc08Config.protocol = protocol;
+  if (port) ptc08Config.port = port;
+  if (baudRate) ptc08Config.baudRate = parseInt(baudRate, 10);
+
+  console.log("🎥 [Camera Config] Diupdate:", ptc08Config);
+
+  // Matikan kamera yang aktif jika ada
+  if (ptc08Camera) {
+    console.log("Menghentikan kamera serial PTC08...");
+    ptc08Camera.stop();
+    ptc08Camera = null;
+  }
+
+  // Jika memilih protokol PTC08 Serial, jalankan kameranya
+  if (ptc08Config.protocol === 'ptc08_serial') {
+    try {
+      const PTC08Camera = require('./ptc08');
+      ptc08Camera = new PTC08Camera(
+        ptc08Config.port,
+        ptc08Config.baudRate,
+        (jpeg) => {
+          // Kirim frame ke stream MJPEG
+          emitJpeg(jpeg);
+        },
+        (err) => {
+          console.error('[PTC08] Event error kamera:', err.message);
+        }
+      );
+      ptc08Camera.start();
+      console.log(`Menyalakan kamera serial PTC08 di ${ptc08Config.port}...`);
+    } catch (err) {
+      console.error('Gagal menginisialisasi modul kamera PTC08:', err.message);
+    }
+  }
+
+  res.json({
+    status: 'ok',
+    config: ptc08Config
+  });
+});
+
+// ==========================
 app.listen(3001, () => {
   console.log("✈️  GCS Drone Server Ready pada port 3001");
   console.log(`📡 Target Drone: ${HOST}:${PORT}`);

@@ -17,6 +17,7 @@ const GCSSettingsModal = ({
   telemBaud, setTelemBaud, isTelemConnected, handleConnectTelemetry,
   videoIp, setVideoIp, videoProtocol, setVideoProtocol, hlsUrl, setHlsUrl,
   d16StreamUrl, setD16StreamUrl, isVideoConnected, handleConnectVideo,
+  ptc08Port, setPtc08Port, ptc08BaudRate, setPtc08BaudRate,
   drones, setDrones, droneForm, setDroneForm, isEditingDrone, setIsEditingDrone,
   telemetryHistory, setTelemetryHistory, handleExportTelemetry,
   aiInput, setAiInput, aiHistory, isAiLoading, handleAskGemini, chatEndRef,
@@ -241,6 +242,7 @@ const GCSSettingsModal = ({
                         <option value="mjpeg">HTTP MJPEG (Kamera Lama/ESP32)</option>
                         <option value="hls">HLS Proxy (.m3u8)</option>
                         <option value="d16_proxy">D16 / Custom Stream URL</option>
+                        <option value="ptc08_serial">PTC08 Serial Camera (USB-TTL)</option>
                       </select>
                     </div>
                     <div>
@@ -260,6 +262,23 @@ const GCSSettingsModal = ({
                           <input type="text" value={d16StreamUrl} onChange={(e) => setD16StreamUrl(e.target.value)} disabled={isVideoConnected} placeholder="http://127.0.0.1:3002/stream" className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-orange-400 disabled:opacity-50 bg-white text-slate-900" />
                           <span className="text-[8px] text-orange-500 mt-1 block leading-tight">Pastikan <code>node index.js</code> sudah berjalan. Proxy D16 MJPEG sudah terintegrasi di port 3002.</span>
                         </>
+                      ) : videoProtocol === 'ptc08_serial' ? (
+                        <div className="flex flex-col gap-3">
+                          <div>
+                            <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">PORT SERIAL UART</label>
+                            <input type="text" value={ptc08Port} onChange={(e) => setPtc08Port(e.target.value)} disabled={isVideoConnected} placeholder="/dev/ttyUSB0" className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold block mb-1 text-slate-500 tracking-widest">BAUD RATE</label>
+                            <select value={ptc08BaudRate} onChange={(e) => setPtc08BaudRate(e.target.value)} disabled={isVideoConnected} className="w-full border border-slate-200 rounded-lg p-2 text-sm focus:outline-none focus:border-blue-400 disabled:opacity-50 bg-white text-slate-900">
+                              <option value="9600">9600 bps</option>
+                              <option value="19200">19200 bps</option>
+                              <option value="38400">38400 bps (Default)</option>
+                              <option value="57600">57600 bps</option>
+                              <option value="115200">115200 bps</option>
+                            </select>
+                          </div>
+                        </div>
                       ) : (
                         <div className="flex items-center h-full pt-4">
                           <span className="text-xs text-slate-400 italic">Menggunakan kamera bawaan perangkat.</span>
@@ -279,7 +298,7 @@ const GCSSettingsModal = ({
                     className={`w-full py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 text-white transition ${isVideoConnected ? 'bg-rose-500 hover:bg-rose-400' : 'bg-orange-500 hover:bg-orange-400'}`}
                   >
                     <Power className="w-4 h-4" />
-                    {isVideoConnected ? 'STOP STREAM' : (droneMode === 'simulasi' || videoProtocol === 'dummy' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : (videoProtocol === 'd16_proxy' ? 'CONNECT D16 STREAM' : 'CONNECT MJPEG STREAM')))}
+                    {isVideoConnected ? 'STOP STREAM' : (droneMode === 'simulasi' || videoProtocol === 'dummy' ? 'AKTIFKAN WEBCAM' : (videoProtocol === 'hls' ? 'CONNECT HLS STREAM' : (videoProtocol === 'd16_proxy' ? 'CONNECT D16 STREAM' : (videoProtocol === 'ptc08_serial' ? 'CONNECT PTC08 CAMERA' : 'CONNECT MJPEG STREAM'))))}
                   </button>
                 </div>
               </div>

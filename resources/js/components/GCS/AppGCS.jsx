@@ -203,6 +203,9 @@ const AppGCS = () => {
   const [d16StreamUrl, setD16StreamUrl] = useState(`http://${window.location.hostname}:3002/stream`);
   const [isVideoConnected, setIsVideoConnected] = useState(false);
   const [liveStreamUrl, setLiveStreamUrl] = useState('');
+  const [ptc08Port, setPtc08Port] = useState('/dev/ttyUSB0');
+  const [ptc08BaudRate, setPtc08BaudRate] = useState('38400');
+
 
   // Flight Status Refs
   const flightStatusRef = useRef('STANDBY');
@@ -368,12 +371,52 @@ const AppGCS = () => {
       setIsVideoConnected(false);
       setLiveStreamUrl('');
       if (webcamStream) { webcamStream.getTracks().forEach(t => t.stop()); setWebcamStream(null); }
+      if (videoProtocol === 'ptc08_serial') {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        fetch('/drone/camera-config', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+          },
+          body: JSON.stringify({ protocol: 'none' })
+        }).catch(() => {});
+      }
     } else {
       // Dummy mode: aktifkan webcam laptop tanpa perlu droneMode
       if (videoProtocol === 'dummy') {
         setIsVideoConnected(true);
         setCockpitWarning('Webcam Laptop (Dummy) Aktif!');
         setTimeout(() => setCockpitWarning(''), 3000);
+        return;
+      }
+      if (videoProtocol === 'ptc08_serial') {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        fetch('/drone/camera-config', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+          },
+          body: JSON.stringify({
+            protocol: 'ptc08_serial',
+            port: ptc08Port,
+            baudRate: ptc08BaudRate
+          })
+        }).then(r => r.json())
+          .then(data => {
+            if (data.status === 'ok') {
+              setLiveStreamUrl(`http://${window.location.hostname}:3002/stream`);
+              setIsVideoConnected(true);
+              setCockpitWarning('Kamera PTC08 Terhubung!');
+              setTimeout(() => setCockpitWarning(''), 3000);
+            } else {
+              setAlertPopup({ title: 'Gagal', message: 'Gagal mengonfigurasi kamera serial: ' + (data.message || 'Error tidak diketahui') });
+            }
+          })
+          .catch(err => {
+            setAlertPopup({ title: 'Error Jaringan', message: 'Gagal terhubung ke proxy drone server.' });
+          });
         return;
       }
       if (droneMode === 'simulasi') {
@@ -1495,6 +1538,10 @@ const AppGCS = () => {
         setHlsUrl={setHlsUrl}
         d16StreamUrl={d16StreamUrl}
         setD16StreamUrl={setD16StreamUrl}
+        ptc08Port={ptc08Port}
+        setPtc08Port={setPtc08Port}
+        ptc08BaudRate={ptc08BaudRate}
+        setPtc08BaudRate={setPtc08BaudRate}
         isVideoConnected={isVideoConnected}
         handleConnectVideo={handleConnectVideo}
         drones={drones}

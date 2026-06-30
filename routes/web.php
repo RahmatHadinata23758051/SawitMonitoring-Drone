@@ -49,6 +49,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/drone/execute-sequence', [GCSController::class, 'executeSequence'])->name('drone.executeSequence');
     Route::post('/drone/profile', [GCSController::class, 'setProfile'])->name('drone.profile.set');
     Route::get('/drone/profile', [GCSController::class, 'getProfile'])->name('drone.profile.get');
+    Route::post('/drone/camera-config', [GCSController::class, 'setCameraConfig'])->name('drone.camera.config.set');
+    Route::get('/drone/camera-config', [GCSController::class, 'getCameraConfig'])->name('drone.camera.config.get');
     Route::resource('dataset/drone', DroneDatasetController::class)->except('show')->names([
 
         'index' => 'drone-dataset.index',
