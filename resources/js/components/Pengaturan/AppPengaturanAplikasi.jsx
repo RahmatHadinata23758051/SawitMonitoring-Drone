@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Settings, Upload, Trash2, Save, Image as ImageIcon, Laptop, ShieldCheck, Tag, Info } from 'lucide-react';
 
-const AppPengaturanAplikasi = ({ setting = {}, routes = {}, csrfToken, flashSuccess }) => {
+const AppPengaturanAplikasi = ({ setting: initialSetting = {}, routes = {}, csrfToken, flashSuccess }) => {
+    const setting = initialSetting || {};
     const [logoPreview, setLogoPreview] = useState(setting.logo_aplikasi ? `/storage/${setting.logo_aplikasi}` : null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
