@@ -51,13 +51,19 @@ print(f"[AI Server] Model berhasil dimuat: {MODEL_PATH.name}")
 with open(CLASS_MAP_PATH, "r") as f:
     CLASS_MAP = json.load(f)  # {"0": "Matang", "1": "Mentah"}
 
-# Pre-index dataset images agar simulate cepat tanpa glob berulang
-_dataset_index = {
-    "Matang": glob.glob(str(DATASET_PATH / "Matang" / "*.jpg")),
-    "Mentah": glob.glob(str(DATASET_PATH / "Mentah" / "*.jpg")),
-}
-_all_images = _dataset_index["Matang"] + _dataset_index["Mentah"]
-print(f"[AI Server] Dataset: {len(_dataset_index['Matang'])} Matang | {len(_dataset_index['Mentah'])} Mentah")
+# Pre-index dataset images agar simulate cepat tanpa glob berulang (jika folder dataset ada)
+_dataset_index = {"Matang": [], "Mentah": []}
+_all_images = []
+
+if DATASET_PATH.exists():
+    _dataset_index = {
+        "Matang": glob.glob(str(DATASET_PATH / "Matang" / "*.jpg")),
+        "Mentah": glob.glob(str(DATASET_PATH / "Mentah" / "*.jpg")),
+    }
+    _all_images = _dataset_index["Matang"] + _dataset_index["Mentah"]
+    print(f"[AI Server] Dataset: {len(_dataset_index['Matang'])} Matang | {len(_dataset_index['Mentah'])} Mentah")
+else:
+    print("[AI Server] [WARNING] Dataset path tidak ditemukan atau sudah dihapus. Mode simulasi dinonaktifkan.")
 
 # ============================================================
 # FASTAPI SETUP
