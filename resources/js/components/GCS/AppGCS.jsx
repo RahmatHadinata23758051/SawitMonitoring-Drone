@@ -823,20 +823,31 @@ const AppGCS = () => {
 
   // ✅ AI Scan helper — TRAD mode (1 kamera)
   const fireAiScanTrad = () => {
+    console.log("[GCS] fireAiScanTrad dipanggil! isVideoConnected =", isVideoConnected);
     if (isVideoConnected) {
+      console.log("[GCS] Mengambil snapshot dari port 3002...");
       // 1. Ambil snapshot langsung dari proxy drone server
       fetch(`http://${window.location.hostname}:3002/snapshot.jpg`)
-        .then(res => res.ok ? res.blob() : Promise.reject())
+        .then(res => {
+          console.log("[GCS] Response snapshot status:", res.status);
+          return res.ok ? res.blob() : Promise.reject(new Error("Response snapshot not OK"));
+        })
         .then(blob => {
+          console.log("[GCS] Snapshot didapatkan, ukuran blob:", blob.size);
           // 2. Kirim ke AI server untuk klasifikasi riil
           const formData = new FormData();
           formData.append('file', blob, 'snapshot.jpg');
 
+          console.log("[GCS] Mengirim ke AI Server:", `${AI_SERVER_URL}/predict`);
           return fetch(`${AI_SERVER_URL}/predict`, {
             method: 'POST',
             body: formData
-          }).then(r => r.ok ? r.json() : Promise.reject())
+          }).then(r => {
+            console.log("[GCS] Response AI Server status:", r.status);
+            return r.ok ? r.json() : Promise.reject(new Error("AI Server response not OK"));
+          })
             .then(data => {
+              console.log("[GCS] Hasil prediksi AI:", data);
               // 3. Render gambar snapshot yang ditangkap ke panel GCS
               const reader = new FileReader();
               reader.onloadend = () => {
@@ -856,18 +867,20 @@ const AppGCS = () => {
                   left: null,
                   right: null,
                 });
+                console.log("[GCS] liveAiVision berhasil diperbarui!");
               };
               reader.readAsDataURL(blob);
             });
         })
         .catch((err) => {
-          console.error('[AI Scan Error]', err);
+          console.error('[GCS] Error di AI Scan:', err);
           setAlertPopup({
             title: 'Koneksi AI Server Gagal',
             message: 'Gagal mengambil jepretan dari kamera atau menghubungi AI Server (port 8001). Silakan cek apakah AI Server sudah berjalan.'
           });
         });
     } else {
+      console.log("[GCS] isVideoConnected false, menjalankan offline scan.");
       runOfflineScanTrad();
     }
   };
