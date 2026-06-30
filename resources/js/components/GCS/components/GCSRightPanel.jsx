@@ -4,6 +4,7 @@ import {
   Camera, BarChart3, Send, Trash2, Database, TableProperties,
   MapPin, CheckSquare, Map as MapIcon, Download, Archive,
   CheckCircle2, Activity, Layers, Cpu, Play, Square, Lock, Loader2,
+  Crosshair,
 } from 'lucide-react';
 import { homeWP } from '../utils/gcsConstants';
 
