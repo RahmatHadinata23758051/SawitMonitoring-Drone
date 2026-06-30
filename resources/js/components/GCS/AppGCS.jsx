@@ -236,11 +236,23 @@ const AppGCS = () => {
   const [flightTime, setFlightTime] = useState(0);
 
   // AI Vision
-  const [liveAiVision, setLiveAiVision] = useState({
-    active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false,
-    condition: null, confidence: 0, boxPos: { top: 30, left: 40 },
-    mode: 'single', image_base64: null, left: null, right: null,
+  const [liveAiVision, setLiveAiVision] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gcs_last_ai_vision');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      active: false, objectDetected: 'Menunggu Take-off...', isPalmFruit: false,
+      condition: null, confidence: 0, boxPos: { top: 30, left: 40 },
+      mode: 'single', image_base64: null, left: null, right: null,
+    };
   });
+
+  useEffect(() => {
+    if (liveAiVision) {
+      localStorage.setItem('gcs_last_ai_vision', JSON.stringify(liveAiVision));
+    }
+  }, [liveAiVision]);
 
   // Flight Logs — BL-09: load dari DB, kosong di awal
   const [flightLogs, setFlightLogs] = useState([]);
@@ -848,8 +860,12 @@ const AppGCS = () => {
               reader.readAsDataURL(blob);
             });
         })
-        .catch(() => {
-          runOfflineScanTrad();
+        .catch((err) => {
+          console.error('[AI Scan Error]', err);
+          setAlertPopup({
+            title: 'Koneksi AI Server Gagal',
+            message: 'Gagal mengambil jepretan dari kamera atau menghubungi AI Server (port 8001). Silakan cek apakah AI Server sudah berjalan.'
+          });
         });
     } else {
       runOfflineScanTrad();
@@ -897,8 +913,12 @@ const AppGCS = () => {
               reader.readAsDataURL(blob);
             });
         })
-        .catch(() => {
-          runOfflineScanQlv();
+        .catch((err) => {
+          console.error('[AI Scan Error]', err);
+          setAlertPopup({
+            title: 'Koneksi AI Server Gagal',
+            message: 'Gagal mengambil jepretan dari kamera atau menghubungi AI Server (port 8001). Silakan cek apakah AI Server sudah berjalan.'
+          });
         });
     } else {
       runOfflineScanQlv();
