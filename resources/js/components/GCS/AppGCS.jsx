@@ -1559,6 +1559,8 @@ const AppGCS = () => {
           matangPercent={matangPercent}
           belumMatangPercent={belumMatangPercent}
           setManagedBlocks={setManagedBlocks}
+          isVideoConnected={isVideoConnected}
+          fireAiScanTrad={fireAiScanTrad}
 
           trees={trees}
           qlvPath={qlvPath}

@@ -38,7 +38,7 @@ const GCSRightPanel = ({
   // AI Vision & Stats
   liveAiVision, flightStatusUI, scannedTrees, baseTotalSample,
   matangCount, belumMatangCount, matangPercent, belumMatangPercent,
-  setManagedBlocks,
+  setManagedBlocks, isVideoConnected, fireAiScanTrad,
 
   // SVG Map
   trees, qlvPath, qlvTargetTrees, tradPath, pathString,
@@ -684,12 +684,20 @@ const GCSRightPanel = ({
                   <h3 className="text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 text-rose-600">
                     <Camera className="w-3.5 h-3.5" /> Live AI Vision
                   </h3>
+                  {isVideoConnected && (
+                    <button
+                      onClick={fireAiScanTrad}
+                      className="px-2 py-0.5 text-[8.5px] font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-0.5 shadow-sm active:scale-95"
+                    >
+                      <Crosshair className="w-2.5 h-2.5" /> AMBIL & DETEKSI AI
+                    </button>
+                  )}
                   {liveAiVision.mode === 'dual' && flightStatusUI !== 'STANDBY' && (
                     <span className="text-[8px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 tracking-wider">QLV DUAL CAM</span>
                   )}
                 </div>
 
-                {flightStatusUI === 'STANDBY' ? (
+                {flightStatusUI === 'STANDBY' && !liveAiVision.active ? (
                   <div className="rounded-xl border border-slate-200 bg-slate-900 aspect-video flex flex-col items-center justify-center gap-2 opacity-60">
                     <Camera className="w-8 h-8 text-slate-500" />
                     <span className="text-[10px] text-slate-500 font-mono">CAMERA FEED OFFLINE</span>
