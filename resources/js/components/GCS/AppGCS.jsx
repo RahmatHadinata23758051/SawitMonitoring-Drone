@@ -775,76 +775,134 @@ const AppGCS = () => {
   // ✅ AI SERVER URL
   const AI_SERVER_URL = `http://${window.location.hostname}:8001`;
 
+  // ✅ AI Scan offline/simulation fallback helpers
+  const runOfflineScanTrad = () => {
+    const isMtg = Math.random() > 0.35;
+    if (isMtg) matangCountRef.current += 1;
+    const fakeConf = (Math.random() * 10 + 89).toFixed(1);
+    accuracyAccumRef.current += parseFloat(fakeConf);
+    aiCallCountRef.current += 1;
+    setLiveAiVision({
+      active: true, objectDetected: `Inspeksi 360°: ${isMtg ? 'Matang' : 'Mentah'} (Offline)`,
+      isPalmFruit: true, condition: isMtg ? 'Matang' : 'Mentah',
+      confidence: fakeConf,
+      boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
+      mode: 'single', image_base64: null, left: null, right: null,
+    });
+  };
+
+  const runOfflineScanQlv = () => {
+    const l = Math.random() > 0.35; const r = Math.random() > 0.35;
+    if (l) matangCountRef.current += 1;
+    if (r) matangCountRef.current += 1;
+    const fakeConf = (Math.random() * 10 + 89).toFixed(1);
+    accuracyAccumRef.current += parseFloat(fakeConf);
+    aiCallCountRef.current += 1;
+    setLiveAiVision({
+      active: true, objectDetected: `QLV: L=${l ? 'Matang' : 'Mentah'} | R=${r ? 'Matang' : 'Mentah'} (Offline)`,
+      isPalmFruit: true, condition: l ? 'Matang' : 'Mentah',
+      confidence: fakeConf,
+      boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
+      mode: 'dual', image_base64: null,
+      left: { prediction: l ? 'Matang' : 'Mentah', confidence_pct: fakeConf, image_base64: null },
+      right: { prediction: r ? 'Matang' : 'Mentah', confidence_pct: fakeConf, image_base64: null },
+    });
+  };
+
   // ✅ AI Scan helper — TRAD mode (1 kamera)
   const fireAiScanTrad = () => {
-    fetch(`${AI_SERVER_URL}/simulate`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => {
-        if (data.prediction === 'Matang') matangCountRef.current += 1;
-        accuracyAccumRef.current += parseFloat(data.confidence) * 100;
-        aiCallCountRef.current += 1;
-        setLiveAiVision({
-          active: true, objectDetected: `Inspeksi 360°: ${data.prediction}`,
-          isPalmFruit: true, condition: data.prediction,
-          confidence: (parseFloat(data.confidence) * 100).toFixed(1),
-          boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
-          mode: 'single', image_base64: data.image_base64 || null, left: null, right: null,
+    if (isVideoConnected) {
+      // 1. Ambil snapshot langsung dari proxy drone server
+      fetch(`http://${window.location.hostname}:3002/snapshot.jpg`)
+        .then(res => res.ok ? res.blob() : Promise.reject())
+        .then(blob => {
+          // 2. Kirim ke AI server untuk klasifikasi riil
+          const formData = new FormData();
+          formData.append('file', blob, 'snapshot.jpg');
+
+          return fetch(`${AI_SERVER_URL}/predict`, {
+            method: 'POST',
+            body: formData
+          }).then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+              // 3. Render gambar snapshot yang ditangkap ke panel GCS
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64data = reader.result;
+                if (data.prediction === 'Matang') matangCountRef.current += 1;
+                accuracyAccumRef.current += parseFloat(data.confidence) * 100;
+                aiCallCountRef.current += 1;
+                setLiveAiVision({
+                  active: true,
+                  objectDetected: `Inspeksi 360°: ${data.prediction}`,
+                  isPalmFruit: true,
+                  condition: data.prediction,
+                  confidence: (parseFloat(data.confidence) * 100).toFixed(1),
+                  boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
+                  mode: 'single',
+                  image_base64: base64data,
+                  left: null,
+                  right: null,
+                });
+              };
+              reader.readAsDataURL(blob);
+            });
+        })
+        .catch(() => {
+          runOfflineScanTrad();
         });
-      })
-      .catch(() => {
-        const isMtg = Math.random() > 0.35;
-        if (isMtg) matangCountRef.current += 1;
-        const fakeConf = (Math.random() * 10 + 89).toFixed(1);
-        accuracyAccumRef.current += parseFloat(fakeConf);
-        aiCallCountRef.current += 1;
-        setLiveAiVision({
-          active: true, objectDetected: `Inspeksi 360°: ${isMtg ? 'Matang' : 'Mentah'} (Offline)`,
-          isPalmFruit: true, condition: isMtg ? 'Matang' : 'Mentah',
-          confidence: fakeConf,
-          boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
-          mode: 'single', image_base64: null, left: null, right: null,
-        });
-      });
+    } else {
+      runOfflineScanTrad();
+    }
   };
 
   // ✅ AI Scan helper — QLV mode (2 kamera: kiri & kanan)
   const fireAiScanQlv = () => {
-    fetch(`${AI_SERVER_URL}/simulate/dual`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => {
-        if (data.left?.prediction === 'Matang') matangCountRef.current += 1;
-        if (data.right?.prediction === 'Matang') matangCountRef.current += 1;
-        const leftConf = parseFloat(data.left?.confidence || 0) * 100;
-        const rightConf = parseFloat(data.right?.confidence || 0) * 100;
-        accuracyAccumRef.current += (leftConf + rightConf) / 2;
-        aiCallCountRef.current += 1;
-        setLiveAiVision({
-          active: true, objectDetected: `QLV: L=${data.left?.prediction} | R=${data.right?.prediction}`,
-          isPalmFruit: true, condition: leftConf >= rightConf ? data.left?.prediction : data.right?.prediction,
-          confidence: Math.max(leftConf, rightConf).toFixed(1),
-          boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
-          mode: 'dual', image_base64: null,
-          left: { prediction: data.left?.prediction, confidence_pct: leftConf.toFixed(1), image_base64: data.left?.image_base64 || null },
-          right: { prediction: data.right?.prediction, confidence_pct: rightConf.toFixed(1), image_base64: data.right?.image_base64 || null },
+    if (isVideoConnected) {
+      // Ambil snapshot langsung dari proxy drone server
+      fetch(`http://${window.location.hostname}:3002/snapshot.jpg`)
+        .then(res => res.ok ? res.blob() : Promise.reject())
+        .then(blob => {
+          const formData = new FormData();
+          formData.append('file_left', blob, 'left.jpg');
+          formData.append('file_right', blob, 'right.jpg');
+
+          return fetch(`${AI_SERVER_URL}/predict/dual`, {
+            method: 'POST',
+            body: formData
+          }).then(r => r.ok ? r.json() : Promise.reject())
+            .then(data => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64data = reader.result;
+                if (data.left?.prediction === 'Matang') matangCountRef.current += 1;
+                if (data.right?.prediction === 'Matang') matangCountRef.current += 1;
+                const leftConf = parseFloat(data.left?.confidence || 0) * 100;
+                const rightConf = parseFloat(data.right?.confidence || 0) * 100;
+                accuracyAccumRef.current += (leftConf + rightConf) / 2;
+                aiCallCountRef.current += 1;
+                setLiveAiVision({
+                  active: true,
+                  objectDetected: `QLV: L=${data.left?.prediction} | R=${data.right?.prediction}`,
+                  isPalmFruit: true,
+                  condition: leftConf >= rightConf ? data.left?.prediction : data.right?.prediction,
+                  confidence: Math.max(leftConf, rightConf).toFixed(1),
+                  boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
+                  mode: 'dual',
+                  image_base64: null,
+                  left: { prediction: data.left?.prediction, confidence_pct: leftConf.toFixed(1), image_base64: base64data },
+                  right: { prediction: data.right?.prediction, confidence_pct: rightConf.toFixed(1), image_base64: base64data },
+                });
+              };
+              reader.readAsDataURL(blob);
+            });
+        })
+        .catch(() => {
+          runOfflineScanQlv();
         });
-      })
-      .catch(() => {
-        const l = Math.random() > 0.35; const r = Math.random() > 0.35;
-        if (l) matangCountRef.current += 1;
-        if (r) matangCountRef.current += 1;
-        const fakeConf = (Math.random() * 10 + 89).toFixed(1);
-        accuracyAccumRef.current += parseFloat(fakeConf);
-        aiCallCountRef.current += 1;
-        setLiveAiVision({
-          active: true, objectDetected: `QLV: L=${l ? 'Matang' : 'Mentah'} | R=${r ? 'Matang' : 'Mentah'} (Offline)`,
-          isPalmFruit: true, condition: l ? 'Matang' : 'Mentah',
-          confidence: fakeConf,
-          boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
-          mode: 'dual', image_base64: null,
-          left: { prediction: l ? 'Matang' : 'Mentah', confidence_pct: fakeConf, image_base64: null },
-          right: { prediction: r ? 'Matang' : 'Mentah', confidence_pct: fakeConf, image_base64: null },
-        });
-      });
+    } else {
+      runOfflineScanQlv();
+    }
   };
 
   // --- PHYSICS ENGINE (200ms) ---
