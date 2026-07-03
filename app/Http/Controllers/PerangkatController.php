@@ -47,6 +47,7 @@ class PerangkatController extends Controller
             'id_drone' => 'required|string|unique:perangkats,id_drone',
             'ip_drone' => 'required|string|unique:perangkats,ip_drone',
             'status' => 'required|boolean',
+            'profil'   => 'nullable|string',
         ], [
             'id_drone.required' => 'ID drone wajib diisi.',
             'id_drone.string' => 'ID drone harus berupa string.',
@@ -62,6 +63,7 @@ class PerangkatController extends Controller
             'id_drone' => $validated['id_drone'],
             'ip_drone' => $validated['ip_drone'],
             'status' => $validated['status'],
+            'profil'   => $request->input('profil', 'd16'),
         ];
 
         $post = Perangkat::create($data);
@@ -71,6 +73,18 @@ class PerangkatController extends Controller
             ->event('create')
             ->causedBy(Auth::user())
             ->log('Perangkat baru ditambahkan: ' . $post->id_drone);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id'     => $post->id_drone,
+                    'merk'   => $post->ip_drone,
+                    'status' => $post->status ? 'Standby' : 'Maintenance',
+                    'profil' => $post->profil ?? 'd16',
+                ]
+            ]);
+        }
 
         return redirect()->route('perangkat.index')->with('success', 'Data perangkat berhasil dibuat!');
     }
@@ -94,12 +108,19 @@ class PerangkatController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Perangkat $perangkat)
+    public function update(Request $request, $id)
     {
+        if (is_numeric($id)) {
+            $perangkat = Perangkat::findOrFail($id);
+        } else {
+            $perangkat = Perangkat::where('id_drone', $id)->firstOrFail();
+        }
+
         $validated = $request->validate([
             'id_drone' => 'required|string|unique:perangkats,id_drone,' . $perangkat->id,
             'ip_drone' => 'required|string|unique:perangkats,ip_drone,' . $perangkat->id,
             'status' => 'required|boolean',
+            'profil'   => 'nullable|string',
         ], [
             'id_drone.required' => 'ID drone wajib diisi.',
             'id_drone.string' => 'ID drone harus berupa string.',
@@ -115,6 +136,7 @@ class PerangkatController extends Controller
             'id_drone' => $validated['id_drone'],
             'ip_drone' => $validated['ip_drone'],
             'status' => $validated['status'],
+            'profil'   => $request->input('profil', 'd16'),
         ];
 
         $original = $perangkat->getOriginal();
@@ -138,14 +160,32 @@ class PerangkatController extends Controller
             ->causedBy(Auth::user())
             ->log('Perangkat dengan ID ' . $perangkat->id . ' berhasil diupdate');
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id'     => $perangkat->id_drone,
+                    'merk'   => $perangkat->ip_drone,
+                    'status' => $perangkat->status ? 'Standby' : 'Maintenance',
+                    'profil' => $perangkat->profil ?? 'd16',
+                ]
+            ]);
+        }
+
         return redirect()->route('perangkat.index')->with('success', 'Data perangkat berhasil diubah!');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Perangkat $perangkat)
+    public function destroy(Request $request, $id)
     {
+        if (is_numeric($id)) {
+            $perangkat = Perangkat::findOrFail($id);
+        } else {
+            $perangkat = Perangkat::where('id_drone', $id)->firstOrFail();
+        }
+
         $perangkat->delete();
 
         activity()
@@ -153,6 +193,10 @@ class PerangkatController extends Controller
             ->event('delete')
             ->causedBy(Auth::user())
             ->log('Perangkat dihapus: ' . $perangkat->id_drone);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
 
         return redirect()->route('perangkat.index')->with('success', 'Data perangkat berhasil dihapus!');
     }

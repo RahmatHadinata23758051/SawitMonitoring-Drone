@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\Http;
 
 class GCSController extends Controller
 {
+    private function getDroneServerUrl()
+    {
+        return env('DRONE_SERVER_URL', 'http://127.0.0.1:3001');
+    }
+
     public function index()
     {
         $drone = Perangkat::latest()->get();
@@ -17,13 +22,13 @@ class GCSController extends Controller
     public function control(Request $request)
     {
         $command = $request->input('command', 'unknown');
+        $baseUrl = $this->getDroneServerUrl();
 
         try {
-            $response = Http::timeout(3)->post('http://127.0.0.1:3001/command', [
+            $response = Http::timeout(3)->post("{$baseUrl}/command", [
                 'command' => $command,
             ]);
 
-            // Pass-through Node response (termasuk 400 unknown_command)
             return response()->json($response->json(), $response->status());
 
         } catch (\Exception $e) {
@@ -41,13 +46,14 @@ class GCSController extends Controller
     public function executeSequence(Request $request)
     {
         $sequence = $request->input('sequence');
+        $baseUrl = $this->getDroneServerUrl();
 
         if (!$sequence || !is_array($sequence)) {
             return response()->json(['error' => 'Invalid sequence payload.'], 400);
         }
 
         try {
-            $response = Http::timeout(5)->post('http://127.0.0.1:3001/execute-sequence', [
+            $response = Http::timeout(5)->post("{$baseUrl}/execute-sequence", [
                 'sequence' => $sequence,
             ]);
 
@@ -65,9 +71,10 @@ class GCSController extends Controller
         $profile = $request->input('profile', 'd16');
         $host = $request->input('host');
         $port = $request->input('port');
+        $baseUrl = $this->getDroneServerUrl();
 
         try {
-            $response = Http::timeout(3)->post('http://127.0.0.1:3001/profile', [
+            $response = Http::timeout(3)->post("{$baseUrl}/profile", [
                 'profile' => $profile,
                 'host' => $host,
                 'port' => $port,
@@ -84,8 +91,9 @@ class GCSController extends Controller
 
     public function getProfile()
     {
+        $baseUrl = $this->getDroneServerUrl();
         try {
-            $response = Http::timeout(3)->get('http://127.0.0.1:3001/profile');
+            $response = Http::timeout(3)->get("{$baseUrl}/profile");
             return response()->json($response->json(), $response->status());
         } catch (\Exception $e) {
             return response()->json([
@@ -101,9 +109,10 @@ class GCSController extends Controller
         $port = $request->input('port');
         $baudRate = $request->input('baudRate');
         $resolution = $request->input('resolution');
+        $baseUrl = $this->getDroneServerUrl();
 
         try {
-            $response = Http::timeout(3)->post('http://127.0.0.1:3001/camera/config', [
+            $response = Http::timeout(3)->post("{$baseUrl}/camera/config", [
                 'protocol' => $protocol,
                 'port' => $port,
                 'baudRate' => $baudRate,
@@ -121,8 +130,9 @@ class GCSController extends Controller
 
     public function getCameraConfig()
     {
+        $baseUrl = $this->getDroneServerUrl();
         try {
-            $response = Http::timeout(3)->get('http://127.0.0.1:3001/camera/config');
+            $response = Http::timeout(3)->get("{$baseUrl}/camera/config");
             return response()->json($response->json(), $response->status());
         } catch (\Exception $e) {
             return response()->json([

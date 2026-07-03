@@ -52,6 +52,7 @@ const GCSRightPanel = ({
   // Upload
   drones, selectedUploadDrone, setSelectedUploadDrone, setWarning,
   isUploadReady,
+  handleStartFlight,
 
   t,
 
@@ -385,17 +386,24 @@ const GCSRightPanel = ({
                       {navAlgorithm === 'dead_reckoning' && <CheckCircle2 className="w-3.5 h-3.5" />}
                     </button>
 
-                    {/* Coming Soon algorithms */}
+                    {/* Live Reckoning & Hybrid System — AKTIF */}
                     {[{val:'live_reckoning', label:'Live Reckoning'}, {val:'hybrid', label:'Hybrid System'}].map(alg => (
-                      <div key={alg.val}
-                        className="flex items-center justify-between px-3 py-2 rounded-lg border border-slate-100 bg-slate-50 text-[10px] text-slate-400 cursor-not-allowed"
+                      <button
+                        key={alg.val}
+                        onClick={() => setNavAlgorithm(alg.val)}
+                        disabled={drRunning}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg border text-[10px] font-semibold transition ${
+                          navAlgorithm === alg.val
+                            ? 'bg-blue-600 border-blue-500 text-white shadow-md'
+                            : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50'
+                        }`}
                       >
                         <span className="flex items-center gap-2">
-                          <Lock className="w-3 h-3" />
+                          <Navigation className="w-3.5 h-3.5" />
                           {alg.label}
                         </span>
-                        <span className="text-[8px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Segera Hadir</span>
-                      </div>
+                        {navAlgorithm === alg.val && <CheckCircle2 className="w-3.5 h-3.5" />}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -551,6 +559,14 @@ const GCSRightPanel = ({
                     >
                       <Send className="w-4 h-4" /> UPLOAD KE DRONE
                     </button>
+                    {selectedUploadDrone && handleStartFlight && (
+                      <button
+                        onClick={handleStartFlight}
+                        className="w-full flex items-center justify-center gap-1.5 p-2.5 rounded-lg text-[10px] font-bold transition bg-emerald-600 hover:bg-emerald-500 text-white shadow-md mt-2 animate-bounce"
+                      >
+                        <Play className="w-4 h-4" /> MULAI MISI / START FLIGHT
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <button disabled className="w-full flex items-center justify-center gap-1.5 p-2.5 rounded-lg text-[10px] font-bold cursor-not-allowed border bg-slate-50 text-slate-400 border-slate-200">
@@ -691,7 +707,12 @@ const GCSRightPanel = ({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        fireAiScanTrad();
+                        console.log("[GCS] Tombol AMBIL & DETEKSI AI diklik!");
+                        if (typeof fireAiScanTrad === 'function') {
+                          fireAiScanTrad();
+                        } else {
+                          console.error("[GCS] Error: fireAiScanTrad is not a function!", fireAiScanTrad);
+                        }
                       }}
                       className="px-2 py-0.5 text-[8.5px] font-bold rounded bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-0.5 shadow-sm active:scale-95"
                     >
@@ -855,6 +876,14 @@ const GCSRightPanel = ({
                     >
                       <Send className="w-4 h-4" /> UPLOAD KE DRONE
                     </button>
+                    {selectedUploadDrone && handleStartFlight && (
+                      <button
+                        onClick={handleStartFlight}
+                        className="w-full flex items-center justify-center gap-1.5 p-2.5 rounded-lg text-[10px] font-bold transition bg-emerald-600 hover:bg-emerald-500 text-white shadow-md mt-2 animate-bounce"
+                      >
+                        <Play className="w-4 h-4" /> MULAI MISI / START FLIGHT
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <button disabled className="w-full flex items-center justify-center gap-1.5 p-2.5 rounded-lg text-[10px] font-bold cursor-not-allowed border bg-slate-50 text-slate-400 border-slate-200">

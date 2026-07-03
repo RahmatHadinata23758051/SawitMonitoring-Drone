@@ -18,7 +18,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { homeWP, BASE_LAT, BASE_LON, METER_TO_DEG } from '../utils/gcsConstants';
 
-const AI_SERVER_URL = `http://${window.location.hostname}:8001`;
+const AI_SERVER_URL = import.meta.env.VITE_AI_SERVER_URL || `http://${window.location.hostname}:8001`;
 
 export function useFlightControl({
   droneMode,

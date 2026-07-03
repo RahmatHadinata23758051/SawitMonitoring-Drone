@@ -68,8 +68,17 @@ const AppGCS = () => {
   const [drones, setDrones] = useState([]);
   const [dronesLoading, setDronesLoading] = useState(true);
   const [selectedUploadDrone, setSelectedUploadDrone] = useState('');
-  const [droneForm, setDroneForm] = useState({ id: '', merk: '', status: 'Standby' });
+  const [droneForm, setDroneForm] = useState({ id: '', merk: '', status: 'Standby', profil: 'd16' });
   const [isEditingDrone, setIsEditingDrone] = useState(false);
+
+  const handleSelectDrone = (droneId) => {
+    setSelectedUploadDrone(droneId);
+    if (!droneId) return;
+    const found = drones.find(d => d.id === droneId);
+    if (found && found.profil) {
+      handleUpdateDroneProfile(found.profil);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/perangkat')
@@ -95,6 +104,13 @@ const AppGCS = () => {
           }
         })
         .catch(err => console.error("Gagal sinkronisasi profil drone:", err));
+      setIsVideoConnected(false);
+    } else if (droneMode === 'simulasi') {
+      // Jangan timpa pilihan kamera (videoProtocol) user, biarkan fleksibel.
+      // Cukup auto-aktifkan jika menggunakan dummy/webcam lokal.
+      if (videoProtocol === 'dummy') {
+        setIsVideoConnected(true);
+      }
     }
   }, [droneMode]);
 
@@ -193,19 +209,26 @@ const AppGCS = () => {
   // Telemetry / Video / Serial
   const [webcamStream, setWebcamStream] = useState(null);
   const videoRef = useRef(null);
-  const [telemBaud, setTelemBaud] = useState('57600');
+  const [telemBaud, setTelemBaud] = useState(() => localStorage.getItem('gcs_telem_baud') || '57600');
   const [isTelemConnected, setIsTelemConnected] = useState(false);
   const serialPortRef = useRef(null);
   const serialReaderRef = useRef(null);
-  const [videoIp, setVideoIp] = useState('192.168.1.100');
-  const [videoProtocol, setVideoProtocol] = useState('mjpeg');
+  const [videoIp, setVideoIp] = useState(() => localStorage.getItem('gcs_video_ip') || '192.168.1.100');
+  const [videoProtocol, setVideoProtocol] = useState(() => localStorage.getItem('gcs_video_protocol') || 'mjpeg');
   const [hlsUrl, setHlsUrl] = useState('/streams/drone.m3u8');
   const [d16StreamUrl, setD16StreamUrl] = useState(`http://${window.location.hostname}:3002/stream`);
   const [isVideoConnected, setIsVideoConnected] = useState(false);
   const [liveStreamUrl, setLiveStreamUrl] = useState('');
-  const [ptc08Port, setPtc08Port] = useState('/dev/ttyUSB0');
-  const [ptc08BaudRate, setPtc08BaudRate] = useState('38400');
-  const [ptc08Resolution, setPtc08Resolution] = useState('640x480');
+  const [ptc08Port, setPtc08Port] = useState(() => localStorage.getItem('gcs_ptc08_port') || '/dev/ttyUSB0');
+  const [ptc08BaudRate, setPtc08BaudRate] = useState(() => localStorage.getItem('gcs_ptc08_baud') || '38400');
+  const [ptc08Resolution, setPtc08Resolution] = useState(() => localStorage.getItem('gcs_ptc08_res') || '640x480');
+
+  useEffect(() => { localStorage.setItem('gcs_telem_baud', telemBaud); }, [telemBaud]);
+  useEffect(() => { localStorage.setItem('gcs_video_ip', videoIp); }, [videoIp]);
+  useEffect(() => { localStorage.setItem('gcs_video_protocol', videoProtocol); }, [videoProtocol]);
+  useEffect(() => { localStorage.setItem('gcs_ptc08_port', ptc08Port); }, [ptc08Port]);
+  useEffect(() => { localStorage.setItem('gcs_ptc08_baud', ptc08BaudRate); }, [ptc08BaudRate]);
+  useEffect(() => { localStorage.setItem('gcs_ptc08_res', ptc08Resolution); }, [ptc08Resolution]);
 
 
   // Flight Status Refs
@@ -486,6 +509,11 @@ const AppGCS = () => {
   const [droneFlightState, setDroneFlightState] = useState('DISARMED'); // DISARMED | FLYING
 
   const handleDroneCommand = async (command) => {
+    if (!selectedUploadDrone) {
+      setCockpitWarning('Pilih Drone Terlebih Dahulu!');
+      setTimeout(() => setCockpitWarning(''), 3000);
+      return;
+    }
     // ============================================================
     // SIMULASI MODE (atau belum pilih mode): handle lokal
     // ============================================================
@@ -502,6 +530,21 @@ const AppGCS = () => {
             setFlightTime(0);
             setCockpitWarning('⚡ ARM → Manual Control Aktif!');
             setTimeout(() => setCockpitWarning(''), 2500);
+            if (!currentFlightInfoRef.current) {
+              currentFlightInfoRef.current = {
+                name: `Penerbangan Manual (${selectedUploadDrone})`,
+                nav: 'Manual Control',
+                scan: 'Manual',
+                dbMissionId: null,
+                configData: { drone: selectedUploadDrone },
+              };
+              scannedTreesRef.current = 0;
+              setScannedTrees(0);
+              aiCallCountRef.current = 0;
+              matangCountRef.current = 0;
+              accuracyAccumRef.current = 0;
+              telemetryHistoryRef.current = [];
+            }
           }
         }
         return;
@@ -531,6 +574,7 @@ const AppGCS = () => {
         manualInputRef.current = null;
         setCockpitWarning(command === 'emergency' ? '🚨 EMERGENCY STOP!' : 'DISARMED');
         setTimeout(() => setCockpitWarning(''), 2500);
+        saveFlightLogFromState();
         return;
       }
       // Manual movement commands — hanya aktif saat MANUAL/TAKEOFF_MANUAL
@@ -574,8 +618,32 @@ const AppGCS = () => {
         return;
       }
       // Update flight state berdasarkan command yang berhasil
-      if (command === 'arm') setDroneFlightState('FLYING');
-      if (['land', 'disarm', 'emergency'].includes(command)) setDroneFlightState('DISARMED');
+      if (command === 'arm') {
+        setDroneFlightState('FLYING');
+        if (!currentFlightInfoRef.current) {
+          currentFlightInfoRef.current = {
+            name: `Penerbangan Manual (${selectedUploadDrone})`,
+            nav: 'Manual Control',
+            scan: 'Manual',
+            dbMissionId: null,
+            configData: { drone: selectedUploadDrone },
+          };
+          flightTimeRef.current = 0;
+          setFlightTime(0);
+          scannedTreesRef.current = 0;
+          setScannedTrees(0);
+          aiCallCountRef.current = 0;
+          matangCountRef.current = 0;
+          accuracyAccumRef.current = 0;
+          telemetryHistoryRef.current = [];
+        }
+      }
+      if (['land', 'disarm', 'emergency'].includes(command)) {
+        setDroneFlightState('DISARMED');
+        if (command === 'disarm' || command === 'emergency') {
+          saveFlightLogFromState();
+        }
+      }
     } catch (err) {
       setCockpitWarning('Gagal kirim perintah ke drone!');
       setTimeout(() => setCockpitWarning(''), 3000);
@@ -588,7 +656,7 @@ const AppGCS = () => {
     setDroneProfile(profile);
 
     if (droneMode !== 'real') {
-      setCockpitWarning(`Profil (Simulasi) diubah ke: ${profile === 'e88' ? 'E88 Pro' : 'D16 Mini'}`);
+      setCockpitWarning(`Profil (Simulasi) diubah ke: ${profile === 'pixhawk' ? 'Pixhawk MAVLink' : profile === 'e88' ? 'E88 Pro' : 'D16 Mini'}`);
       setTimeout(() => setCockpitWarning(''), 2500);
       return;
     }
@@ -785,7 +853,7 @@ const AppGCS = () => {
   const radarTop = Math.max(5, Math.min(95, ((telemetry.y + 20) / mapHeight) * 100));
 
   // ✅ AI SERVER URL
-  const AI_SERVER_URL = `http://${window.location.hostname}:8001`;
+  const AI_SERVER_URL = import.meta.env.VITE_AI_SERVER_URL || `http://${window.location.hostname}:8001`;
 
   // ✅ AI Scan offline/simulation fallback helpers
   const runOfflineScanTrad = () => {
@@ -821,56 +889,86 @@ const AppGCS = () => {
     });
   };
 
-  // ✅ AI Scan helper — TRAD mode (1 kamera)
-  const fireAiScanTrad = () => {
-    console.log("[GCS] fireAiScanTrad dipanggil! isVideoConnected =", isVideoConnected);
-    if (isVideoConnected) {
-      console.log("[GCS] Mengambil snapshot dari port 3002...");
-      // 1. Ambil snapshot langsung dari proxy drone server
-      fetch(`http://${window.location.hostname}:3002/snapshot.jpg`)
-        .then(res => {
-          console.log("[GCS] Response snapshot status:", res.status);
-          return res.ok ? res.blob() : Promise.reject(new Error("Response snapshot not OK"));
-        })
-        .then(blob => {
-          console.log("[GCS] Snapshot didapatkan, ukuran blob:", blob.size);
-          // 2. Kirim ke AI server untuk klasifikasi riil
-          const formData = new FormData();
-          formData.append('file', blob, 'snapshot.jpg');
+  const captureFrameFromWebcam = () => {
+    if (!videoRef.current) {
+      console.warn("[GCS] captureFrameFromWebcam: videoRef.current is null!");
+      return null;
+    }
+    const video = videoRef.current;
+    
+    // Create canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        resolve(blob);
+      }, 'image/jpeg', 0.95);
+    });
+  };
 
-          console.log("[GCS] Mengirim ke AI Server:", `${AI_SERVER_URL}/predict`);
-          return fetch(`${AI_SERVER_URL}/predict`, {
-            method: 'POST',
-            body: formData
-          }).then(r => {
-            console.log("[GCS] Response AI Server status:", r.status);
-            return r.ok ? r.json() : Promise.reject(new Error("AI Server response not OK"));
-          })
-            .then(data => {
-              console.log("[GCS] Hasil prediksi AI:", data);
-              // 3. Render gambar snapshot yang ditangkap ke panel GCS
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                const base64data = reader.result;
-                if (data.prediction === 'Matang') matangCountRef.current += 1;
-                accuracyAccumRef.current += parseFloat(data.confidence) * 100;
-                aiCallCountRef.current += 1;
-                setLiveAiVision({
-                  active: true,
-                  objectDetected: `Inspeksi 360°: ${data.prediction}`,
-                  isPalmFruit: true,
-                  condition: data.prediction,
-                  confidence: (parseFloat(data.confidence) * 100).toFixed(1),
-                  boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
-                  mode: 'single',
-                  image_base64: base64data,
-                  left: null,
-                  right: null,
-                });
-                console.log("[GCS] liveAiVision berhasil diperbarui!");
-              };
-              reader.readAsDataURL(blob);
+  const getSnapshotBlob = async () => {
+    // 1. Jika mode simulasi dan webcam aktif, ambil dari canvas lokal
+    if (droneMode === 'simulasi' && webcamStream && videoRef.current) {
+      console.log("[GCS] Mengambil snapshot dari webcam lokal...");
+      return await captureFrameFromWebcam();
+    }
+    
+    // 2. Jika mode real dan terhubung, fetch dari proxy drone server
+    if (droneMode === 'real' && isVideoConnected) {
+      console.log("[GCS] Mengambil snapshot dari proxy drone server...");
+      try {
+        const res = await fetch(`http://${window.location.hostname}:3002/snapshot.jpg`);
+        if (res.ok) return await res.blob();
+      } catch (e) {
+        console.error("[GCS] Gagal fetch snapshot dari proxy:", e);
+      }
+    }
+    
+    return null;
+  };
+
+  // ✅ AI Scan helper — TRAD mode (1 kamera)
+  const fireAiScanTrad = async () => {
+    console.log("[GCS] fireAiScanTrad dipanggil!");
+    const blob = await getSnapshotBlob();
+    
+    if (blob) {
+      const formData = new FormData();
+      formData.append('file', blob, 'snapshot.jpg');
+      
+      console.log("[GCS] Mengirim ke AI Server:", `${AI_SERVER_URL}/predict`);
+      fetch(`${AI_SERVER_URL}/predict`, {
+        method: 'POST',
+        body: formData
+      })
+        .then(r => r.ok ? r.json() : Promise.reject(new Error("AI Server response not OK")))
+        .then(data => {
+          console.log("[GCS] Hasil prediksi AI:", data);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64data = reader.result;
+            if (data.prediction === 'Matang') matangCountRef.current += 1;
+            accuracyAccumRef.current += parseFloat(data.confidence) * 100;
+            aiCallCountRef.current += 1;
+            setLiveAiVision({
+              active: true,
+              objectDetected: `Inspeksi 360°: ${data.prediction}`,
+              isPalmFruit: true,
+              condition: data.prediction,
+              confidence: (parseFloat(data.confidence) * 100).toFixed(1),
+              boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
+              mode: 'single',
+              image_base64: base64data,
+              left: null,
+              right: null,
             });
+          };
+          reader.readAsDataURL(blob);
         })
         .catch((err) => {
           console.error('[GCS] Error di AI Scan:', err);
@@ -880,62 +978,145 @@ const AppGCS = () => {
           });
         });
     } else {
-      console.log("[GCS] isVideoConnected false, menjalankan offline scan.");
+      console.log("[GCS] Tidak ada source snapshot aktif, menjalankan offline scan.");
       runOfflineScanTrad();
     }
   };
 
   // ✅ AI Scan helper — QLV mode (2 kamera: kiri & kanan)
-  const fireAiScanQlv = () => {
-    if (isVideoConnected) {
-      // Ambil snapshot langsung dari proxy drone server
-      fetch(`http://${window.location.hostname}:3002/snapshot.jpg`)
-        .then(res => res.ok ? res.blob() : Promise.reject())
-        .then(blob => {
-          const formData = new FormData();
-          formData.append('file_left', blob, 'left.jpg');
-          formData.append('file_right', blob, 'right.jpg');
-
-          return fetch(`${AI_SERVER_URL}/predict/dual`, {
-            method: 'POST',
-            body: formData
-          }).then(r => r.ok ? r.json() : Promise.reject())
-            .then(data => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                const base64data = reader.result;
-                if (data.left?.prediction === 'Matang') matangCountRef.current += 1;
-                if (data.right?.prediction === 'Matang') matangCountRef.current += 1;
-                const leftConf = parseFloat(data.left?.confidence || 0) * 100;
-                const rightConf = parseFloat(data.right?.confidence || 0) * 100;
-                accuracyAccumRef.current += (leftConf + rightConf) / 2;
-                aiCallCountRef.current += 1;
-                setLiveAiVision({
-                  active: true,
-                  objectDetected: `QLV: L=${data.left?.prediction} | R=${data.right?.prediction}`,
-                  isPalmFruit: true,
-                  condition: leftConf >= rightConf ? data.left?.prediction : data.right?.prediction,
-                  confidence: Math.max(leftConf, rightConf).toFixed(1),
-                  boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
-                  mode: 'dual',
-                  image_base64: null,
-                  left: { prediction: data.left?.prediction, confidence_pct: leftConf.toFixed(1), image_base64: base64data },
-                  right: { prediction: data.right?.prediction, confidence_pct: rightConf.toFixed(1), image_base64: base64data },
-                });
-              };
-              reader.readAsDataURL(blob);
+  const fireAiScanQlv = async () => {
+    console.log("[GCS] fireAiScanQlv dipanggil!");
+    const blob = await getSnapshotBlob();
+    
+    if (blob) {
+      const formData = new FormData();
+      formData.append('file_left', blob, 'left.jpg');
+      formData.append('file_right', blob, 'right.jpg');
+      
+      console.log("[GCS] Mengirim ke AI Server (dual):", `${AI_SERVER_URL}/predict/dual`);
+      fetch(`${AI_SERVER_URL}/predict/dual`, {
+        method: 'POST',
+        body: formData
+      })
+        .then(r => r.ok ? r.json() : Promise.reject(new Error("AI Server response not OK")))
+        .then(data => {
+          console.log("[GCS] Hasil prediksi AI QLV:", data);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64data = reader.result;
+            if (data.left?.prediction === 'Matang') matangCountRef.current += 1;
+            if (data.right?.prediction === 'Matang') matangCountRef.current += 1;
+            const leftConf = parseFloat(data.left?.confidence || 0) * 100;
+            const rightConf = parseFloat(data.right?.confidence || 0) * 100;
+            accuracyAccumRef.current += (leftConf + rightConf) / 2;
+            aiCallCountRef.current += 1;
+            setLiveAiVision({
+              active: true,
+              objectDetected: `QLV: L=${data.left?.prediction} | R=${data.right?.prediction}`,
+              isPalmFruit: true,
+              condition: leftConf >= rightConf ? data.left?.prediction : data.right?.prediction,
+              confidence: Math.max(leftConf, rightConf).toFixed(1),
+              boxPos: { top: 25 + Math.random() * 15, left: 35 + Math.random() * 15 },
+              mode: 'dual',
+              image_base64: null,
+              left: { prediction: data.left?.prediction, confidence_pct: leftConf.toFixed(1), image_base64: base64data },
+              right: { prediction: data.right?.prediction, confidence_pct: rightConf.toFixed(1), image_base64: base64data },
             });
+          };
+          reader.readAsDataURL(blob);
         })
         .catch((err) => {
-          console.error('[AI Scan Error]', err);
+          console.error('[GCS] Error di AI QLV Scan:', err);
           setAlertPopup({
             title: 'Koneksi AI Server Gagal',
             message: 'Gagal mengambil jepretan dari kamera atau menghubungi AI Server (port 8001). Silakan cek apakah AI Server sudah berjalan.'
           });
         });
     } else {
+      console.log("[GCS] Tidak ada source snapshot aktif, menjalankan offline QLV scan.");
       runOfflineScanQlv();
     }
+  };
+
+  const saveFlightLogFromState = () => {
+    if (!currentFlightInfoRef.current) return;
+    
+    // Hanya simpan jika durasi terbang > 3 detik agar tidak membanjiri DB dengan klik salah/coba-coba
+    if (flightTimeRef.current < 3) {
+      currentFlightInfoRef.current = null;
+      return;
+    }
+
+    const finalCount = scannedTreesRef.current;
+    const fInfo = currentFlightInfoRef.current;
+    const finalMatang = aiCallCountRef.current > 0 ? matangCountRef.current : Math.floor(finalCount * 0.65);
+    const finalBelum = finalCount - finalMatang;
+    const acc = aiCallCountRef.current > 0
+      ? Math.round(accuracyAccumRef.current / aiCallCountRef.current)
+      : (fInfo.scan === 'qlv' ? Math.floor(Math.random() * 6) + 89 : Math.floor(Math.random() * 4) + 96);
+    const flightSecs = flightTimeRef.current;
+    const battUsed = parseFloat((flightSecs * 0.01).toFixed(2));
+
+    const tempLog = {
+      id: 'LOG-' + Date.now(),
+      date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+      name: fInfo.name, nav: fInfo.nav, scan: fInfo.scan,
+      samples: finalCount, matang: finalMatang, belumMatang: finalBelum,
+      flightTime: flightSecs, batteryUsed: battUsed, accuracy: acc,
+    };
+    setFlightLogs(prev => [tempLog, ...prev]);
+    setCockpitWarning('✅ Penerbangan Selesai! Menyimpan log ke database...');
+
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    fetch('/api/flight-logs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
+      body: JSON.stringify({
+        mission_name: fInfo.name,
+        mission_id: fInfo.dbMissionId || null,
+        nav_algorithm: fInfo.nav,
+        scan_mode: fInfo.scan,
+        flight_time_seconds: flightSecs,
+        battery_used: battUsed,
+        samples_count: finalCount,
+        matang: finalMatang,
+        belum_matang: finalBelum,
+        accuracy: acc,
+        config_data: fInfo.configData || {},
+        telemetry_data: telemetryHistoryRef.current || [],
+      }),
+    })
+      .then(res => res.ok ? res.json() : Promise.reject(res.status))
+      .then(result => {
+        setFlightLogs(prev => prev.map(l =>
+          l.id === tempLog.id ? { ...l, id: result?.data?.id ?? tempLog.id } : l
+        ));
+        setCockpitWarning(`✅ Log "${fInfo.name}" disimpan ke DB!`);
+        setTimeout(() => setCockpitWarning(''), 4000);
+      })
+      .catch((err) => {
+        console.error('[Flight Log Save Error]', err);
+        setCockpitWarning('⚠️ Log disimpan lokal, gagal mengirim ke server!');
+        setTimeout(() => setCockpitWarning(''), 4000);
+      });
+
+    // Tetap auto-save misi ke /missions jika belum tersimpan dan bukan manual control
+    if (fInfo.nav !== 'Manual Control' && !fInfo.dbMissionId) {
+      setAutoSavePending({
+        mission_name: fInfo.name,
+        nav_algorithm: fInfo.nav,
+        scan_mode: fInfo.scan,
+        waypoints: fInfo.waypointSlim || [],
+        path_data: fInfo.pathSlim || [],
+        config_data: fInfo.configData || {},
+        status: 'Completed',
+        samples_count: finalCount,
+        flight_time: flightSecs,
+      });
+    }
+
+    // Reset Flight Stats
+    currentFlightInfoRef.current = null;
   };
 
   // --- PHYSICS ENGINE (200ms) ---
@@ -1104,81 +1285,7 @@ const AppGCS = () => {
           newAlt = Math.max(0, newAlt - 1.0); newSpeed = 0;
           if (newAlt <= 0 && prev.alt > 0) {
             flightStatusRef.current = 'STANDBY'; setFlightStatusUI('STANDBY'); currentWpIndexRef.current = 0;
-            const finalCount = scannedTreesRef.current;
-            if (currentFlightInfoRef.current) {
-              const fInfo = currentFlightInfoRef.current;
-              // ✅ Gunakan hasil AI nyata, fallback ke estimasi jika offline
-              const finalMatang = aiCallCountRef.current > 0
-                ? matangCountRef.current
-                : Math.floor(finalCount * 0.65);
-              const finalBelum = finalCount - finalMatang;
-              const acc = aiCallCountRef.current > 0
-                ? Math.round(accuracyAccumRef.current / aiCallCountRef.current)
-                : (fInfo.scan === 'qlv' ? Math.floor(Math.random() * 6) + 89 : Math.floor(Math.random() * 4) + 96);
-              const flightSecs = flightTimeRef.current;
-              const battUsed = parseFloat((flightSecs * 0.01).toFixed(2));
-
-              // 1. Update UI state langsung (optimistic)
-              const tempLog = {
-                id: 'LOG-' + Date.now(),
-                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
-                name: fInfo.name, nav: fInfo.nav, scan: fInfo.scan,
-                samples: finalCount, matang: finalMatang, belumMatang: finalBelum,
-                flightTime: flightSecs, batteryUsed: battUsed, accuracy: acc,
-              };
-              setFlightLogs(prev => [tempLog, ...prev]);
-              setCockpitWarning('✅ Mendarat! Menyimpan log ke database...');
-
-              // 2. BL-09: POST ke /api/flight-logs (BUKAN /missions)
-              const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
-              fetch('/api/flight-logs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf },
-                body: JSON.stringify({
-                  mission_name: fInfo.name,
-                  mission_id: fInfo.dbMissionId || null,
-                  nav_algorithm: fInfo.nav,
-                  scan_mode: fInfo.scan,
-                  flight_time_seconds: flightSecs,
-                  battery_used: battUsed,
-                  samples_count: finalCount,
-                  matang: finalMatang,
-                  belum_matang: finalBelum,
-                  accuracy: acc,
-                  config_data: fInfo.configData || {},
-                  telemetry_data: telemetryHistoryRef.current,
-                }),
-              })
-                .then(res => res.ok ? res.json() : Promise.reject(res.status))
-                .then(result => {
-                  // Update ID log dari DB (ganti ID sementara)
-                  setFlightLogs(prev => prev.map(l =>
-                    l.id === tempLog.id ? { ...l, id: result?.data?.id ?? tempLog.id } : l
-                  ));
-                  setCockpitWarning(`✅ Log "${fInfo.name}" tersimpan ke DB!`);
-                  setTimeout(() => setCockpitWarning(''), 4000);
-                })
-                .catch(() => {
-                  setCockpitWarning('⚠️ Log disimpan lokal, gagal ke server!');
-                  setTimeout(() => setCockpitWarning(''), 4000);
-                });
-
-              // 3. Tetap auto-save misi ke /missions jika belum tersimpan
-              if (!fInfo.dbMissionId) {
-                setAutoSavePending({
-                  mission_name: fInfo.name,
-                  nav_algorithm: fInfo.nav,
-                  scan_mode: fInfo.scan,
-                  waypoints: fInfo.waypointSlim || [],
-                  path_data: fInfo.pathSlim || [],
-                  config_data: fInfo.configData || {},
-                  status: 'Completed',
-                  samples_count: finalCount,
-                  flight_time: flightSecs,
-                });
-              }
-              currentFlightInfoRef.current = null;
-            }
+            saveFlightLogFromState();
           }
         }
 
@@ -1224,6 +1331,7 @@ const AppGCS = () => {
 
   // --- FLIGHT CONTROLS ---
   const handleStartFlight = () => {
+    if (!selectedUploadDrone) { setCockpitWarning('Pilih Drone Terlebih Dahulu!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
     if (!droneMode) { setCockpitWarning('Pilih Mode Sistem!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
     if (!navAlgorithm) { setCockpitWarning('Pilih Algoritma Navigasi!'); setTimeout(() => setCockpitWarning(''), 3000); return; }
     // Dead Reckoning tidak butuh scanMode — dikendalikan oleh rule engine
@@ -1544,6 +1652,10 @@ const AppGCS = () => {
           drCurrentStep={drCurrentStep}
           drSequence={drSequence}
           handleStopDeadReckoning={handleStopDeadReckoning}
+          drones={drones}
+          selectedUploadDrone={selectedUploadDrone}
+          setSelectedUploadDrone={handleSelectDrone}
+          setDroneMode={setDroneMode}
         />
 
         {/* CENTER + RIGHT — existing panel */}
@@ -1621,6 +1733,7 @@ const AppGCS = () => {
           setSelectedUploadDrone={setSelectedUploadDrone}
           setWarning={setWarning}
           isUploadReady={isUploadReady}
+          handleStartFlight={handleStartFlight}
 
           handleExportExcel={handleExportExcel}
 
@@ -1640,6 +1753,7 @@ const AppGCS = () => {
               targetAltitude={targetAltitude}
               isPipVisible={isPipVisible}
               setIsPipVisible={setIsPipVisible}
+              videoProtocol={videoProtocol}
             />
           }
           topCockpitPanel={null}

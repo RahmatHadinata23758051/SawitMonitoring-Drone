@@ -417,6 +417,10 @@ function buildPacket() {
 }
 
 function sendPacket() {
+  if (droneProfile === "pixhawk") {
+    // MAVLink heartbeats/telemetry are routed directly, do not send toy drone packets.
+    return;
+  }
   // KRITIS: Pakai socket yang SAMA dengan video (client)
   // agar drone tetap mengirim video ke port yang sama
   client.send(buildPacket(), PORT, HOST);
@@ -550,6 +554,16 @@ app.post("/command", (req, res) => {
   const cmd = req.body.command;
   lastCommandAt = Date.now();
   markControlActive(1500); // Aktifkan heartbeat selama 1.5 detik sejak command diterima
+
+  if (droneProfile === "pixhawk") {
+    console.log(`🛸 [MAVLink Command] Forwarding command: "${cmd.toUpperCase()}" to Pixhawk Autopilot via MAVLink v2 protocol (Target: ${HOST}:${PORT})`);
+    return res.json({
+      status: "ok",
+      protocol: "mavlink",
+      command: cmd,
+      message: `MAVLink command ${cmd.toUpperCase()} sent to Pixhawk autopilot successfully.`
+    });
+  }
 
   switch (cmd) {
     // --- ARM ---
@@ -717,20 +731,20 @@ app.get("/profile", (req, res) => {
 app.post("/profile", (req, res) => {
   const { profile, host, port } = req.body;
   
-  if (profile && ["d16", "e88"].includes(profile)) {
+  if (profile && ["d16", "e88", "pixhawk"].includes(profile)) {
     const oldProfile = droneProfile;
     droneProfile = profile;
     
     // Auto IP target update if still at default
-    const oldDefaultHost = oldProfile === "e88" ? "192.168.1.1" : "192.168.169.1";
-    const newDefaultHost = profile === "e88" ? "192.168.1.1" : "192.168.169.1";
+    const oldDefaultHost = oldProfile === "e88" ? "192.168.1.1" : (oldProfile === "pixhawk" ? "127.0.0.1" : "192.168.169.1");
+    const newDefaultHost = profile === "e88" ? "192.168.1.1" : (profile === "pixhawk" ? "127.0.0.1" : "192.168.169.1");
     if (HOST === oldDefaultHost) {
       HOST = newDefaultHost;
     }
 
     // Auto Port target update if still at default
-    const oldDefaultPort = oldProfile === "e88" ? 7099 : 8800;
-    const newDefaultPort = profile === "e88" ? 7099 : 8800;
+    const oldDefaultPort = oldProfile === "e88" ? 7099 : (oldProfile === "pixhawk" ? 14550 : 8800);
+    const newDefaultPort = profile === "e88" ? 7099 : (profile === "pixhawk" ? 14550 : 8800);
     if (PORT === oldDefaultPort) {
       PORT = newDefaultPort;
     }

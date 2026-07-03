@@ -176,7 +176,7 @@ const GCSCameraPanel = ({
   droneMode, isVideoConnected, webcamStream, videoRef,
   liveStreamUrl, setIsVideoConnected, setAlertPopup,
   liveAiVision, telemetry, targetAltitude,
-  isPipVisible, setIsPipVisible
+  isPipVisible, setIsPipVisible, videoProtocol
 }) => {
   const hlsVideoRef = useRef(null);
   const [hlsStatus, setHlsStatus] = useState('WAITING');
@@ -217,20 +217,21 @@ const GCSCameraPanel = ({
 
   // Render video content based on mode
   const renderVideoContent = () => {
-    if (droneMode === 'simulasi' && isVideoConnected && webcamStream) {
-      return <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />;
-    }
-
-    if (droneMode === 'real' && isVideoConnected) {
-      if (liveStreamUrl?.endsWith('.m3u8')) {
-        return (
-          <video ref={hlsVideoRef} autoPlay playsInline muted className="w-full h-full object-cover"
-            onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat HLS stream.' }); }} />
-        );
+    if (isVideoConnected) {
+      if (videoProtocol === 'dummy') {
+        if (webcamStream) {
+          return <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />;
+        }
+      } else {
+        if (liveStreamUrl?.endsWith('.m3u8')) {
+          return (
+            <video ref={hlsVideoRef} autoPlay playsInline muted className="w-full h-full object-cover"
+              onError={() => { setIsVideoConnected(false); setAlertPopup({ title: 'Video Terputus', message: 'Gagal memuat HLS stream.' }); }} />
+          );
+        }
+        // GPU-Accelerated Canvas Stream (60 FPS redraw, persis Android SurfaceView)
+        return <DroneCanvasStream wsUrl={`ws://${window.location.hostname}:3003`} />;
       }
-
-      // GPU-Accelerated Canvas Stream (60 FPS redraw, persis Android SurfaceView)
-      return <DroneCanvasStream wsUrl={`ws://${window.location.hostname}:3003`} />;
     }
 
     return (

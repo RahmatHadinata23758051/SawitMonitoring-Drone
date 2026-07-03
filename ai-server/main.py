@@ -26,7 +26,7 @@ import tensorflow as tf
 BASE_DIR = Path(__file__).parent
 
 # Coba gunakan absolute path di laptop developer, jika tidak ada fallback ke folder internal
-DEV_MODEL_PATH = Path(r"C:\Users\user\Nata\magang\Capstone-Klasifikasi\Klasifikasi-Sawit\models\mobilenetv2_sawit_baseline.keras")
+DEV_MODEL_PATH = Path(r"C:\Users\user\Nata\magang\Capstone-Klasifikasi\Klasifikasi-Sawit\models\mobilenetv2_sawit_baseline.h5")
 DEV_CLASS_MAP_PATH = Path(r"C:\Users\user\Nata\magang\Capstone-Klasifikasi\Klasifikasi-Sawit\models\class_mapping.json")
 DEV_DATASET_PATH   = Path(r"C:\Users\user\Nata\magang\Capstone-Klasifikasi\Klasifikasi-Sawit\Dataset\train")
 
@@ -35,18 +35,69 @@ if DEV_MODEL_PATH.exists():
     CLASS_MAP_PATH = DEV_CLASS_MAP_PATH
     DATASET_PATH = DEV_DATASET_PATH
 else:
-    MODEL_PATH = BASE_DIR / "models" / "mobilenetv2_sawit_baseline.keras"
+    MODEL_PATH = BASE_DIR / "models" / "mobilenetv2_sawit_baseline.h5"
     CLASS_MAP_PATH = BASE_DIR / "models" / "class_mapping.json"
     DATASET_PATH = BASE_DIR / "Dataset" / "train"
 
 INPUT_SIZE = (224, 224)
 
 # ============================================================
-# MODEL LOADING (sekali saat startup)
+# MODEL LOADING (Custom weight loader to bypass version conflicts)
 # ============================================================
-print("[AI Server] Memuat model MobileNetV2...")
-model = tf.keras.models.load_model(str(MODEL_PATH))
-print(f"[AI Server] Model berhasil dimuat: {MODEL_PATH.name}")
+import h5py
+
+print("[AI Server] Membangun model MobileNetV2 secara manual...")
+base_model = tf.keras.applications.MobileNetV2(
+    input_shape=(224, 224, 3),
+    include_top=False,
+    weights=None
+)
+
+inputs = tf.keras.Input(shape=(224, 224, 3), name='input_layer_1')
+x = base_model(inputs)
+x = tf.keras.layers.GlobalAveragePooling2D(name='global_average_pooling2d')(x)
+x = tf.keras.layers.BatchNormalization(name='batch_normalization')(x)
+x = tf.keras.layers.Dropout(0.3, name='dropout')(x)
+outputs = tf.keras.layers.Dense(1, activation='sigmoid', name='output')(x)
+
+model = tf.keras.Model(inputs=inputs, outputs=outputs)
+
+print(f"[AI Server] Memuat bobot model dari {MODEL_PATH.name}...")
+try:
+    with h5py.File(str(MODEL_PATH), 'r') as f:
+        # 1. Load output layer weights
+        output_kernel = f['model_weights/output/output/kernel'][:]
+        output_bias = f['model_weights/output/output/bias'][:]
+        model.get_layer('output').set_weights([output_kernel, output_bias])
+        
+        # 2. Load top-level BatchNormalization weights
+        bn_beta = f['model_weights/batch_normalization/batch_normalization/beta'][:]
+        bn_gamma = f['model_weights/batch_normalization/batch_normalization/gamma'][:]
+        bn_mean = f['model_weights/batch_normalization/batch_normalization/moving_mean'][:]
+        bn_var = f['model_weights/batch_normalization/batch_normalization/moving_variance'][:]
+        model.get_layer('batch_normalization').set_weights([bn_gamma, bn_beta, bn_mean, bn_var])
+        
+        # 3. Load base model layers
+        base_model_layer = model.get_layer('mobilenetv2_1.00_224')
+        for layer in base_model_layer.layers:
+            layer_group_name = f'model_weights/mobilenetv2_1.00_224/{layer.name}'
+            if layer_group_name in f:
+                g = f[layer_group_name]
+                weights = []
+                for w in layer.weights:
+                    w_var_name = w.name.split('/')[-1].split(':')[0]
+                    # Fix mapping: depthwise_kernel -> kernel (newer Keras stores it as 'kernel' in H5)
+                    h5_var_name = w_var_name
+                    if w_var_name == 'depthwise_kernel' and 'kernel' in g:
+                        h5_var_name = 'kernel'
+                    if h5_var_name in g:
+                        weights.append(g[h5_var_name][:])
+                if weights:
+                    layer.set_weights(weights)
+                    
+    print("[AI Server] Model MobileNetV2 dan bobot berhasil dimuat!")
+except Exception as e:
+    print(f"[AI Server] [ERROR] Gagal memuat bobot model: {e}")
 
 with open(CLASS_MAP_PATH, "r") as f:
     CLASS_MAP = json.load(f)  # {"0": "Matang", "1": "Mentah"}
@@ -88,7 +139,7 @@ def preprocess_image(img: Image.Image) -> np.ndarray:
     """Resize + normalize gambar ke format input model."""
     img = img.convert("RGB")
     img = img.resize(INPUT_SIZE)
-    arr = np.array(img, dtype=np.float32) / 255.0
+    arr = np.array(img, dtype=np.float32)
     return np.expand_dims(arr, axis=0)  # (1, 224, 224, 3)
 
 

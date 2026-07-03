@@ -39,7 +39,7 @@ class LaporanController extends Controller
             'file',
             file_get_contents($file->getRealPath()),
             $file->getClientOriginalName()
-        )->post('http://127.0.0.1:8001/predict');
+        )->post(env('AI_SERVICE_URL', 'http://127.0.0.1:8001') . '/predict');
 
         if (!$response->successful()) {
             return response()->json([

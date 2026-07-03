@@ -440,8 +440,8 @@ class FlightLogController extends Controller
         $validated = $request->validate([
             'mission_name'        => 'required|string|max:255',
             'mission_id'          => 'nullable|integer|exists:missions,id',
-            'nav_algorithm'       => 'nullable|string|in:dead_reckoning,live_reckoning,hybrid',
-            'scan_mode'           => 'nullable|string|in:traditional,qlv',
+            'nav_algorithm'       => 'nullable|string|in:dead_reckoning,live_reckoning,hybrid,manual,Manual Control',
+            'scan_mode'           => 'nullable|string|in:traditional,qlv,manual,Manual',
             'flight_time_seconds' => 'required|integer|min:0',
             'battery_used'        => 'required|numeric|min:0',
             'samples_count'       => 'required|integer|min:0',

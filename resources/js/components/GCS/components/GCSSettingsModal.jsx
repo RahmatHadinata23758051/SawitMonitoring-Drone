@@ -180,6 +180,20 @@ const GCSSettingsModal = ({
                         <span className="text-[9px] text-slate-400 block font-normal leading-tight font-sans">9-byte Packet | Port 7099</span>
                       </div>
                     </button>
+                    <button
+                      onClick={() => handleUpdateDroneProfile('pixhawk')}
+                      className={`cursor-pointer border rounded-xl p-3 flex items-center gap-2.5 transition ${
+                        droneProfile === 'pixhawk'
+                          ? t('bg-emerald-950/30 border-emerald-800/80 ring-2 ring-emerald-900 text-emerald-400 font-bold', 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-100 text-emerald-700 font-bold')
+                          : t('bg-slate-950/30 border-slate-800 text-slate-400 hover:bg-slate-800', 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100')
+                      }`}
+                    >
+                      <Plane className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <div className="text-left">
+                        <span className="text-xs block font-bold font-sans">Pixhawk (Real)</span>
+                        <span className="text-[9px] text-slate-400 block font-normal leading-tight font-sans">MAVLink v2 | USB/Wi-Fi</span>
+                      </div>
+                    </button>
                   </div>
                   <p className="text-[9px] text-slate-400 mt-2">Pilih profil sesuai model drone fisik yang Anda gunakan untuk terbang di lapangan.</p>
                 </div>
@@ -335,8 +349,8 @@ const GCSSettingsModal = ({
                   <h2 className="text-base font-extrabold flex items-center gap-2 mb-1 text-slate-900"><Plane className="w-4 h-4 text-blue-500" /> Manajemen Drone</h2>
                   <p className="text-xs text-slate-500">Kelola daftar armada drone untuk target upload misi.</p>
                 </div>
-                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
-                  <div className="grid grid-cols-3 gap-3 mb-3">
+                 <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                  <div className="grid grid-cols-4 gap-3 mb-3">
                     <div>
                       <label className="text-[9px] font-bold block mb-1 text-slate-400 tracking-widest">ID DRONE</label>
                       <input type="text" value={droneForm.id} onChange={e => setDroneForm({ ...droneForm, id: e.target.value })} disabled={isEditingDrone} placeholder="DRN-001" className="w-full border border-slate-200 rounded-lg p-2 text-xs disabled:opacity-50 focus:outline-none bg-white text-slate-900" />
@@ -344,6 +358,14 @@ const GCSSettingsModal = ({
                     <div>
                       <label className="text-[9px] font-bold block mb-1 text-slate-400 tracking-widest">MERK</label>
                       <input type="text" value={droneForm.merk} onChange={e => setDroneForm({ ...droneForm, merk: e.target.value })} placeholder="DJI Matrice 300" className="w-full border border-slate-200 rounded-lg p-2 text-xs focus:outline-none bg-white text-slate-900" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-bold block mb-1 text-slate-400 tracking-widest">PROFIL</label>
+                      <select value={droneForm.profil || 'd16'} onChange={e => setDroneForm({ ...droneForm, profil: e.target.value })} className="w-full border border-slate-200 rounded-lg p-2 text-xs focus:outline-none bg-white text-slate-900">
+                        <option value="d16">D16 Mini</option>
+                        <option value="e88">E88 Pro</option>
+                        <option value="pixhawk">Pixhawk (MAVLink)</option>
+                      </select>
                     </div>
                     <div>
                       <label className="text-[9px] font-bold block mb-1 text-slate-400 tracking-widest">STATUS</label>
@@ -356,15 +378,55 @@ const GCSSettingsModal = ({
                   </div>
                   <div className="flex justify-end gap-2">
                     {isEditingDrone && (
-                      <button onClick={() => { setIsEditingDrone(false); setDroneForm({ id: '', merk: '', status: 'Standby' }); }} className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition">BATAL</button>
+                      <button onClick={() => { setIsEditingDrone(false); setDroneForm({ id: '', merk: '', status: 'Standby', profil: 'd16' }); }} className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition">BATAL</button>
                     )}
                     <button
                       onClick={() => {
                         if (!droneForm.id || !droneForm.merk) return;
-                        if (isEditingDrone) setDrones(p => p.map(d => d.id === droneForm.id ? droneForm : d));
-                        else setDrones(p => [...p, droneForm]);
-                        setDroneForm({ id: '', merk: '', status: 'Standby' });
-                        setIsEditingDrone(false);
+                        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                        const payload = {
+                          id_drone: droneForm.id,
+                          ip_drone: droneForm.merk,
+                          status: droneForm.status === 'Standby' ? 1 : 0,
+                          profil: droneForm.profil || 'd16'
+                        };
+                        
+                        if (isEditingDrone) {
+                          fetch(`/perangkat/${droneForm.id}`, {
+                            method: 'PUT',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'X-CSRF-TOKEN': csrf,
+                              'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                          })
+                          .then(r => r.json())
+                          .then(res => {
+                            if (res.success) {
+                              setDrones(p => p.map(d => d.id === droneForm.id ? { id: res.data.id, merk: res.data.merk, status: res.data.status, profil: res.data.profil } : d));
+                              setDroneForm({ id: '', merk: '', status: 'Standby', profil: 'd16' });
+                              setIsEditingDrone(false);
+                            }
+                          });
+                        } else {
+                          fetch('/perangkat', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'X-CSRF-TOKEN': csrf,
+                              'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                          })
+                          .then(r => r.json())
+                          .then(res => {
+                            if (res.success) {
+                              setDrones(p => [...p, { id: res.data.id, merk: res.data.merk, status: res.data.status, profil: res.data.profil }]);
+                              setDroneForm({ id: '', merk: '', status: 'Standby', profil: 'd16' });
+                            }
+                          });
+                        }
                       }}
                       className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition"
                     >
@@ -375,13 +437,14 @@ const GCSSettingsModal = ({
                 <div className="flex-1 border border-slate-200 rounded-xl overflow-hidden bg-white">
                   <table className="w-full text-[10px]">
                     <thead className="border-b bg-slate-100 text-slate-600 border-slate-200">
-                      <tr><th className="p-2 text-left">ID</th><th className="p-2 text-left">Merk</th><th className="p-2 text-center">Status</th><th className="p-2 text-center">Aksi</th></tr>
+                      <tr><th className="p-2 text-left">ID</th><th className="p-2 text-left">Merk</th><th className="p-2 text-left">Profil</th><th className="p-2 text-center">Status</th><th className="p-2 text-center">Aksi</th></tr>
                     </thead>
                     <tbody className="text-slate-700">
                       {drones.map(d => (
                         <tr key={d.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="p-2 font-bold text-blue-600">{d.id}</td>
                           <td className="p-2">{d.merk}</td>
+                          <td className="p-2 font-mono text-[9px] uppercase">{d.profil === 'pixhawk' ? 'Pixhawk' : d.profil === 'e88' ? 'E88 Pro' : 'D16 Mini'}</td>
                           <td className="p-2 text-center">
                             <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold ${d.status === 'Standby' ? 'bg-blue-50 text-blue-600 border-blue-200' : d.status === 'Active' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-slate-100 text-slate-500 border-slate-300'}`}>
                               {d.status}
@@ -390,12 +453,32 @@ const GCSSettingsModal = ({
                           <td className="p-2 text-center">
                             <div className="flex justify-center gap-1.5">
                               <button onClick={() => { setDroneForm(d); setIsEditingDrone(true); }} className="p-1.5 rounded text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 transition"><Edit className="w-3 h-3" /></button>
-                              <button onClick={() => setDrones(p => p.filter(x => x.id !== d.id))} className="p-1.5 rounded text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition"><Trash2 className="w-3 h-3" /></button>
+                              <button 
+                                onClick={() => {
+                                  const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                                  fetch(`/perangkat/${d.id}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                      'X-CSRF-TOKEN': csrf,
+                                      'Accept': 'application/json'
+                                    }
+                                  })
+                                  .then(r => r.json())
+                                  .then(res => {
+                                    if (res.success) {
+                                      setDrones(p => p.filter(x => x.id !== d.id));
+                                    }
+                                  });
+                                }} 
+                                className="p-1.5 rounded text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
                             </div>
                           </td>
                         </tr>
                       ))}
-                      {drones.length === 0 && <tr><td colSpan="4" className="text-center p-4 italic text-slate-400">Belum ada data drone.</td></tr>}
+                      {drones.length === 0 && <tr><td colSpan="5" className="text-center p-4 italic text-slate-400">Belum ada data drone.</td></tr>}
                     </tbody>
                   </table>
                 </div>

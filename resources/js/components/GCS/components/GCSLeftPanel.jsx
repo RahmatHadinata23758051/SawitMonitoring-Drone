@@ -19,6 +19,8 @@ const GCSLeftPanel = ({
   t,
   // Dead Reckoning
   drRunning, drCurrentStep, drSequence, handleStopDeadReckoning,
+  // Drones
+  drones, selectedUploadDrone, setSelectedUploadDrone, setDroneMode,
   // Unused props (kept for interface compat)
   isVideoConnected, webcamStream, videoRef, liveStreamUrl,
   setIsVideoConnected, setAlertPopup, isPipVisible, setIsPipVisible,
@@ -192,6 +194,50 @@ const GCSLeftPanel = ({
 
         {!cockpitMinimized && (
           <div className="p-3 flex flex-col gap-2">
+
+            {/* Active Drone Selector */}
+            <div className="flex flex-col gap-1 border-b pb-2 mb-1">
+              <label className="text-[9px] font-bold tracking-widest text-slate-400">PILIH ARMADA DRONE</label>
+              <select 
+                value={selectedUploadDrone} 
+                onChange={(e) => setSelectedUploadDrone(e.target.value)} 
+                className="w-full border border-slate-200 rounded-lg p-2 text-[10px] font-mono focus:outline-none text-slate-800 bg-slate-50"
+              >
+                <option value="">-- Pilih Drone --</option>
+                {drones && drones.map(d => (
+                  <option key={d.id} value={d.id} disabled={d.status !== 'Standby'}>
+                    {d.id} - {d.merk} {d.status !== 'Standby' ? `(${d.status})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Operational Mode Selector */}
+            <div className="flex flex-col gap-1 border-b pb-2 mb-1.5">
+              <label className="text-[9px] font-bold tracking-widest text-slate-400">MODE OPERASIONAL</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={() => setDroneMode('simulasi')}
+                  className={`text-[9px] font-bold py-1.5 px-2 rounded-lg border transition ${
+                    droneMode === 'simulasi'
+                      ? 'bg-blue-100 border-blue-300 text-blue-700 font-extrabold'
+                      : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                  }`}
+                >
+                  🖥️ SIMULASI
+                </button>
+                <button
+                  onClick={() => setDroneMode('real')}
+                  className={`text-[9px] font-bold py-1.5 px-2 rounded-lg border transition ${
+                    droneMode === 'real'
+                      ? 'bg-orange-100 border-orange-300 text-orange-700 font-extrabold'
+                      : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                  }`}
+                >
+                  🛸 DRONE REAL
+                </button>
+              </div>
+            </div>
 
             {/* Flight State Badge */}
             <div className="flex items-center justify-between">
