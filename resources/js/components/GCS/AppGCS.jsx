@@ -912,14 +912,14 @@ const AppGCS = () => {
   };
 
   const getSnapshotBlob = async () => {
-    // 1. Jika mode simulasi dan webcam aktif, ambil dari canvas lokal
-    if (droneMode === 'simulasi' && webcamStream && videoRef.current) {
+    // 1. Jika menggunakan webcam lokal (dummy protocol)
+    if (videoProtocol === 'dummy' && webcamStream && videoRef.current) {
       console.log("[GCS] Mengambil snapshot dari webcam lokal...");
       return await captureFrameFromWebcam();
     }
     
-    // 2. Jika mode real dan terhubung, fetch dari proxy drone server
-    if (droneMode === 'real' && isVideoConnected) {
+    // 2. Jika menggunakan kamera eksternal (usb_webcam, ptc08, d16, mjpeg)
+    if (videoProtocol !== 'dummy' && isVideoConnected) {
       console.log("[GCS] Mengambil snapshot dari proxy drone server...");
       try {
         const res = await fetch(`http://${window.location.hostname}:3002/snapshot.jpg`);
